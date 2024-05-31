@@ -1,0 +1,54 @@
+.presentation:fullscreen {
+    background-color: white;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+}
+
+.toolbar > div {
+    cursor: pointer;
+}
+
+.presentation__toolbar-item {
+    height: 24px;
+    width: 24px;
+}
+
+.presentation {
+    position: relative;
+    width: 960px;
+    height: 700px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.presentation__text-node {
+    //border: 1px solid transparent;
+    padding: 8px 12px;
+    display: inline-block;
+    position: absolute;
+    user-select: none;
+}
+
+.presentation__node--selected {
+    outline: 1px dotted red;
+}
+
+.presentation .presentation__node--selected:focus,
+.presentation .presentation__node--selected:active {
+    outline: 1px dotted red !important;
+}
+
+.presentation__node--editing {
+    outline: 1px solid red;
+    user-select: auto;
+}
+
+.presentation__mutation-table {
+    width: 900px;
+}

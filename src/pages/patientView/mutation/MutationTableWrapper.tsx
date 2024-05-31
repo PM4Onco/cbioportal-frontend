@@ -3,7 +3,6 @@ import { observer } from 'mobx-react';
 import { makeObservable, observable } from 'mobx';
 import { ClinicalData, Mutation } from 'cbioportal-ts-api-client';
 import { MobxPromise } from 'cbioportal-frontend-commons';
-import { IColumnVisibilityControlsProps } from 'shared/components/columnVisibilityControls/ColumnVisibilityControls';
 import SampleManager from '../SampleManager';
 import PubMedCache from 'shared/cache/PubMedCache';
 import MrnaExprRankCache from 'shared/cache/MrnaExprRankCache';
@@ -37,6 +36,7 @@ import { NamespaceColumnConfig } from 'shared/components/namespaceColumns/Namesp
 import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
 import AnnotationColumnFormatter from 'shared/components/mutationTable/column/AnnotationColumnFormatter';
 import { MutationTableColumnType } from 'shared/components/mutationTable/MutationTable';
+import { IColumnVisibilityControlsProps } from 'shared/components/columnVisibilityControls/ColumnVisibilityControls';
 
 export const TABLE_FEATURE_INSTRUCTION =
     'Click on an mutation to zoom in on the gene in the IGV browser above';
@@ -96,6 +96,7 @@ export default class MutationTableWrapper extends React.Component<
     constructor(props: IMutationTableWrapperProps) {
         super(props);
         makeObservable(this);
+        console.log(123);
 
         // here we wait for the oncokb icons to fully finish rendering
         // then update the oncokb width in order to align annotation column header icons with the cell content

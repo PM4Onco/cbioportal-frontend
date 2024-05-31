@@ -4,7 +4,7 @@ import TimelineWrapper from 'pages/patientView/timeline/TimelineWrapper';
 import WindowStore from 'shared/components/window/WindowStore';
 import GenomicOverview from 'pages/patientView/genomicOverview/GenomicOverview';
 import { defaultAlleleFrequencyHeaderTooltip } from 'pages/patientView/mutation/PatientViewMutationTable';
-import { getServerConfig, ServerConfigHelpers } from 'config/config';
+import { getServerConfig } from 'config/config';
 import StructuralVariantTableWrapper from 'pages/patientView/structuralVariant/StructuralVariantTableWrapper';
 import CopyNumberTableWrapper from 'pages/patientView/copyNumberAlterations/CopyNumberTableWrapper';
 import PatientViewMutationsTab from 'pages/patientView/mutation/PatientViewMutationsTab';
@@ -24,7 +24,7 @@ import MutationalSignaturesContainer from 'pages/patientView/mutationalSignature
 import { buildCustomTabs } from 'shared/lib/customTabs/customTabHelpers';
 import * as React from 'react';
 import SampleManager from 'pages/patientView/SampleManager';
-import PatientViewPage from 'pages/patientView/PatientViewPage';
+import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
 import PatientViewUrlWrapper from 'pages/patientView/PatientViewUrlWrapper';
 import { ClinicalTrialMatchTable } from './clinicalTrialMatch/ClinicalTrialMatchTable';
 import MtbTable from './therapyRecommendation/MtbTable';
@@ -38,8 +38,8 @@ import FeatureInstruction from 'shared/FeatureInstruction/FeatureInstruction';
 import { HelpWidget } from 'shared/components/HelpWidget/HelpWidget';
 import FollowUpTable from './therapyRecommendation/FollowUpTable';
 import MutationTableWrapper from './mutation/MutationTableWrapper';
-import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
 import { Else, If } from 'react-if';
+import { Presentation } from 'pages/patientView/presentation/Presentation';
 
 export enum PatientViewPageTabs {
     Summary = 'summary',
@@ -53,6 +53,7 @@ export enum PatientViewPageTabs {
     MutationalSignatures = 'mutationalSignatures',
     PathwayMapper = 'pathways',
     Mtb = 'mtb',
+    Presentation = 'mtbPresentation',
     FollowUp = 'followUp',
     ClinicalTrialsGov = 'clinicaltrialsGov',
 }
@@ -726,6 +727,50 @@ export function tabs(
                 />
             </MSKTab>
         );
+
+    tabs.push(
+        <MSKTab
+            key={43}
+            id={PatientViewPageTabs.Presentation}
+            linkText="MTB Presentation"
+            unmountOnHide={false}
+        >
+            <Presentation
+                clinicalData={
+                    pageComponent.patientViewPageStore.clinicalDataPatient
+                        .result
+                }
+                patientViewPageStore={pageComponent.patientViewPageStore}
+                dataStore={pageComponent.patientViewMutationDataStore}
+                sampleManager={sampleManager}
+                sampleIds={
+                    sampleManager
+                        ? sampleManager.getActiveSampleIdsInOrder()
+                        : []
+                }
+                mergeOncoKbIcons={pageComponent.mergeMutationTableOncoKbIcons}
+                onOncoKbIconToggle={pageComponent.handleOncoKbIconToggle}
+                columnVisibility={pageComponent.mutationTableColumnVisibility}
+                onFilterGenes={pageComponent.onFilterGenesMutationTable}
+                columnVisibilityProps={{
+                    onColumnToggled:
+                        pageComponent.onMutationTableColumnVisibilityToggled,
+                }}
+                onSelectGenePanel={pageComponent.toggleGenePanelModal}
+                disableTooltip={pageComponent.genePanelModal.isOpen}
+                onRowClick={pageComponent.onMutationTableRowClick}
+                onRowMouseEnter={pageComponent.onMutationTableRowMouseEnter}
+                onRowMouseLeave={pageComponent.onMutationTableRowMouseLeave}
+                namespaceColumns={
+                    pageComponent.patientViewMutationDataStore
+                        .namespaceColumnConfig
+                }
+                columns={pageComponent.columns}
+                pageMode={pageComponent.patientViewPageStore.pageMode}
+                alleleFreqHeaderRender={undefined}
+            ></Presentation>
+        </MSKTab>
+    );
 
     pageComponent.shouldShowFollowUpTab &&
         pageComponent.patientViewPageStore.mutationData.isComplete &&
