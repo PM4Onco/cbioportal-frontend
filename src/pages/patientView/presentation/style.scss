@@ -49,6 +49,11 @@
     user-select: auto;
 }
 
+.presentation .presentation__node--editing:focus,
+.presentation .presentation__node--editing:active {
+    outline: 1px solid red !important;
+}
+
 .presentation__mutation-table {
     width: 900px;
 }
