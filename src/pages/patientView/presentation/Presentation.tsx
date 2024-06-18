@@ -112,30 +112,30 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         useEffect(() => {
             // Prevents double initialization in strict mode
-            // if (deckRef.current) return;
-            //
-            // deckRef.current = new Reveal(deckDivRef.current!, {
-            //     transition: 'slide',
-            //     controls: false,
-            //     progress: false,
-            //     embedded: true,
-            //     disableLayout: true
-            // });
-            //
-            // deckRef.current.initialize().then(() => {
-            //     // good place for event handlers and plugin setups
-            // });
-            //
-            // return () => {
-            //     try {
-            //         if (deckRef.current) {
-            //             deckRef.current.destroy();
-            //             deckRef.current = null;
-            //         }
-            //     } catch (e) {
-            //         console.warn('Reveal.js destroy call failed.');
-            //     }
-            // };
+            if (deckRef.current) return;
+
+            deckRef.current = new Reveal(deckDivRef.current!, {
+                transition: 'slide',
+                controls: false,
+                progress: false,
+                embedded: true,
+                disableLayout: true,
+            });
+
+            deckRef.current.initialize().then(() => {
+                // good place for event handlers and plugin setups
+            });
+
+            return () => {
+                try {
+                    if (deckRef.current) {
+                        deckRef.current.destroy();
+                        deckRef.current = null;
+                    }
+                } catch (e) {
+                    console.warn('Reveal.js destroy call failed.');
+                }
+            };
         }, []);
 
         function toggleFullscreen() {
@@ -311,45 +311,47 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                     </div>
                 </div>
                 <div className="presentation">
-                    <DndContext
-                        sensors={sensors}
-                        onDragEnd={e => {
-                            const nextItems = positions.map(item => {
-                                if (item.id === e.active.id) {
-                                    item.left += e.delta.x;
-                                    item.top += e.delta.y;
-                                    return item;
-                                } else {
-                                    return item;
-                                }
-                            });
+                    <div className="reveal" ref={deckDivRef}>
+                        <div className="slides">
+                            <section>
+                                <DndContext
+                                    sensors={sensors}
+                                    onDragEnd={e => {
+                                        const nextItems = positions.map(
+                                            item => {
+                                                if (item.id === e.active.id) {
+                                                    item.left += e.delta.x;
+                                                    item.top += e.delta.y;
+                                                    return item;
+                                                } else {
+                                                    return item;
+                                                }
+                                            }
+                                        );
 
-                            setPositions(nextItems);
-                        }}
-                    >
-                        {components.map(component => {
-                            const position = positions.find(
-                                position => position.id === component.id
-                            );
-                            if (!position) return;
-                            return React.createElement(Draggable, {
-                                id: component.id,
-                                top: position.top,
-                                left: position.left,
-                                children: Dynamic(component.type, {
-                                    innerRef: component.innerRef,
-                                }),
-                            });
-                        })}
-                    </DndContext>
-                    {/*<div className="reveal" ref={deckDivRef}>*/}
-                    {/*    <div className="slides">*/}
-                    {/*        <section>*/}
-                    {/*            {React.Children.toArray(components)}*/}
-                    {/*        </section>*/}
-                    {/*        <section>Slide 2</section>*/}
-                    {/*    </div>*/}
-                    {/*</div>*/}
+                                        setPositions(nextItems);
+                                    }}
+                                >
+                                    {components.map(component => {
+                                        const position = positions.find(
+                                            position =>
+                                                position.id === component.id
+                                        );
+                                        if (!position) return;
+                                        return React.createElement(Draggable, {
+                                            id: component.id,
+                                            top: position.top,
+                                            left: position.left,
+                                            children: Dynamic(component.type, {
+                                                innerRef: component.innerRef,
+                                            }),
+                                        });
+                                    })}
+                                </DndContext>
+                            </section>
+                            <section>Slide 2</section>
+                        </div>
+                    </div>
                     {/*<PatientData data={mapClinicalData()}></PatientData>*/}
                 </div>
             </div>

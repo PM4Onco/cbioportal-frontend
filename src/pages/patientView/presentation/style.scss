@@ -2,6 +2,10 @@
     background-color: white;
 }
 
+.presentation {
+    margin: 14px auto 0;
+}
+
 .toolbar {
     display: flex;
     justify-content: center;
@@ -36,22 +40,22 @@
 }
 
 .presentation__node--selected {
-    outline: 1px dotted red;
+    outline: 1px dotted black;
 }
 
 .presentation .presentation__node--selected:focus,
 .presentation .presentation__node--selected:active {
-    outline: 1px dotted red !important;
+    outline: 1px dotted black !important;
 }
 
 .presentation__node--editing {
-    outline: 1px solid red;
+    outline: 1px solid black;
     user-select: auto;
 }
 
 .presentation .presentation__node--editing:focus,
 .presentation .presentation__node--editing:active {
-    outline: 1px solid red !important;
+    outline: 1px solid black !important;
 }
 
 .presentation__mutation-table {
