@@ -11,6 +11,7 @@ import { DndContext, useSensor, useSensors } from '@dnd-kit/core';
 import { Draggable } from './Draggable';
 import { TextNode } from 'pages/patientView/presentation/TextNode';
 import { PointerSensor } from 'pages/patientView/presentation/PointerSensor';
+import { useHistoryState } from 'shared/lib/hooks/use-history-state';
 
 export interface PresentationClinicalData {
     name: string;
@@ -103,9 +104,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         const deckRef = useRef<Reveal.Api | null>(null); // reference to deck reveal instance
 
         const [idCounter, setIdCounter] = useState(0);
-        const [positions, setPositions] = useState<Position[]>([
-            { id: 'test', left: 0, top: 0 },
-        ]);
+
+        const { state, set, undo, redo, canRedo, canUndo } = useHistoryState<
+            Position[]
+        >([]);
 
         const pointerSensor = useSensor(PointerSensor);
         const sensors = useSensors(pointerSensor);
@@ -165,9 +167,14 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             return `${counter}`;
         }
 
+        function onUndoClick() {
+            undo();
+            // TODO: clean up components: components deleted due to an undo will still be in `components` array.
+        }
+
         function createText() {
             const id = getAndIncrementCounter();
-            setPositions([...positions, { id, left: 0, top: 0 }]);
+            set([...state, { id, left: 0, top: 0 }]);
 
             const comp = {
                 id: id,
@@ -309,6 +316,41 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                             />
                         </svg>
                     </div>
+                    <div
+                        onClick={onUndoClick}
+                        className={canUndo ? '' : 'disabled'}
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth="1.5"
+                            stroke="currentColor"
+                            className="presentation__toolbar-item"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"
+                            />
+                        </svg>
+                    </div>
+                    <div onClick={redo} className={canRedo ? '' : 'disabled'}>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth="1.5"
+                            stroke="currentColor"
+                            className="presentation__toolbar-item"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3"
+                            />
+                        </svg>
+                    </div>
                 </div>
                 <div className="presentation">
                     <div className="reveal" ref={deckDivRef}>
@@ -317,7 +359,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                 <DndContext
                                     sensors={sensors}
                                     onDragEnd={e => {
-                                        const nextItems = positions.map(
+                                        const copiedState: Position[] = JSON.parse(
+                                            JSON.stringify(state)
+                                        ); // not sure why copy is needed here
+
+                                        const nextItems = copiedState.map(
                                             item => {
                                                 if (item.id === e.active.id) {
                                                     item.left += e.delta.x;
@@ -329,11 +375,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                             }
                                         );
 
-                                        setPositions(nextItems);
+                                        set(nextItems);
                                     }}
                                 >
                                     {components.map(component => {
-                                        const position = positions.find(
+                                        const position = state.find(
                                             position =>
                                                 position.id === component.id
                                         );
@@ -342,6 +388,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                             id: component.id,
                                             top: position.top,
                                             left: position.left,
+                                            key: component.id,
                                             children: Dynamic(component.type, {
                                                 innerRef: component.innerRef,
                                             }),
