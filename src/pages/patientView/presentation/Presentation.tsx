@@ -1,4 +1,4 @@
-import React, { Ref, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { ClinicalData } from 'cbioportal-ts-api-client';
 
@@ -7,11 +7,19 @@ import { MutationTable } from 'pages/patientView/presentation/MutationTable';
 import Reveal from 'reveal.js';
 import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
-import { DndContext, useSensor, useSensors } from '@dnd-kit/core';
-import { Draggable } from './Draggable';
-import { TextNode } from 'pages/patientView/presentation/TextNode';
-import { PointerSensor } from 'pages/patientView/presentation/PointerSensor';
 import { useHistoryState } from 'shared/lib/hooks/use-history-state';
+import { CreateTextIcon } from './icons/CreateTextIcon';
+import { AddMutationTableIcon } from 'pages/patientView/presentation/icons/AddMutationTableIcon';
+import { ToggleFullscreenIcon } from 'pages/patientView/presentation/icons/ToggleFullscreenIcon';
+import { UndoIcon } from 'pages/patientView/presentation/icons/UndoIcon';
+import { RedoIcon } from 'pages/patientView/presentation/icons/RedoIcon';
+import { deepCopy } from 'pages/patientView/presentation/utils/utils';
+import { Node } from './model/node';
+import { SlideComponent } from './SlideComponent';
+import { Dynamic } from 'pages/patientView/presentation/model/dynamic-component';
+import { DndContext, DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
+import { PointerSensor } from 'pages/patientView/presentation/PointerSensor';
+import { Draggable } from 'pages/patientView/presentation/Draggable';
 
 export interface PresentationClinicalData {
     name: string;
@@ -49,31 +57,10 @@ interface PresentationProps {
     alleleFreqHeaderRender: ((name: string) => JSX.Element) | undefined;
 }
 
-interface Position {
+interface Slide<T> {
     id: string;
-    left: number;
-    top: number;
+    nodes: Node<T>[];
 }
-
-interface Common extends Position {
-    children: string;
-    type: ComponentTypes;
-    innerRef: Ref<any>;
-}
-
-interface DynamicCoponentProps {
-    innerRef: Ref<any>;
-}
-
-type ComponentTypes = keyof typeof Components;
-
-const Components = {
-    text: TextNode,
-} as const;
-
-const Dynamic = (type: ComponentTypes, props: DynamicCoponentProps) => {
-    return React.createElement(Components[type], props);
-};
 
 export const Presentation: React.FunctionComponent<PresentationProps> = observer(
     ({
@@ -97,20 +84,30 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         pageMode,
         alleleFreqHeaderRender,
     }: PresentationProps) => {
-        const [components, setComponents] = useState<Common[]>([]);
-        const ref = useRef<any>(null);
-
         const deckDivRef = useRef<HTMLDivElement>(null); // reference to deck container div
         const deckRef = useRef<Reveal.Api | null>(null); // reference to deck reveal instance
 
-        const [idCounter, setIdCounter] = useState(0);
-
-        const { state, set, undo, redo, canRedo, canUndo } = useHistoryState<
-            Position[]
-        >([]);
-
         const pointerSensor = useSensor(PointerSensor);
         const sensors = useSensors(pointerSensor);
+
+        const ref = useRef<typeof SlideComponent>(null);
+
+        const [idCounter, setIdCounter] = useState(0);
+        const [currentSlideId, setCurrentSlideId] = useState('');
+
+        const { state, set, undo, redo, canRedo, canUndo } = useHistoryState<
+            Node<string>[]
+        >({
+            slideId: 'slide-1',
+            initialPresent: [
+                {
+                    id: 'test',
+                    position: { left: 50, top: 50 },
+                    type: 'text',
+                    value: 'Hello World',
+                },
+            ],
+        });
 
         useEffect(() => {
             // Prevents double initialization in strict mode
@@ -124,8 +121,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 disableLayout: true,
             });
 
-            deckRef.current.initialize().then(() => {
-                // good place for event handlers and plugin setups
+            deckRef.current.initialize().then(reveal => {
+                setCurrentSlideId(deckRef.current?.getCurrentSlide()?.id ?? '');
+                deckRef.current?.on('slidechanged', (e: any) =>
+                    setCurrentSlideId(e.currentSlide.id)
+                );
             });
 
             return () => {
@@ -167,29 +167,49 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             return `${counter}`;
         }
 
+        function getCurrentSlideId() {
+            return currentSlideId;
+        }
+
         function onUndoClick() {
-            undo();
-            // TODO: clean up components: components deleted due to an undo will still be in `components` array.
+            const slideId = getCurrentSlideId();
+
+            if (slideId) {
+                undo(slideId);
+            }
+        }
+
+        function onRedoClick() {
+            const slideId = getCurrentSlideId();
+
+            if (slideId) {
+                redo(slideId);
+            }
+        }
+
+        function onAddSlideClick() {
+            set('slide-2', [
+                {
+                    id: 'test',
+                    position: { left: 50, top: 50 },
+                    type: 'text',
+                    value: 'Hello World 2',
+                },
+            ]);
         }
 
         function createText() {
             const id = getAndIncrementCounter();
-            set([...state, { id, left: 0, top: 0 }]);
 
-            const comp = {
-                id: id,
-                left: 0,
-                top: 0,
-                children: `Moin ${id}`,
+            const node: Node<string> = {
+                id,
+                position: { left: 0, top: 0 },
                 type: 'text',
-                innerRef: React.createRef(),
-            } as const;
+                value: 'Hello World',
+            };
 
-            setComponents(components.concat(comp));
-
-            setTimeout(() => {
-                // ref.current?.focus();
-            });
+            const present = state.get(getCurrentSlideId())?.present ?? [];
+            set(getCurrentSlideId(), [...present, node]);
         }
 
         function addMutationTable() {
@@ -253,153 +273,137 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             };
         }
 
+        function onDragEnd(event: DragEndEvent) {
+            if (
+                !event.active.data.current ||
+                (Math.abs(event.delta.x) < 1 && Math.abs(event.delta.y) < 1)
+            )
+                return;
+
+            const slideId = event.active.data.current.slideId;
+            const present = state.get(slideId)?.present;
+
+            if (!present) return;
+
+            const copiedPresent = deepCopy(present);
+
+            const nextPresent = copiedPresent.map(node => {
+                if (node.id === event.active.id) {
+                    node.position.left += event.delta.x;
+                    node.position.top += event.delta.y;
+                    return node;
+                } else {
+                    return node;
+                }
+            });
+
+            set(slideId, nextPresent);
+        }
+
+        function onValueChanged(slideId: string, id: string, value: any) {
+            const present = state.get(slideId)?.present;
+
+            if (!present) return;
+
+            const copiedPresent = deepCopy(present);
+
+            let modified = false;
+
+            const nextPresent = copiedPresent.map(node => {
+                if (node.id === id && node.value !== value) {
+                    node.value = value;
+                    modified = true;
+                    return node;
+                } else {
+                    return node;
+                }
+            });
+
+            if (modified) {
+                set(slideId, nextPresent);
+            }
+        }
+
         return (
             <div>
                 <div className="toolbar">
                     <div onClick={createText}>
-                        <svg
-                            width="26"
-                            height="15"
-                            viewBox="0 0 26 15"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <rect
-                                x="1"
-                                y="1"
-                                width="24"
-                                height="13"
-                                rx="2"
-                                stroke="black"
-                                strokeWidth="2"
-                            />
-                            <path
-                                d="M6.01 8.05H8.43L7.24 4.72H7.22L6.01 8.05ZM6.72 3.86H7.77L10.56 11H9.51L8.73 8.85H5.71L4.91 11H3.94L6.72 3.86ZM12.2144 6.93H14.1144C14.6544 6.93 15.041 6.83667 15.2744 6.65C15.5144 6.45667 15.6344 6.17 15.6344 5.79C15.6344 5.53667 15.5944 5.33667 15.5144 5.19C15.4344 5.04333 15.3244 4.93 15.1844 4.85C15.0444 4.77 14.881 4.72 14.6944 4.7C14.5144 4.67333 14.321 4.66 14.1144 4.66H12.2144V6.93ZM11.2644 3.86H13.8544C14.0077 3.86 14.171 3.86333 14.3444 3.87C14.5244 3.87 14.701 3.88 14.8744 3.9C15.0477 3.91333 15.2077 3.93667 15.3544 3.97C15.5077 4.00333 15.6377 4.05333 15.7444 4.12C15.9777 4.26 16.1744 4.45333 16.3344 4.7C16.501 4.94667 16.5844 5.25 16.5844 5.61C16.5844 5.99 16.491 6.32 16.3044 6.6C16.1244 6.87333 15.8644 7.07667 15.5244 7.21V7.23C15.9644 7.32333 16.301 7.52333 16.5344 7.83C16.7677 8.13667 16.8844 8.51 16.8844 8.95C16.8844 9.21 16.8377 9.46333 16.7444 9.71C16.651 9.95667 16.511 10.1767 16.3244 10.37C16.1444 10.5567 15.9177 10.71 15.6444 10.83C15.3777 10.9433 15.0677 11 14.7144 11H11.2644V3.86ZM12.2144 10.2H14.5944C15.0144 10.2 15.341 10.0867 15.5744 9.86C15.8144 9.63333 15.9344 9.32 15.9344 8.92C15.9344 8.68667 15.891 8.49333 15.8044 8.34C15.7177 8.18667 15.601 8.06667 15.4544 7.98C15.3144 7.88667 15.151 7.82333 14.9644 7.79C14.7777 7.75 14.5844 7.73 14.3844 7.73H12.2144V10.2Z"
-                                fill="black"
-                            />
-                        </svg>
+                        <CreateTextIcon></CreateTextIcon>
                     </div>
                     <div onClick={addMutationTable}>
-                        <svg
-                            width="26"
-                            height="26"
-                            viewBox="0 0 26 26"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                d="M8.66001 8.932H10.22L12.92 16.132L15.632 8.932H17.192V17.5H16.112V10.372H16.088L13.412 17.5H12.44L9.76401 10.372H9.74001V17.5H8.66001V8.932Z"
-                                fill="black"
-                            />
-                            <circle
-                                cx="13"
-                                cy="13"
-                                r="12"
-                                stroke="black"
-                                strokeWidth="2"
-                            />
-                        </svg>
-                    </div>
-                    <div onClick={toggleFullscreen}>
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth="1.5"
-                            stroke="currentColor"
-                            className="presentation__toolbar-item"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-                            />
-                        </svg>
+                        <AddMutationTableIcon></AddMutationTableIcon>
                     </div>
                     <div
                         onClick={onUndoClick}
-                        className={canUndo ? '' : 'disabled'}
+                        className={
+                            canUndo(getCurrentSlideId()) ? '' : 'disabled'
+                        }
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth="1.5"
-                            stroke="currentColor"
-                            className="presentation__toolbar-item"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"
-                            />
-                        </svg>
+                        <UndoIcon></UndoIcon>
                     </div>
-                    <div onClick={redo} className={canRedo ? '' : 'disabled'}>
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth="1.5"
-                            stroke="currentColor"
-                            className="presentation__toolbar-item"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3"
-                            />
-                        </svg>
+                    <div
+                        onClick={onRedoClick}
+                        className={
+                            canRedo(getCurrentSlideId()) ? '' : 'disabled'
+                        }
+                    >
+                        <RedoIcon></RedoIcon>
+                    </div>
+                    <div onClick={onAddSlideClick}>Add Slide</div>
+                    <div
+                        className="toolbar__fullscreen"
+                        onClick={toggleFullscreen}
+                    >
+                        <ToggleFullscreenIcon></ToggleFullscreenIcon>
                     </div>
                 </div>
                 <div className="presentation">
                     <div className="reveal" ref={deckDivRef}>
                         <div className="slides">
-                            <section>
-                                <DndContext
-                                    sensors={sensors}
-                                    onDragEnd={e => {
-                                        const copiedState: Position[] = JSON.parse(
-                                            JSON.stringify(state)
-                                        ); // not sure why copy is needed here
-
-                                        const nextItems = copiedState.map(
-                                            item => {
-                                                if (item.id === e.active.id) {
-                                                    item.left += e.delta.x;
-                                                    item.top += e.delta.y;
-                                                    return item;
-                                                } else {
-                                                    return item;
-                                                }
-                                            }
-                                        );
-
-                                        set(nextItems);
-                                    }}
-                                >
-                                    {components.map(component => {
-                                        const position = state.find(
-                                            position =>
-                                                position.id === component.id
-                                        );
-                                        if (!position) return;
-                                        return React.createElement(Draggable, {
-                                            id: component.id,
-                                            top: position.top,
-                                            left: position.left,
-                                            key: component.id,
-                                            children: Dynamic(component.type, {
-                                                innerRef: component.innerRef,
-                                            }),
-                                        });
-                                    })}
-                                </DndContext>
-                            </section>
-                            <section>Slide 2</section>
+                            {Array.from(state.entries()).map(
+                                ([slideId, timeState]) => (
+                                    <section id={slideId} key={slideId}>
+                                        <DndContext
+                                            sensors={sensors}
+                                            onDragEnd={onDragEnd}
+                                        >
+                                            {timeState.present &&
+                                                timeState.present.map(node =>
+                                                    React.createElement(
+                                                        Draggable,
+                                                        {
+                                                            slideId,
+                                                            id: node.id,
+                                                            top:
+                                                                node.position
+                                                                    .top,
+                                                            left:
+                                                                node.position
+                                                                    .left,
+                                                            key: node.id,
+                                                            children: Dynamic(
+                                                                node.type,
+                                                                {
+                                                                    innerRef: ref,
+                                                                    initialValue:
+                                                                        node.value,
+                                                                    valueChanged: value =>
+                                                                        onValueChanged(
+                                                                            slideId,
+                                                                            node.id,
+                                                                            value
+                                                                        ),
+                                                                }
+                                                            ),
+                                                        }
+                                                    )
+                                                )}
+                                        </DndContext>
+                                    </section>
+                                )
+                            )}
                         </div>
                     </div>
-                    {/*<PatientData data={mapClinicalData()}></PatientData>*/}
                 </div>
             </div>
         );

@@ -1,10 +1,10 @@
-// https://github.com/uidotdev/usehooks/blob/main/index.js
+// Based on https://github.com/uidotdev/usehooks/blob/main/index.js
 
-import React, { Reducer } from 'react';
+import { Reducer, useCallback, useReducer } from 'react';
 
-type ActionType = 'undo' | 'redo' | 'set' | 'clear';
+export type State<T> = Map<string, TimeState<T>>;
 
-interface State<T> {
+interface TimeState<T> {
     past: T[];
     present: T;
     future: T[];
@@ -12,41 +12,65 @@ interface State<T> {
 
 interface UndoRedoAction {
     type: 'undo' | 'redo';
+    slideId: string;
 }
 
 interface SetAction<T> {
     type: 'set';
     newPresent: T;
+    slideId: string;
 }
 
-interface ClearAction<T> {
-    type: 'clear';
-    initialPresent: T;
-}
+export type Action<T> = UndoRedoAction | SetAction<T>;
 
-type Action<T> = UndoRedoAction | SetAction<T> | ClearAction<T>;
-
-const initialUseHistoryStateState: State<any> = {
-    past: [],
-    present: {},
-    future: [],
+const ensureValidActionForSlide = <T>(
+    slide: TimeState<T> | undefined,
+    action: Action<T>
+) => {
+    if (!slide && action.type !== 'set') {
+        throw new Error(`invalid action=(${action.type}) for new slide`);
+    }
 };
 
-const useHistoryStateReducer = <T>(state: State<T>, action: Action<T>) => {
-    const { past, present, future } = state;
+const getOrCreateTimeStateForSlide = <T>(
+    slide: TimeState<T> | undefined
+): TimeState<T> => {
+    if (slide) {
+        return slide;
+    }
+
+    return {
+        past: [],
+        present: null!, // TODO: fix this type
+        future: [],
+    };
+};
+
+export const useHistoryStateReducer = <T>(
+    state: State<T>,
+    action: Action<T>
+): State<T> => {
+    const slideId = action.slideId;
+    const slide = state.get(slideId);
+
+    ensureValidActionForSlide(slide, action);
+
+    const { past, present, future } = getOrCreateTimeStateForSlide(slide);
 
     if (action.type === 'undo') {
-        return {
+        const newState = new Map(state);
+        return newState.set(slideId, {
             past: past.slice(0, past.length - 1),
             present: past[past.length - 1],
             future: [present, ...future],
-        };
+        });
     } else if (action.type === 'redo') {
-        return {
+        const newState = new Map(state);
+        return newState.set(slideId, {
             past: [...past, present],
             present: future[0],
             future: future.slice(1),
-        };
+        });
     } else if (action.type === 'set') {
         const { newPresent } = action;
 
@@ -54,55 +78,78 @@ const useHistoryStateReducer = <T>(state: State<T>, action: Action<T>) => {
             return state;
         }
 
-        return {
+        const newState = new Map(state);
+        return newState.set(slideId, {
             past: [...past, present],
             present: newPresent,
             future: [],
-        };
+        });
     } else {
         throw new Error('Unsupported action type');
     }
 };
 
-export function useHistoryState<T>(initialPresent = {} as T) {
-    const initialPresentRef = React.useRef(initialPresent);
+export function useHistoryState<T>(initialState?: {
+    slideId: string;
+    initialPresent: T;
+}) {
+    const initialUseHistoryState = new Map();
 
-    const [state, dispatch] = React.useReducer<Reducer<State<T>, Action<T>>>(
+    if (initialState) {
+        const { slideId, initialPresent } = initialState;
+        initialUseHistoryState.set(slideId, {
+            past: [],
+            present: initialPresent,
+            future: [],
+        });
+    }
+
+    const [state, dispatch] = useReducer<Reducer<State<T>, Action<T>>>(
         useHistoryStateReducer,
-        {
-            ...initialUseHistoryStateState,
-            present: initialPresentRef.current,
-        }
+        initialUseHistoryState
     );
 
-    const canUndo = state.past.length !== 0;
-    const canRedo = state.future.length !== 0;
+    const canUndo = useCallback(
+        (slideId: string) => {
+            const slide = state.get(slideId);
+            const pastLength = slide?.past.length ?? 0;
+            return pastLength > 0;
+        },
+        [state]
+    );
 
-    const undo = React.useCallback(() => {
-        if (canUndo) {
-            dispatch({ type: 'undo' });
-        }
-    }, [canUndo]);
+    const canRedo = useCallback(
+        (slideId: string) => {
+            const slide = state.get(slideId);
+            const futureLength = slide?.future.length ?? 0;
+            return futureLength > 0;
+        },
+        [state]
+    );
 
-    const redo = React.useCallback(() => {
-        if (canRedo) {
-            dispatch({ type: 'redo' });
-        }
-    }, [canRedo]);
+    const undo = useCallback(
+        (slideId: string) => {
+            if (canUndo(slideId)) {
+                dispatch({ type: 'undo', slideId });
+            }
+        },
+        [canUndo]
+    );
 
-    const set = React.useCallback(
-        (newPresent: T) => dispatch({ type: 'set', newPresent }),
+    const redo = useCallback(
+        (slideId: string) => {
+            if (canRedo(slideId)) {
+                dispatch({ type: 'redo', slideId });
+            }
+        },
+        [canRedo]
+    );
+
+    const set = useCallback(
+        (slideId: string, newPresent: T) =>
+            dispatch({ type: 'set', newPresent, slideId }),
         []
     );
 
-    const clear = React.useCallback(
-        () =>
-            dispatch({
-                type: 'clear',
-                initialPresent: initialPresentRef.current,
-            }),
-        []
-    );
-
-    return { state: state.present, set, undo, redo, clear, canUndo, canRedo };
+    return { state: state, set, undo, redo, canUndo, canRedo };
 }

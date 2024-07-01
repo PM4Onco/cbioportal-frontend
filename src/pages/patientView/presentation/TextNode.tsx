@@ -8,10 +8,12 @@ interface State {
 }
 
 interface Props {
+    valueChanged: (value: any) => void;
     innerRef: RefObject<HTMLDivElement>;
+    initialValue: string;
 }
 
-export const TextNode = ({ innerRef }: Props) => {
+export const TextNode = ({ innerRef, valueChanged, initialValue }: Props) => {
     const [state, setState] = React.useState<State>({
         down: false,
         selected: false,
@@ -75,6 +77,7 @@ export const TextNode = ({ innerRef }: Props) => {
     };
 
     const stopEditing = () => {
+        valueChanged(innerRef.current?.textContent);
         setState(current => ({ ...current, editing: false }));
     };
 
@@ -107,7 +110,7 @@ export const TextNode = ({ innerRef }: Props) => {
             contentEditable={state.editing}
             suppressContentEditableWarning={true}
         >
-            TextNode
+            {initialValue}
         </div>
     );
 };

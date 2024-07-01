@@ -4,26 +4,32 @@ import { observer } from 'mobx-react';
 
 interface Props {
     id: string;
+    slideId: string;
     left: number;
     top: number;
     children: any;
 }
 
-export const Draggable = observer(({ id, left, top, children }: Props) => {
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({
-        id,
-    });
-    const style = {
-        position: 'relative' as const,
-        transform: `translate3d(${transform?.x ?? 0}px, ${transform?.y ??
-            0}px, 0)`,
-        left,
-        top,
-    };
+export const Draggable = observer(
+    ({ id, left, top, children, slideId }: Props) => {
+        const { attributes, listeners, setNodeRef, transform } = useDraggable({
+            id,
+            data: {
+                slideId,
+            },
+        });
+        const style = {
+            position: 'relative' as const,
+            transform: `translate3d(${transform?.x ?? 0}px, ${transform?.y ??
+                0}px, 0)`,
+            left,
+            top,
+        };
 
-    return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-            {children}
-        </div>
-    );
-});
+        return (
+            <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+                {children}
+            </div>
+        );
+    }
+);
