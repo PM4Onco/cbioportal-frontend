@@ -11,5 +11,4 @@ export interface Node<T> {
     type: ComponentKeys;
     value: T;
     props?: Record<string, unknown>;
-    draggable: boolean;
 }

@@ -1,5 +1,9 @@
 import React, { RefObject, useEffect } from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import {
+    DraggableChangedFn,
+    DynamicComponentProps,
+    StateChangedFn,
+} from 'pages/patientView/presentation/model/dynamic-component';
 
 interface State {
     down: boolean;
@@ -8,8 +12,8 @@ interface State {
 }
 
 interface Props {
-    stateChanged: (value: any, draggable: boolean) => void;
-    draggableChanged: (draggable: boolean) => void;
+    stateChanged: StateChangedFn;
+    draggableChanged: DraggableChangedFn;
     innerRef: RefObject<HTMLDivElement>;
     initialValue: string;
 }
@@ -28,13 +32,16 @@ export const TextNode = ({
 
     useEffect(() => {
         const controller = new AbortController();
-        (document as any).addEventListener('pointerup', onPointerUp, {
+        document.addEventListener('pointerup', onPointerUp, {
             signal: controller.signal,
         });
-        (document as any).addEventListener('keydown', onKeyDown, {
+        document.addEventListener('keydown', onKeyDown, {
             signal: controller.signal,
         });
-        (document as any).addEventListener('pointerdown', onOutsideClick, {
+        document.addEventListener('pointerdown', onOutsideClick, {
+            signal: controller.signal,
+        });
+        document.addEventListener('dblclick', () => startEditing(), {
             signal: controller.signal,
         });
 
@@ -44,15 +51,16 @@ export const TextNode = ({
     }, [state]);
 
     const focus = () => {
-        if (!innerRef) return;
-        innerRef.current?.focus();
+        if (!innerRef.current) return;
+
+        innerRef.current.focus();
         document.getSelection()!.collapse(innerRef.current, 1);
     };
 
     const startEditing = () => {
-        stateChanged(innerRef.current?.textContent, false);
+        draggableChanged(false);
         setState(current => ({ ...current, editing: true }));
-        setTimeout(() => focus());
+        focus();
     };
 
     const onPointerDown = (event: React.PointerEvent) => {
@@ -84,7 +92,8 @@ export const TextNode = ({
     };
 
     const stopEditing = () => {
-        stateChanged(innerRef.current?.textContent, true);
+        stateChanged(innerRef.current?.textContent);
+        draggableChanged(true);
         setState(current => ({ ...current, editing: false }));
     };
 
@@ -112,7 +121,6 @@ export const TextNode = ({
                      ${state.editing ? 'presentation__node--editing' : ''}
                 `}
             ref={innerRef}
-            onDoubleClick={startEditing}
             onPointerDown={onPointerDown}
             contentEditable={state.editing}
             suppressContentEditableWarning={true}

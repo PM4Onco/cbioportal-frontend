@@ -2,11 +2,15 @@ import React, { Ref } from 'react';
 import { TextNode } from 'pages/patientView/presentation/TextNode';
 import { MutationTable } from 'pages/patientView/presentation/MutationTable';
 
-interface DynamicComponentProps<T> {
+export interface DynamicComponentProps<T> {
     innerRef: Ref<any>;
     initialValue: T;
-    stateChanged: (value: any, draggable: boolean) => void;
+    stateChanged: StateChangedFn;
+    draggableChanged: DraggableChangedFn;
 }
+
+export type StateChangedFn = (value: any) => void;
+export type DraggableChangedFn = (draggable: boolean) => void;
 
 export const Components = {
     text: TextNode,

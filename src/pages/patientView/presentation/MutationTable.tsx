@@ -1,6 +1,9 @@
 import MutationTableWrapper from 'pages/patientView/mutation/MutationTableWrapper';
 import React, { RefObject, useEffect } from 'react';
-import { boundMethod } from 'autobind-decorator';
+import {
+    DraggableChangedFn,
+    StateChangedFn,
+} from 'pages/patientView/presentation/model/dynamic-component';
 
 interface State {
     down: boolean;
@@ -9,8 +12,8 @@ interface State {
 }
 
 interface Props {
-    stateChanged: (value: any, draggable: boolean) => void;
-    draggableChanged: (draggable: boolean) => void;
+    stateChanged: StateChangedFn;
+    draggableChanged: DraggableChangedFn;
     initialValue: null;
     innerRef: RefObject<HTMLDivElement>;
     patientViewPageStore: any;
@@ -102,7 +105,7 @@ export const MutationTable = ({
     };
 
     const stopEditing = () => {
-        stateChanged(null, true);
+        draggableChanged(true);
         setState(current => ({ ...current, editing: false }));
     };
 

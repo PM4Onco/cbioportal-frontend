@@ -14,7 +14,6 @@ import { UndoIcon } from 'pages/patientView/presentation/icons/UndoIcon';
 import { RedoIcon } from 'pages/patientView/presentation/icons/RedoIcon';
 import { deepCopy } from 'pages/patientView/presentation/utils/utils';
 import { Node } from './model/node';
-import { Dynamic } from 'pages/patientView/presentation/model/dynamic-component';
 import { DndContext, DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
 import { PointerSensor } from 'pages/patientView/presentation/PointerSensor';
 import { Draggable } from 'pages/patientView/presentation/Draggable';
@@ -84,7 +83,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                     position: { left: 0, top: 0 },
                     type: 'text',
                     value: 'Hello World',
-                    draggable: true,
                 },
             ],
         });
@@ -185,7 +183,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 position: { left: 0, top: 0 },
                 type: 'text',
                 value: 'Hello World',
-                draggable: true,
             };
 
             const present = state.get(getCurrentSlideId())?.present ?? [];
@@ -200,7 +197,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 position: { left: 0, top: 0 },
                 type: 'mutationTable',
                 value: null,
-                draggable: true,
             };
 
             const present = state.get(getCurrentSlideId())?.present ?? [];
@@ -270,12 +266,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(slideId, nextPresent);
         }
 
-        function onStateChanged(
-            slideId: string,
-            id: string,
-            value: any,
-            draggable: boolean
-        ) {
+        function onStateChanged(slideId: string, id: string, value: any) {
             const present = state.get(slideId)?.present;
 
             if (!present) return;
@@ -285,12 +276,8 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             let modified = false;
 
             const nextPresent = copiedPresent.map(node => {
-                if (
-                    node.id === id &&
-                    (node.value !== value || node.draggable !== draggable)
-                ) {
+                if (node.id === id && node.value !== value) {
                     node.value = value;
-                    node.draggable = draggable;
                     modified = true;
                     return node;
                 } else {
@@ -370,11 +357,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                             .left,
                                                                     key:
                                                                         node.id,
-                                                                    draggable:
-                                                                        node.draggable,
-                                                                    children: Dynamic(
-                                                                        node.type,
-                                                                        {
+                                                                    component: {
+                                                                        type:
+                                                                            node.type,
+                                                                        props: {
                                                                             ...(node.type ===
                                                                                 'mutationTable' && {
                                                                                 ...mutationTableProps,
@@ -383,17 +369,15 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                             initialValue:
                                                                                 node.value,
                                                                             stateChanged: (
-                                                                                value,
-                                                                                draggable
+                                                                                value: any
                                                                             ) =>
                                                                                 onStateChanged(
                                                                                     slideId,
                                                                                     node.id,
-                                                                                    value,
-                                                                                    draggable
+                                                                                    value
                                                                                 ),
-                                                                        }
-                                                                    ),
+                                                                        },
+                                                                    },
                                                                 }
                                                             )
                                                     )}

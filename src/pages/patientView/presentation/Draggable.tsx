@@ -1,18 +1,27 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { observer } from 'mobx-react';
+import {
+    ComponentKeys,
+    Dynamic,
+    DynamicComponentProps,
+} from 'pages/patientView/presentation/model/dynamic-component';
 
 interface Props {
     id: string;
     slideId: string;
     left: number;
     top: number;
-    children: any;
-    draggable: boolean;
+    component: {
+        type: ComponentKeys;
+        props: Omit<DynamicComponentProps<any>, 'draggableChanged'>;
+    };
 }
 
 export const Draggable = observer(
-    ({ id, left, top, children, slideId, draggable }: Props) => {
+    ({ id, left, top, component, slideId }: Props) => {
+        const [draggable, setDraggable] = React.useState(true);
+
         const { attributes, listeners, setNodeRef, transform } = useDraggable({
             id,
             disabled: !draggable,
@@ -20,6 +29,7 @@ export const Draggable = observer(
                 slideId,
             },
         });
+
         const style = {
             position: 'relative' as const,
             transform: `translate3d(${transform?.x ?? 0}px, ${transform?.y ??
@@ -30,7 +40,10 @@ export const Draggable = observer(
 
         return (
             <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-                {children}
+                {Dynamic(component.type, {
+                    ...component.props,
+                    draggableChanged: draggable => setDraggable(draggable),
+                })}
             </div>
         );
     }
