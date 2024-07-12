@@ -1,20 +1,18 @@
 import MutationTableWrapper from 'pages/patientView/mutation/MutationTableWrapper';
-import React from 'react';
+import React, { RefObject, useEffect } from 'react';
 import { boundMethod } from 'autobind-decorator';
 
-interface Position {
-    y: number;
-    x: number;
-}
-
 interface State {
-    position: Position;
     down: boolean;
     selected: boolean;
     editing: boolean;
 }
 
 interface Props {
+    stateChanged: (value: any, draggable: boolean) => void;
+    draggableChanged: (draggable: boolean) => void;
+    initialValue: null;
+    innerRef: RefObject<HTMLDivElement>;
     patientViewPageStore: any;
     dataStore: any;
     sampleManager: any;
@@ -35,141 +33,130 @@ interface Props {
     alleleFreqHeaderRender: ((name: string) => JSX.Element) | undefined;
 }
 
-export class MutationTable extends React.Component<Props, State> {
-    ref = React.createRef<HTMLDivElement>();
+export const MutationTable = ({
+    innerRef,
+    stateChanged,
+    draggableChanged,
+    ...props
+}: Props) => {
+    const [state, setState] = React.useState<State>({
+        down: false,
+        selected: false,
+        editing: false,
+    });
 
-    constructor(props: Props) {
-        super(props);
+    useEffect(() => {
+        const controller = new AbortController();
+        (document as any).addEventListener('pointerup', onPointerUp, {
+            signal: controller.signal,
+        });
+        (document as any).addEventListener('keydown', onKeyDown, {
+            signal: controller.signal,
+        });
+        (document as any).addEventListener('pointerdown', onOutsideClick, {
+            signal: controller.signal,
+        });
 
-        this.state = {
-            down: false,
-            selected: false,
-            editing: false,
-            position: {
-                x: 0,
-                y: 0,
-            },
+        return () => {
+            controller.abort();
         };
+    }, [state]);
 
-        document.addEventListener('pointermove', this.onPointerMove);
-        document.addEventListener('pointerup', this.onPointerUp);
-        document.addEventListener('keydown', this.onKeyDown);
-        document.addEventListener('click', this.onOutsideClick);
-    }
+    const focus = () => {
+        if (!innerRef) return;
+        innerRef.current?.focus();
+        document.getSelection()!.collapse(innerRef.current, 1);
+    };
 
-    @boundMethod
-    onPointerUp(event: PointerEvent) {
-        this.setState({ ...this.state, down: false });
-    }
+    const startEditing = () => {
+        setState(current => ({ ...current, editing: true }));
+        setTimeout(() => focus());
+    };
 
-    @boundMethod
-    onOutsideClick(event: MouseEvent) {
-        if (
-            event.target !== this.ref.current &&
-            !this.ref.current?.contains(event.target as Node)
-        ) {
-            this.handleEscapePress();
-        }
-    }
+    const onPointerDown = (event: React.PointerEvent) => {
+        setState(current => ({ ...current, down: true, selected: true }));
+    };
 
-    @boundMethod
-    onKeyDown(event: KeyboardEvent) {
+    const onKeyDown = (event: KeyboardEvent) => {
         switch (event.code) {
             case 'Escape':
-                this.handleEscapePress();
+                handleEscapePress();
                 break;
             case 'Backspace':
-                this.ref.current?.remove();
+                handleBackspacePress();
                 break;
         }
-    }
+    };
 
-    @boundMethod
-    onPointerMove(event: PointerEvent) {
-        if (this.state.editing) {
-            return;
-        }
-        const canvas = document.querySelector('.presentation');
-
-        if (this.state.down) {
-            const { y, x } = this.state.position;
-            this.setState({
-                ...this.state,
-                position: {
-                    x: x + event.movementX,
-                    y: y + event.movementY,
-                },
-            });
-        }
-    }
-
-    @boundMethod
-    onPointerDown(event: React.PointerEvent) {
-        this.setState({ ...this.state, down: true, selected: true });
-    }
-
-    stopEditing() {
-        this.setState({ ...this.state, editing: false });
-    }
-
-    unselectNode() {
-        this.setState({ ...this.state, selected: false });
-    }
-
-    render() {
-        return (
-            <div
-                ref={this.ref}
-                style={this.calculateTransformation()}
-                className={`presentation__mutation-table 
-                     ${
-                         this.state.selected
-                             ? 'presentation__node--selected'
-                             : ''
-                     } 
-                     ${this.state.editing ? 'presentation__node--editing' : ''}
-                `}
-                onPointerDown={this.onPointerDown}
-            >
-                <MutationTableWrapper
-                    patientViewPageStore={this.props.patientViewPageStore}
-                    dataStore={this.props.dataStore}
-                    sampleManager={this.props.sampleManager}
-                    sampleIds={
-                        this.props.sampleManager
-                            ? this.props.sampleManager.getActiveSampleIdsInOrder()
-                            : []
-                    }
-                    mergeOncoKbIcons={this.props.mergeOncoKbIcons}
-                    onOncoKbIconToggle={this.props.onOncoKbIconToggle}
-                    columnVisibility={this.props.columnVisibility}
-                    onFilterGenes={this.props.onFilterGenes}
-                    columnVisibilityProps={this.props.columnVisibilityProps}
-                    onSelectGenePanel={this.props.onSelectGenePanel}
-                    disableTooltip={this.props.disableTooltip}
-                    onRowClick={this.props.onRowClick}
-                    onRowMouseEnter={this.props.onRowMouseEnter}
-                    onRowMouseLeave={this.props.onRowMouseLeave}
-                    namespaceColumns={this.props.namespaceColumns}
-                    columns={this.props.columns}
-                    pageMode={this.props.pageMode}
-                    alleleFreqHeaderRender={undefined}
-                ></MutationTableWrapper>
-            </div>
-        );
-    }
-
-    private handleEscapePress() {
-        if (this.state.editing) {
-            this.stopEditing();
+    const handleEscapePress = () => {
+        if (state.editing) {
+            stopEditing();
         } else {
-            this.unselectNode();
+            unselectNode();
         }
-    }
+    };
 
-    private calculateTransformation() {
-        const { x, y } = this.state.position;
+    const handleBackspacePress = () => {
+        if (state.editing) return;
+        innerRef.current?.remove();
+    };
 
-        return { transform: `translateX(${x}px) translateY(${y}px)` };
-    }
-}
+    const stopEditing = () => {
+        stateChanged(null, true);
+        setState(current => ({ ...current, editing: false }));
+    };
+
+    const unselectNode = () => {
+        setState(current => ({ ...current, selected: false }));
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+        setState(current => ({ ...current, down: false }));
+    };
+
+    const onOutsideClick = (event: MouseEvent) => {
+        if (
+            state.selected &&
+            event.target !== innerRef.current &&
+            !innerRef.current?.contains(event.target as Node)
+        ) {
+            handleEscapePress();
+        }
+    };
+
+    return (
+        <div
+            ref={innerRef}
+            className={`presentation__mutation-table 
+                     ${state.selected ? 'presentation__node--selected' : ''} 
+                     ${state.editing ? 'presentation__node--editing' : ''}
+                `}
+            onPointerDown={onPointerDown}
+        >
+            <MutationTableWrapper
+                patientViewPageStore={props.patientViewPageStore}
+                dataStore={props.dataStore}
+                sampleManager={props.sampleManager}
+                sampleIds={
+                    props.sampleManager
+                        ? props.sampleManager.getActiveSampleIdsInOrder()
+                        : []
+                }
+                mergeOncoKbIcons={props.mergeOncoKbIcons}
+                onOncoKbIconToggle={props.onOncoKbIconToggle}
+                columnVisibility={props.columnVisibility}
+                onFilterGenes={props.onFilterGenes}
+                columnVisibilityProps={props.columnVisibilityProps}
+                onSelectGenePanel={props.onSelectGenePanel}
+                disableTooltip={props.disableTooltip}
+                onRowClick={props.onRowClick}
+                onRowMouseEnter={props.onRowMouseEnter}
+                onRowMouseLeave={props.onRowMouseLeave}
+                namespaceColumns={props.namespaceColumns}
+                columns={props.columns}
+                pageMode={props.pageMode}
+                alleleFreqHeaderRender={undefined}
+            ></MutationTableWrapper>
+        </div>
+    );
+};

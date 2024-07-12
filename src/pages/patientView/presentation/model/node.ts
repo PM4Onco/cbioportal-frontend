@@ -1,7 +1,4 @@
-import {
-    ComponentKeys,
-    ComponentValues,
-} from 'pages/patientView/presentation/model/dynamic-component';
+import { ComponentKeys } from 'pages/patientView/presentation/model/dynamic-component';
 
 interface Position {
     left: number;
@@ -13,4 +10,6 @@ export interface Node<T> {
     position: Position;
     type: ComponentKeys;
     value: T;
+    props?: Record<string, unknown>;
+    draggable: boolean;
 }

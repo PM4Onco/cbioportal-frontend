@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createRef, Ref, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { ClinicalData } from 'cbioportal-ts-api-client';
 
 import './style.scss';
-import { MutationTable } from 'pages/patientView/presentation/MutationTable';
 import Reveal from 'reveal.js';
 import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
@@ -15,7 +14,6 @@ import { UndoIcon } from 'pages/patientView/presentation/icons/UndoIcon';
 import { RedoIcon } from 'pages/patientView/presentation/icons/RedoIcon';
 import { deepCopy } from 'pages/patientView/presentation/utils/utils';
 import { Node } from './model/node';
-import { SlideComponent } from './SlideComponent';
 import { Dynamic } from 'pages/patientView/presentation/model/dynamic-component';
 import { DndContext, DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
 import { PointerSensor } from 'pages/patientView/presentation/PointerSensor';
@@ -63,48 +61,30 @@ interface Slide<T> {
 }
 
 export const Presentation: React.FunctionComponent<PresentationProps> = observer(
-    ({
-        clinicalData,
-        patientViewPageStore,
-        dataStore,
-        sampleManager,
-        sampleIds,
-        mergeOncoKbIcons,
-        onOncoKbIconToggle,
-        columnVisibility,
-        onFilterGenes,
-        columnVisibilityProps,
-        onSelectGenePanel,
-        disableTooltip,
-        onRowClick,
-        onRowMouseEnter,
-        onRowMouseLeave,
-        namespaceColumns,
-        columns,
-        pageMode,
-        alleleFreqHeaderRender,
-    }: PresentationProps) => {
+    ({ clinicalData, ...mutationTableProps }: PresentationProps) => {
         const deckDivRef = useRef<HTMLDivElement>(null); // reference to deck container div
         const deckRef = useRef<Reveal.Api | null>(null); // reference to deck reveal instance
 
         const pointerSensor = useSensor(PointerSensor);
         const sensors = useSensors(pointerSensor);
 
-        const ref = useRef<typeof SlideComponent>(null);
+        const [refs, setRefs] = React.useState<Record<string, Ref<any>>>({});
 
-        const [idCounter, setIdCounter] = useState(0);
+        const [idCounter, setIdCounter] = useState(2);
+        const [slideIdCounter, setSlideIdCounter] = React.useState(0);
         const [currentSlideId, setCurrentSlideId] = useState('');
 
         const { state, set, undo, redo, canRedo, canUndo } = useHistoryState<
-            Node<string>[]
+            (Node<string> | Node<null>)[]
         >({
-            slideId: 'slide-1',
+            slideId: crypto.randomUUID(),
             initialPresent: [
                 {
-                    id: 'test',
-                    position: { left: 50, top: 50 },
+                    id: '1',
+                    position: { left: 0, top: 0 },
                     type: 'text',
                     value: 'Hello World',
+                    draggable: true,
                 },
             ],
         });
@@ -118,7 +98,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 controls: false,
                 progress: false,
                 embedded: true,
-                disableLayout: true,
+                center: false,
             });
 
             deckRef.current.initialize().then(reveal => {
@@ -167,6 +147,12 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             return `${counter}`;
         }
 
+        function getAndIncrementSlideIdCounter() {
+            const currentCount = slideIdCounter;
+            setSlideIdCounter(counter => counter + 1);
+            return `${currentCount}`;
+        }
+
         function getCurrentSlideId() {
             return currentSlideId;
         }
@@ -188,14 +174,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         function onAddSlideClick() {
-            set('slide-2', [
-                {
-                    id: 'test',
-                    position: { left: 50, top: 50 },
-                    type: 'text',
-                    value: 'Hello World 2',
-                },
-            ]);
+            set(crypto.randomUUID(), []);
         }
 
         function createText() {
@@ -206,6 +185,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 position: { left: 0, top: 0 },
                 type: 'text',
                 value: 'Hello World',
+                draggable: true,
             };
 
             const present = state.get(getCurrentSlideId())?.present ?? [];
@@ -213,28 +193,18 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         function addMutationTable() {
-            const comp = React.createElement(MutationTable, {
-                patientViewPageStore,
-                dataStore,
-                sampleManager,
-                sampleIds,
-                mergeOncoKbIcons,
-                onOncoKbIconToggle,
-                columnVisibility,
-                onFilterGenes,
-                columnVisibilityProps,
-                onSelectGenePanel,
-                disableTooltip,
-                onRowClick,
-                onRowMouseEnter,
-                onRowMouseLeave,
-                namespaceColumns,
-                columns,
-                pageMode,
-                alleleFreqHeaderRender,
-            });
+            const id = getAndIncrementCounter();
 
-            // setComponents(components.concat(comp));
+            const node: Node<null> = {
+                id,
+                position: { left: 0, top: 0 },
+                type: 'mutationTable',
+                value: null,
+                draggable: true,
+            };
+
+            const present = state.get(getCurrentSlideId())?.present ?? [];
+            set(getCurrentSlideId(), [...present, node]);
         }
 
         function mapClinicalData(): PresentationClinicalData {
@@ -300,7 +270,12 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(slideId, nextPresent);
         }
 
-        function onValueChanged(slideId: string, id: string, value: any) {
+        function onStateChanged(
+            slideId: string,
+            id: string,
+            value: any,
+            draggable: boolean
+        ) {
             const present = state.get(slideId)?.present;
 
             if (!present) return;
@@ -310,8 +285,12 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             let modified = false;
 
             const nextPresent = copiedPresent.map(node => {
-                if (node.id === id && node.value !== value) {
+                if (
+                    node.id === id &&
+                    (node.value !== value || node.draggable !== draggable)
+                ) {
                     node.value = value;
+                    node.draggable = draggable;
                     modified = true;
                     return node;
                 } else {
@@ -325,83 +304,104 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         return (
-            <div>
-                <div className="toolbar">
-                    <div onClick={createText}>
-                        <CreateTextIcon></CreateTextIcon>
+            <div className="overview-presentation-container">
+                {/*<div className="overview">*/}
+                {/*    {Array.from({length: deckRef.current?.getTotalSlides() ?? 0}, (v, i) => i).map((number) => {*/}
+                {/*        return `Slide ${number + 1}`*/}
+                {/*    })}*/}
+                {/*</div>*/}
+                <div className="presentation-container">
+                    <div className="toolbar">
+                        <div onClick={createText}>
+                            <CreateTextIcon></CreateTextIcon>
+                        </div>
+                        <div onClick={addMutationTable}>
+                            <AddMutationTableIcon></AddMutationTableIcon>
+                        </div>
+                        <div
+                            onClick={onUndoClick}
+                            className={
+                                canUndo(getCurrentSlideId()) ? '' : 'disabled'
+                            }
+                        >
+                            <UndoIcon></UndoIcon>
+                        </div>
+                        <div
+                            onClick={onRedoClick}
+                            className={
+                                canRedo(getCurrentSlideId()) ? '' : 'disabled'
+                            }
+                        >
+                            <RedoIcon></RedoIcon>
+                        </div>
+                        <div onClick={onAddSlideClick}>Add Slide</div>
+                        <div
+                            className="toolbar__fullscreen"
+                            onClick={toggleFullscreen}
+                        >
+                            <ToggleFullscreenIcon></ToggleFullscreenIcon>
+                        </div>
                     </div>
-                    <div onClick={addMutationTable}>
-                        <AddMutationTableIcon></AddMutationTableIcon>
-                    </div>
-                    <div
-                        onClick={onUndoClick}
-                        className={
-                            canUndo(getCurrentSlideId()) ? '' : 'disabled'
-                        }
-                    >
-                        <UndoIcon></UndoIcon>
-                    </div>
-                    <div
-                        onClick={onRedoClick}
-                        className={
-                            canRedo(getCurrentSlideId()) ? '' : 'disabled'
-                        }
-                    >
-                        <RedoIcon></RedoIcon>
-                    </div>
-                    <div onClick={onAddSlideClick}>Add Slide</div>
-                    <div
-                        className="toolbar__fullscreen"
-                        onClick={toggleFullscreen}
-                    >
-                        <ToggleFullscreenIcon></ToggleFullscreenIcon>
-                    </div>
-                </div>
-                <div className="presentation">
-                    <div className="reveal" ref={deckDivRef}>
-                        <div className="slides">
-                            {Array.from(state.entries()).map(
-                                ([slideId, timeState]) => (
-                                    <section id={slideId} key={slideId}>
-                                        <DndContext
-                                            sensors={sensors}
-                                            onDragEnd={onDragEnd}
-                                        >
-                                            {timeState.present &&
-                                                timeState.present.map(node =>
-                                                    React.createElement(
-                                                        Draggable,
-                                                        {
-                                                            slideId,
-                                                            id: node.id,
-                                                            top:
-                                                                node.position
-                                                                    .top,
-                                                            left:
-                                                                node.position
-                                                                    .left,
-                                                            key: node.id,
-                                                            children: Dynamic(
-                                                                node.type,
+                    <div className="presentation">
+                        <div className="reveal" ref={deckDivRef}>
+                            <div className="slides">
+                                {Array.from(state.entries()).map(
+                                    ([slideId, timeState]) => (
+                                        <section id={slideId} key={slideId}>
+                                            <DndContext
+                                                sensors={sensors}
+                                                onDragEnd={onDragEnd}
+                                            >
+                                                {timeState.present &&
+                                                    timeState.present.map(
+                                                        node =>
+                                                            React.createElement(
+                                                                Draggable,
                                                                 {
-                                                                    innerRef: ref,
-                                                                    initialValue:
-                                                                        node.value,
-                                                                    valueChanged: value =>
-                                                                        onValueChanged(
-                                                                            slideId,
-                                                                            node.id,
-                                                                            value
-                                                                        ),
+                                                                    slideId,
+                                                                    id: node.id,
+                                                                    top:
+                                                                        node
+                                                                            .position
+                                                                            .top,
+                                                                    left:
+                                                                        node
+                                                                            .position
+                                                                            .left,
+                                                                    key:
+                                                                        node.id,
+                                                                    draggable:
+                                                                        node.draggable,
+                                                                    children: Dynamic(
+                                                                        node.type,
+                                                                        {
+                                                                            ...(node.type ===
+                                                                                'mutationTable' && {
+                                                                                ...mutationTableProps,
+                                                                            }),
+                                                                            innerRef: createRef(),
+                                                                            initialValue:
+                                                                                node.value,
+                                                                            stateChanged: (
+                                                                                value,
+                                                                                draggable
+                                                                            ) =>
+                                                                                onStateChanged(
+                                                                                    slideId,
+                                                                                    node.id,
+                                                                                    value,
+                                                                                    draggable
+                                                                                ),
+                                                                        }
+                                                                    ),
                                                                 }
-                                                            ),
-                                                        }
-                                                    )
-                                                )}
-                                        </DndContext>
-                                    </section>
-                                )
-                            )}
+                                                            )
+                                                    )}
+                                            </DndContext>
+                                        </section>
+                                    )
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

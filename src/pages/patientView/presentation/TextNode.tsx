@@ -8,12 +8,18 @@ interface State {
 }
 
 interface Props {
-    valueChanged: (value: any) => void;
+    stateChanged: (value: any, draggable: boolean) => void;
+    draggableChanged: (draggable: boolean) => void;
     innerRef: RefObject<HTMLDivElement>;
     initialValue: string;
 }
 
-export const TextNode = ({ innerRef, valueChanged, initialValue }: Props) => {
+export const TextNode = ({
+    innerRef,
+    stateChanged,
+    initialValue,
+    draggableChanged,
+}: Props) => {
     const [state, setState] = React.useState<State>({
         down: false,
         selected: false,
@@ -44,6 +50,7 @@ export const TextNode = ({ innerRef, valueChanged, initialValue }: Props) => {
     };
 
     const startEditing = () => {
+        stateChanged(innerRef.current?.textContent, false);
         setState(current => ({ ...current, editing: true }));
         setTimeout(() => focus());
     };
@@ -77,7 +84,7 @@ export const TextNode = ({ innerRef, valueChanged, initialValue }: Props) => {
     };
 
     const stopEditing = () => {
-        valueChanged(innerRef.current?.textContent);
+        stateChanged(innerRef.current?.textContent, true);
         setState(current => ({ ...current, editing: false }));
     };
 

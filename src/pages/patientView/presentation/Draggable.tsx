@@ -8,12 +8,14 @@ interface Props {
     left: number;
     top: number;
     children: any;
+    draggable: boolean;
 }
 
 export const Draggable = observer(
-    ({ id, left, top, children, slideId }: Props) => {
+    ({ id, left, top, children, slideId, draggable }: Props) => {
         const { attributes, listeners, setNodeRef, transform } = useDraggable({
             id,
+            disabled: !draggable,
             data: {
                 slideId,
             },

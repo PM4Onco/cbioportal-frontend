@@ -1,19 +1,19 @@
 import React, { Ref } from 'react';
 import { TextNode } from 'pages/patientView/presentation/TextNode';
+import { MutationTable } from 'pages/patientView/presentation/MutationTable';
 
 interface DynamicComponentProps<T> {
     innerRef: Ref<any>;
     initialValue: T;
-    valueChanged: (value: any) => void;
+    stateChanged: (value: any, draggable: boolean) => void;
 }
 
 export const Components = {
     text: TextNode,
+    mutationTable: MutationTable,
 } as const;
 
 export type ComponentKeys = keyof typeof Components;
-export type ComponentTypes = typeof Components[keyof typeof Components];
-export type ComponentValues = string;
 
 export const Dynamic = (
     type: ComponentKeys,
