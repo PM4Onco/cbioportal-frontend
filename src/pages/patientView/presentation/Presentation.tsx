@@ -17,6 +17,7 @@ import { Node } from './model/node';
 import { DndContext, DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
 import { PointerSensor } from 'pages/patientView/presentation/PointerSensor';
 import { Draggable } from 'pages/patientView/presentation/Draggable';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 export interface PresentationClinicalData {
     name: string;
@@ -87,6 +88,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             ],
         });
 
+        useHotkeys('ctrl+v,meta+v', () => handlePaste(), [
+            state,
+            currentSlideId,
+        ]);
+
         useEffect(() => {
             // Prevents double initialization in strict mode
             if (deckRef.current) return;
@@ -117,6 +123,28 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 }
             };
         }, []);
+
+        async function handlePaste() {
+            try {
+                const clipboardItems = await navigator.clipboard.read();
+                for (const clipboardItem of clipboardItems) {
+                    for (const type of clipboardItem.types) {
+                        const blob = await clipboardItem.getType(type);
+
+                        if (type === 'text/plain') {
+                            await handleTextPaste(blob);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error(err.name, err.message);
+            }
+        }
+
+        async function handleTextPaste(blob: Blob) {
+            const text = await blob.text();
+            createText(text);
+        }
 
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
@@ -175,15 +203,17 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(crypto.randomUUID(), []);
         }
 
-        function createText() {
+        function createText(value?: string) {
             const id = getAndIncrementCounter();
 
             const node: Node<string> = {
                 id,
                 position: { left: 0, top: 0 },
                 type: 'text',
-                value: 'Hello World',
+                value: value ?? 'Neuer Textbaustein',
             };
+
+            console.log(getCurrentSlideId());
 
             const present = state.get(getCurrentSlideId())?.present ?? [];
             set(getCurrentSlideId(), [...present, node]);
@@ -299,7 +329,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 {/*</div>*/}
                 <div className="presentation-container">
                     <div className="toolbar">
-                        <div onClick={createText}>
+                        <div onClick={() => createText()}>
                             <CreateTextIcon></CreateTextIcon>
                         </div>
                         <div onClick={addMutationTable}>
