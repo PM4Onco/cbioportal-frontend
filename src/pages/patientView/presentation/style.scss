@@ -23,8 +23,14 @@
     justify-content: space-around;
 }
 
-.presentation:fullscreen {
+.reveal-viewport:fullscreen {
     background-color: white;
+
+    .presentation__node--selected,
+    .presentation__node--editing {
+        outline: none;
+        // TODO: hide outline when in presentation mode
+    }
 }
 
 .presentation {

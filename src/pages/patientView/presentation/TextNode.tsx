@@ -58,6 +58,7 @@ export const TextNode = ({
     };
 
     const startEditing = () => {
+        if (state.editing) return;
         draggableChanged(false);
         setState(current => ({ ...current, editing: true }));
         focus();
@@ -92,7 +93,10 @@ export const TextNode = ({
     };
 
     const stopEditing = () => {
-        stateChanged(innerRef.current?.textContent);
+        const textNode = innerRef.current;
+        if (!textNode) return;
+
+        stateChanged(textNode.textContent);
         draggableChanged(true);
         setState(current => ({ ...current, editing: false }));
     };
