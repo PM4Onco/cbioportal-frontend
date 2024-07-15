@@ -1,6 +1,7 @@
 import React, { Ref } from 'react';
 import { TextNode } from 'pages/patientView/presentation/TextNode';
 import { MutationTable } from 'pages/patientView/presentation/MutationTable';
+import { ImageNode } from 'pages/patientView/presentation/ImageNode';
 
 export interface DynamicComponentProps<T> {
     innerRef: Ref<any>;
@@ -15,6 +16,7 @@ export type DraggableChangedFn = (draggable: boolean) => void;
 export const Components = {
     text: TextNode,
     mutationTable: MutationTable,
+    image: ImageNode,
 } as const;
 
 export type ComponentKeys = keyof typeof Components;

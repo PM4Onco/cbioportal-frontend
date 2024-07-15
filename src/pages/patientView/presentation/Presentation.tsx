@@ -55,11 +55,6 @@ interface PresentationProps {
     alleleFreqHeaderRender: ((name: string) => JSX.Element) | undefined;
 }
 
-interface Slide<T> {
-    id: string;
-    nodes: Node<T>[];
-}
-
 export const Presentation: React.FunctionComponent<PresentationProps> = observer(
     ({ clinicalData, ...mutationTableProps }: PresentationProps) => {
         const deckDivRef = useRef<HTMLDivElement>(null); // reference to deck container div
@@ -129,10 +124,22 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 const clipboardItems = await navigator.clipboard.read();
                 for (const clipboardItem of clipboardItems) {
                     for (const type of clipboardItem.types) {
-                        const blob = await clipboardItem.getType(type);
+                        const asImage = clipboardItem.types.find(type =>
+                            type.startsWith('image/')
+                        );
 
-                        if (type === 'text/plain') {
-                            await handleTextPaste(blob);
+                        if (asImage) {
+                            const blob = await clipboardItem.getType(asImage);
+                            await handlePasteAsImage(blob);
+                        }
+
+                        const asText = clipboardItem.types.find(
+                            type => type === 'text/plain'
+                        );
+
+                        if (asText) {
+                            const blob = await clipboardItem.getType(asText);
+                            await handlePasteAsText(blob);
                         }
                     }
                 }
@@ -141,7 +148,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             }
         }
 
-        async function handleTextPaste(blob: Blob) {
+        async function handlePasteAsImage(blob: Blob) {
+            createImage(blob);
+        }
+
+        async function handlePasteAsText(blob: Blob) {
             const text = await blob.text();
             createText(text);
         }
@@ -213,7 +224,19 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 value: value ?? 'Neuer Textbaustein',
             };
 
-            console.log(getCurrentSlideId());
+            const present = state.get(getCurrentSlideId())?.present ?? [];
+            set(getCurrentSlideId(), [...present, node]);
+        }
+
+        function createImage(blob: Blob) {
+            const id = getAndIncrementCounter();
+
+            const node: Node<string> = {
+                id,
+                position: { left: 0, top: 0 },
+                type: 'image',
+                value: URL.createObjectURL(blob),
+            };
 
             const present = state.get(getCurrentSlideId())?.present ?? [];
             set(getCurrentSlideId(), [...present, node]);
