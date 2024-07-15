@@ -41,7 +41,7 @@ export const TextNode = ({
         document.addEventListener('pointerdown', onOutsideClick, {
             signal: controller.signal,
         });
-        document.addEventListener('dblclick', () => startEditing(), {
+        innerRef.current?.addEventListener('dblclick', () => startEditing(), {
             signal: controller.signal,
         });
 
