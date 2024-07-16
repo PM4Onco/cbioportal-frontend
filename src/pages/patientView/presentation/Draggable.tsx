@@ -32,6 +32,7 @@ export const Draggable = observer(
 
         const style = {
             position: 'relative' as const,
+            display: 'inline-flex' as const,
             transform: `translate3d(${transform?.x ?? 0}px, ${transform?.y ??
                 0}px, 0)`,
             left,

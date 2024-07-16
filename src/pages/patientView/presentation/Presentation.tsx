@@ -18,6 +18,7 @@ import { DndContext, DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
 import { PointerSensor } from 'pages/patientView/presentation/PointerSensor';
 import { Draggable } from 'pages/patientView/presentation/Draggable';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { Menu, MenuItem } from 'pages/patientView/presentation/ContextMenu';
 
 export interface PresentationClinicalData {
     name: string;
@@ -85,6 +86,15 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         useHotkeys('ctrl+v,meta+v', () => handlePaste(), [
             state,
+            currentSlideId,
+        ]);
+
+        useHotkeys('ctrl+z,meta+z', () => onUndoClick(), [
+            undo,
+            currentSlideId,
+        ]);
+        useHotkeys('ctrl+shift+z,meta+shift+z', () => onRedoClick(), [
+            redo,
             currentSlideId,
         ]);
 
@@ -383,6 +393,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         </div>
                     </div>
                     <div className="presentation">
+                        <Menu>
+                            <MenuItem label="Paste" onClick={handlePaste} />
+                        </Menu>
                         <div className="reveal" ref={deckDivRef}>
                             <div className="slides">
                                 {Array.from(state.entries()).map(
