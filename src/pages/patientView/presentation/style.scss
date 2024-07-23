@@ -62,6 +62,10 @@
     user-select: none;
 }
 
+.presentation__node--html {
+    font-size: 16px;
+}
+
 .presentation__node--selected {
     outline: 1px dotted black;
 }

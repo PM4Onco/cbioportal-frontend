@@ -2,6 +2,7 @@ import MutationTableWrapper from 'pages/patientView/mutation/MutationTableWrappe
 import React, { RefObject, useEffect } from 'react';
 import {
     DraggableChangedFn,
+    SelectedChangedFn,
     StateChangedFn,
 } from 'pages/patientView/presentation/model/dynamic-component';
 
@@ -14,6 +15,7 @@ interface State {
 interface Props {
     stateChanged: StateChangedFn;
     draggableChanged: DraggableChangedFn;
+    selectedChanged: SelectedChangedFn;
     initialValue: null;
     innerRef: RefObject<HTMLDivElement>;
     patientViewPageStore: any;

@@ -1,4 +1,4 @@
-import React, { createRef, Ref, useEffect, useRef, useState } from 'react';
+import React, { createRef, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { ClinicalData } from 'cbioportal-ts-api-client';
 
@@ -64,8 +64,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         const pointerSensor = useSensor(PointerSensor);
         const sensors = useSensors(pointerSensor);
 
-        const [refs, setRefs] = React.useState<Record<string, Ref<any>>>({});
-
         const [idCounter, setIdCounter] = useState(2);
         const [slideIdCounter, setSlideIdCounter] = React.useState(0);
         const [currentSlideId, setCurrentSlideId] = useState('');
@@ -84,9 +82,19 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             ],
         });
 
+        const [selectedNodes, setSelectedNodes] = useState<
+            { slideId: string; nodeId: string }[]
+        >([]);
+
         useHotkeys('ctrl+v,meta+v', () => handlePaste(), [
             state,
             currentSlideId,
+        ]);
+
+        useHotkeys('ctrl+c,meta+c', () => handleCopy(), [
+            state,
+            currentSlideId,
+            selectedNodes,
         ]);
 
         useHotkeys('ctrl+z,meta+z', () => onUndoClick(), [
@@ -97,6 +105,8 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             redo,
             currentSlideId,
         ]);
+
+        useHotkeys('backspace', () => onBackspacePressed(), [selectedNodes]);
 
         useEffect(() => {
             // Prevents double initialization in strict mode
@@ -134,28 +144,43 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 const clipboardItems = await navigator.clipboard.read();
                 for (const clipboardItem of clipboardItems) {
                     for (const type of clipboardItem.types) {
+                        const asHTML = clipboardItem.types.find(
+                            type => type === 'text/html'
+                        );
+
+                        if (asHTML) {
+                            const blob = await clipboardItem.getType(asHTML);
+                            await handlePasteAsHTML(blob);
+                            return;
+                        }
+
                         const asImage = clipboardItem.types.find(type =>
                             type.startsWith('image/')
                         );
-
                         if (asImage) {
                             const blob = await clipboardItem.getType(asImage);
                             await handlePasteAsImage(blob);
+                            return;
                         }
 
                         const asText = clipboardItem.types.find(
                             type => type === 'text/plain'
                         );
-
                         if (asText) {
                             const blob = await clipboardItem.getType(asText);
                             await handlePasteAsText(blob);
+                            return;
                         }
                     }
                 }
             } catch (err) {
                 console.error(err.name, err.message);
             }
+        }
+
+        async function handlePasteAsHTML(blob: Blob) {
+            const html = await blob.text();
+            createHTML(html);
         }
 
         async function handlePasteAsImage(blob: Blob) {
@@ -165,6 +190,91 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         async function handlePasteAsText(blob: Blob) {
             const text = await blob.text();
             createText(text);
+        }
+
+        function noNodesSelected() {
+            return selectedNodes.length < 1;
+        }
+
+        async function handleCopy() {
+            if (noNodesSelected()) return;
+
+            const selectedNode = selectedNodes[0];
+            const present = state.get(selectedNode.slideId)?.present;
+            const presentOfSelectedNode = present?.find(
+                node => node.id === selectedNode.nodeId
+            );
+
+            if (presentOfSelectedNode) {
+                const type = presentOfSelectedNode.type;
+
+                switch (type) {
+                    case 'text':
+                        await copyAsText(presentOfSelectedNode.value);
+                        break;
+                    case 'image':
+                        await copyAsImage(presentOfSelectedNode.value);
+                        break;
+                    case 'html':
+                        await copyAsHTML(presentOfSelectedNode.value);
+                        break;
+                }
+            }
+        }
+
+        async function copyAsText(value: string | null) {
+            if (!value) return;
+
+            try {
+                await navigator.clipboard.writeText(value);
+            } catch (err) {
+                console.error(err.name, err.message);
+            }
+        }
+
+        async function copyAsImage(value: string | null) {
+            if (!value) return;
+
+            try {
+                const blob = await fetch(value).then(response =>
+                    response.blob()
+                );
+                const clipboardItem = new ClipboardItem({ 'image/png': blob });
+                await navigator.clipboard.write([clipboardItem]);
+            } catch (err) {
+                console.error(err.name, err.message);
+            }
+        }
+
+        async function copyAsHTML(value: string | null) {
+            if (!value) return;
+
+            try {
+                const clipboardItem = new ClipboardItem({
+                    'text/html': new Blob([value], { type: 'text/html' }),
+                });
+                await navigator.clipboard.write([clipboardItem]);
+            } catch (err) {
+                console.error(err.name, err.message);
+            }
+        }
+
+        function onBackspacePressed() {
+            if (noNodesSelected()) return;
+
+            const selectedNode = selectedNodes[0];
+            const present = state.get(selectedNode.slideId)?.present;
+            if (present) {
+                const presentWithoutSelected = present.filter(
+                    node => node.id !== selectedNode.nodeId
+                );
+                set(selectedNode.slideId, presentWithoutSelected);
+                onSelectedChanged(
+                    selectedNode.slideId,
+                    selectedNode.nodeId,
+                    false
+                );
+            }
         }
 
         function toggleFullscreen() {
@@ -266,6 +376,20 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(getCurrentSlideId(), [...present, node]);
         }
 
+        function createHTML(html: string) {
+            const id = getAndIncrementCounter();
+
+            const node: Node<string> = {
+                id,
+                position: { left: 0, top: 0 },
+                type: 'html',
+                value: html,
+            };
+
+            const present = state.get(getCurrentSlideId())?.present ?? [];
+            set(getCurrentSlideId(), [...present, node]);
+        }
+
         function mapClinicalData(): PresentationClinicalData {
             const name = findClinicalAttributeOrEmptyString(
                 'PATIENT_DISPLAY_NAME'
@@ -353,6 +477,26 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             }
         }
 
+        function onSelectedChanged(
+            slideId: string,
+            id: string,
+            selected: boolean
+        ) {
+            if (selected) {
+                setSelectedNodes(current => [
+                    ...current,
+                    { slideId, nodeId: id },
+                ]);
+            } else {
+                setSelectedNodes(current => {
+                    return current.filter(
+                        ({ slideId: currentSlideId, nodeId: currentNodeId }) =>
+                            currentNodeId !== id
+                    );
+                });
+            }
+        }
+
         return (
             <div className="overview-presentation-container">
                 {/*<div className="overview">*/}
@@ -434,6 +578,14 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                             innerRef: createRef(),
                                                                             initialValue:
                                                                                 node.value,
+                                                                            selectedChanged: (
+                                                                                selected: boolean
+                                                                            ) =>
+                                                                                onSelectedChanged(
+                                                                                    slideId,
+                                                                                    node.id,
+                                                                                    selected
+                                                                                ),
                                                                             stateChanged: (
                                                                                 value: any
                                                                             ) =>

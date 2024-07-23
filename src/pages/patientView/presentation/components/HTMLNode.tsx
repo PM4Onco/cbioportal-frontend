@@ -1,5 +1,6 @@
 import {
     DraggableChangedFn,
+    SelectedChangedFn,
     StateChangedFn,
 } from 'pages/patientView/presentation/model/dynamic-component';
 import React, { RefObject, useEffect } from 'react';
@@ -7,6 +8,7 @@ import React, { RefObject, useEffect } from 'react';
 interface Props {
     stateChanged: StateChangedFn;
     draggableChanged: DraggableChangedFn;
+    selectedChanged: SelectedChangedFn;
     innerRef: RefObject<HTMLImageElement>;
     initialValue: string;
 }
@@ -15,11 +17,12 @@ interface State {
     selected: boolean;
 }
 
-export const ImageNode = ({
+export const HTMLNode = ({
     innerRef,
     stateChanged,
     initialValue,
     draggableChanged,
+    selectedChanged,
 }: Props) => {
     const [state, setState] = React.useState<State>({
         selected: false,
@@ -50,6 +53,7 @@ export const ImageNode = ({
     };
 
     const onPointerDown = (event: React.PointerEvent) => {
+        selectedChanged(true);
         setState(current => ({ ...current, selected: true }));
     };
 
@@ -67,19 +71,20 @@ export const ImageNode = ({
     };
 
     const unselectNode = () => {
+        selectedChanged(false);
         setState(current => ({ ...current, selected: false }));
     };
 
     return (
-        <div>
-            <img
-                className={` 
-                     ${state.selected ? 'presentation__node--selected' : ''}`}
-                ref={innerRef}
-                src={initialValue}
-                onPointerDown={onPointerDown}
-                alt="Image"
-            />
-        </div>
+        <div
+            ref={innerRef}
+            onPointerDown={onPointerDown}
+            className={`${
+                state.selected
+                    ? 'presentation__node--selected presentation__node--html'
+                    : 'presentation__node--html'
+            }`}
+            dangerouslySetInnerHTML={{ __html: initialValue }}
+        ></div>
     );
 };

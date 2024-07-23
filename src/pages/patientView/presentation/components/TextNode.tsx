@@ -1,7 +1,7 @@
 import React, { RefObject, useEffect } from 'react';
 import {
     DraggableChangedFn,
-    DynamicComponentProps,
+    SelectedChangedFn,
     StateChangedFn,
 } from 'pages/patientView/presentation/model/dynamic-component';
 
@@ -13,6 +13,7 @@ interface State {
 
 interface Props {
     stateChanged: StateChangedFn;
+    selectedChanged: SelectedChangedFn;
     draggableChanged: DraggableChangedFn;
     innerRef: RefObject<HTMLDivElement>;
     initialValue: string;
@@ -23,6 +24,7 @@ export const TextNode = ({
     stateChanged,
     initialValue,
     draggableChanged,
+    selectedChanged,
 }: Props) => {
     const [state, setState] = React.useState<State>({
         down: false,
@@ -65,6 +67,7 @@ export const TextNode = ({
     };
 
     const onPointerDown = (event: React.PointerEvent) => {
+        selectedChanged(true);
         setState(current => ({ ...current, down: true, selected: true }));
     };
 
@@ -72,9 +75,6 @@ export const TextNode = ({
         switch (event.code) {
             case 'Escape':
                 handleEscapePress();
-                break;
-            case 'Backspace':
-                handleBackspacePress();
                 break;
         }
     };
@@ -87,11 +87,6 @@ export const TextNode = ({
         }
     };
 
-    const handleBackspacePress = () => {
-        if (state.editing) return;
-        innerRef.current?.remove();
-    };
-
     const stopEditing = () => {
         const textNode = innerRef.current;
         if (!textNode) return;
@@ -102,6 +97,7 @@ export const TextNode = ({
     };
 
     const unselectNode = () => {
+        selectedChanged(false);
         setState(current => ({ ...current, selected: false }));
     };
 
