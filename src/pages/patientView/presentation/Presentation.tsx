@@ -304,12 +304,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             return `${counter}`;
         }
 
-        function getAndIncrementSlideIdCounter() {
-            const currentCount = slideIdCounter;
-            setSlideIdCounter(counter => counter + 1);
-            return `${currentCount}`;
-        }
-
         function getCurrentSlideId() {
             return currentSlideId;
         }
@@ -339,7 +333,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 0, top: 0 },
+                position: { left: 20 * Number(id), top: 20 * Number(id) },
                 type: 'text',
                 value: value ?? 'Neuer Textbaustein',
             };
@@ -353,7 +347,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 0, top: 0 },
+                position: { left: 20 * Number(id), top: 20 * Number(id) },
                 type: 'image',
                 value: URL.createObjectURL(blob),
             };
@@ -367,7 +361,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<null> = {
                 id,
-                position: { left: 0, top: 0 },
+                position: { left: 20 * Number(id), top: 20 * Number(id) },
                 type: 'mutationTable',
                 value: null,
             };
@@ -381,7 +375,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 0, top: 0 },
+                position: { left: 20 * Number(id), top: 20 * Number(id) },
                 type: 'html',
                 value: html,
             };
