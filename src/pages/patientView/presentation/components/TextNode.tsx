@@ -1,4 +1,4 @@
-import React, { RefObject, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
     DraggableChangedFn,
     SelectedChangedFn,
@@ -9,18 +9,17 @@ interface State {
     down: boolean;
     selected: boolean;
     editing: boolean;
+    resizing: boolean;
 }
 
 interface Props {
     stateChanged: StateChangedFn;
     selectedChanged: SelectedChangedFn;
     draggableChanged: DraggableChangedFn;
-    innerRef: RefObject<HTMLDivElement>;
     initialValue: string;
 }
 
 export const TextNode = ({
-    innerRef,
     stateChanged,
     initialValue,
     draggableChanged,
@@ -30,54 +29,63 @@ export const TextNode = ({
         down: false,
         selected: false,
         editing: false,
+        resizing: false,
     });
+
+    const documentRef = useRef(document);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const elementRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const controller = new AbortController();
-        document.addEventListener('pointerup', onPointerUp, {
+
+        documentRef.current.addEventListener('pointerup', onPointerUp, {
             signal: controller.signal,
         });
-        document.addEventListener('keydown', onKeyDown, {
+        documentRef.current.addEventListener('keydown', onKeyDown, {
             signal: controller.signal,
         });
-        document.addEventListener('pointerdown', onOutsideClick, {
+        documentRef.current.addEventListener('pointerdown', onOutsideClick, {
             signal: controller.signal,
         });
-        innerRef.current?.addEventListener('dblclick', () => startEditing(), {
+        elementRef.current?.addEventListener('dblclick', () => startEditing(), {
             signal: controller.signal,
         });
 
         return () => {
             controller.abort();
         };
-    }, [state]);
+    }, [state, documentRef]);
 
     const focus = () => {
-        if (!innerRef.current) return;
+        if (!elementRef.current) return;
 
-        innerRef.current.focus();
-        document.getSelection()!.collapse(innerRef.current, 1);
+        elementRef.current.focus();
+        document.getSelection()!.collapse(elementRef.current, 1);
     };
 
-    const startEditing = () => {
+    const startEditing = useCallback(() => {
         if (state.editing) return;
         draggableChanged(false);
         setState(current => ({ ...current, editing: true }));
         focus();
-    };
+    }, [state]);
 
     const onPointerDown = (event: React.PointerEvent) => {
         selectedChanged(true);
         setState(current => ({ ...current, down: true, selected: true }));
     };
 
-    const onKeyDown = (event: KeyboardEvent) => {
-        switch (event.code) {
-            case 'Escape':
-                handleEscapePress();
-                break;
-        }
-    };
+    const onKeyDown = useCallback(
+        (event: KeyboardEvent) => {
+            switch (event.code) {
+                case 'Escape':
+                    handleEscapePress();
+                    break;
+            }
+        },
+        [state]
+    );
 
     const handleEscapePress = () => {
         if (state.editing) {
@@ -88,10 +96,10 @@ export const TextNode = ({
     };
 
     const stopEditing = () => {
-        const textNode = innerRef.current;
+        const textNode = elementRef.current;
         if (!textNode) return;
 
-        stateChanged(textNode.textContent);
+        stateChanged(textNode.innerHTML);
         draggableChanged(true);
         setState(current => ({ ...current, editing: false }));
     };
@@ -101,31 +109,35 @@ export const TextNode = ({
         setState(current => ({ ...current, selected: false }));
     };
 
-    const onPointerUp = (event: PointerEvent) => {
-        setState(current => ({ ...current, down: false }));
-    };
+    const onPointerUp = useCallback(() => {
+        setState(current => ({ ...current, down: false, resizing: false }));
+    }, []);
 
-    const onOutsideClick = (event: MouseEvent) => {
-        if (
-            event.target !== innerRef.current &&
-            !innerRef.current?.contains(event.target as Node)
-        ) {
-            handleEscapePress();
-        }
-    };
+    const onOutsideClick = useCallback(
+        (event: MouseEvent) => {
+            if (
+                event.target !== containerRef.current &&
+                !containerRef.current?.contains(event.target as Node)
+            ) {
+                handleEscapePress();
+            }
+        },
+        [state]
+    );
 
     return (
-        <div
-            className={`presentation__text-node 
+        <div className="presentation__node" ref={containerRef}>
+            <div
+                className={`presentation__text-node
                      ${state.selected ? 'presentation__node--selected' : ''} 
                      ${state.editing ? 'presentation__node--editing' : ''}
                 `}
-            ref={innerRef}
-            onPointerDown={onPointerDown}
-            contentEditable={state.editing}
-            suppressContentEditableWarning={true}
-        >
-            {initialValue}
+                ref={elementRef}
+                onPointerDown={onPointerDown}
+                contentEditable={state.editing}
+                suppressContentEditableWarning={true}
+                dangerouslySetInnerHTML={{ __html: initialValue }}
+            ></div>
         </div>
     );
 };

@@ -5,7 +5,6 @@ import { ImageNode } from 'pages/patientView/presentation/components/ImageNode';
 import { HTMLNode } from 'pages/patientView/presentation/components/HTMLNode';
 
 export interface DynamicComponentProps<T> {
-    innerRef: Ref<any>;
     initialValue: T;
     stateChanged: StateChangedFn;
     draggableChanged: DraggableChangedFn;

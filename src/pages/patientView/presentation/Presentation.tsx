@@ -1,4 +1,4 @@
-import React, { createRef, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { ClinicalData } from 'cbioportal-ts-api-client';
 
@@ -75,9 +75,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             initialPresent: [
                 {
                     id: '1',
-                    position: { left: 0, top: 0 },
+                    position: { left: 380, top: 250 },
                     type: 'text',
-                    value: 'Hello World',
+                    value: `${findClinicalAttributeOrEmptyString(
+                        'PATIENT_DISPLAY_NAME'
+                    )}<br>${findClinicalAttributeOrEmptyString(
+                        'AGE'
+                    )} years old`,
                 },
             ],
         });
@@ -144,22 +148,21 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 const clipboardItems = await navigator.clipboard.read();
                 for (const clipboardItem of clipboardItems) {
                     for (const type of clipboardItem.types) {
-                        const asHTML = clipboardItem.types.find(
-                            type => type === 'text/html'
-                        );
-
-                        if (asHTML) {
-                            const blob = await clipboardItem.getType(asHTML);
-                            await handlePasteAsHTML(blob);
-                            return;
-                        }
-
                         const asImage = clipboardItem.types.find(type =>
                             type.startsWith('image/')
                         );
                         if (asImage) {
                             const blob = await clipboardItem.getType(asImage);
                             await handlePasteAsImage(blob);
+                            return;
+                        }
+
+                        const asHTML = clipboardItem.types.find(
+                            type => type === 'text/html'
+                        );
+                        if (asHTML) {
+                            const blob = await clipboardItem.getType(asHTML);
+                            await handlePasteAsHTML(blob);
                             return;
                         }
 
@@ -531,7 +534,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         </div>
                     </div>
                     <div className="presentation">
-                        <Menu>
+                        <Menu ref={deckDivRef}>
                             <MenuItem label="Paste" onClick={handlePaste} />
                         </Menu>
                         <div className="reveal" ref={deckDivRef}>
@@ -559,8 +562,24 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                         node
                                                                             .position
                                                                             .left,
+                                                                    width:
+                                                                        node.type ===
+                                                                        'image'
+                                                                            ? 200
+                                                                            : 'auto',
+                                                                    resizable:
+                                                                        node.type ===
+                                                                        'image',
                                                                     key:
                                                                         node.id,
+                                                                    selectedChanged: (
+                                                                        selected: boolean
+                                                                    ) =>
+                                                                        onSelectedChanged(
+                                                                            slideId,
+                                                                            node.id,
+                                                                            selected
+                                                                        ),
                                                                     component: {
                                                                         type:
                                                                             node.type,
@@ -569,7 +588,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                 'mutationTable' && {
                                                                                 ...mutationTableProps,
                                                                             }),
-                                                                            innerRef: createRef(),
                                                                             initialValue:
                                                                                 node.value,
                                                                             selectedChanged: (

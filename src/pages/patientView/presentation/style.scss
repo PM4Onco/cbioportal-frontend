@@ -90,6 +90,65 @@
     font-size: 16px;
 }
 
+.presentation__node {
+    position: relative;
+}
+
+.presentation__node .node__image {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    user-select: none;
+    pointer-events: none;
+}
+
+$anchor-point-size: 0.75rem;
+
+.node__anchor-point {
+    position: absolute;
+    width: $anchor-point-size;
+    height: $anchor-point-size;
+    background: white;
+    border: 1px solid #3786c2;
+    border-radius: 100%;
+    user-select: none;
+}
+
+.node__anchor-point[data-direction='nw'] {
+    top: 0;
+    left: 0;
+    margin-top: $anchor-point-size / -2;
+    margin-left: $anchor-point-size / -2;
+    cursor: nw-resize;
+}
+
+.node__anchor-point[data-direction='ne'] {
+    top: 0;
+    right: 0;
+    margin-top: $anchor-point-size / -2;
+    margin-right: $anchor-point-size / -2;
+    cursor: ne-resize;
+}
+
+.node__anchor-point[data-direction='se'] {
+    bottom: 0;
+    right: 0;
+    margin-bottom: $anchor-point-size / -2;
+    margin-right: $anchor-point-size / -2;
+    cursor: se-resize;
+}
+
+.node__anchor-point[data-direction='sw'] {
+    bottom: 0;
+    left: 0;
+    margin-bottom: $anchor-point-size / -2;
+    margin-left: $anchor-point-size / -2;
+    cursor: sw-resize;
+}
+
 .ContextMenu {
     outline: 0;
     background: white;

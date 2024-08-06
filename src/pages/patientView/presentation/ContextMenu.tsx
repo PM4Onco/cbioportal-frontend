@@ -3,6 +3,7 @@ import React, {
     cloneElement,
     forwardRef,
     isValidElement,
+    RefObject,
     useEffect,
     useRef,
     useState,
@@ -48,9 +49,9 @@ interface Props {
 }
 
 export const Menu = forwardRef<
-    HTMLButtonElement,
+    HTMLDivElement,
     Props & React.HTMLProps<HTMLButtonElement>
->(({ children }, forwardedRef) => {
+>(({ children }, forwardedRef: RefObject<HTMLDivElement>) => {
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const [isOpen, setIsOpen] = useState(false);
 
@@ -134,11 +135,14 @@ export const Menu = forwardRef<
             }
         }
 
-        document.addEventListener('contextmenu', onContextMenu);
-        document.addEventListener('mouseup', onMouseUp);
+        forwardedRef.current?.addEventListener('contextmenu', onContextMenu);
+        forwardedRef.current?.addEventListener('mouseup', onMouseUp);
         return () => {
-            document.removeEventListener('contextmenu', onContextMenu);
-            document.removeEventListener('mouseup', onMouseUp);
+            forwardedRef.current?.removeEventListener(
+                'contextmenu',
+                onContextMenu
+            );
+            forwardedRef.current?.removeEventListener('mouseup', onMouseUp);
             clearTimeout(timeout);
         };
     }, [refs]);
