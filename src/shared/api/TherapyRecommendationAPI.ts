@@ -1,4 +1,4 @@
-import { DiscreteCopyNumberData, Mutation } from 'cbioportal-ts-api-client';
+import { DiscreteCopkkyNumberData, Mutation } from 'cbioportal-ts-api-client';
 import {
     IMtb,
     IDeletions,

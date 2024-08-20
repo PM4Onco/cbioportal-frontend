@@ -104,7 +104,6 @@ export const Draggable = observer(
 
         const unselectNode = () => {
             selectedChanged(false);
-            console.log(state.width);
             setState(current => ({ ...current, selected: false }));
         };
 

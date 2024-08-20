@@ -1,6 +1,7 @@
 // Based on https://github.com/uidotdev/usehooks/blob/main/index.js
 
 import { Reducer, useCallback, useReducer } from 'react';
+import { Node } from 'pages/patientView/presentation/model/node';
 
 export type State<T> = Map<string, TimeState<T>>;
 
@@ -21,11 +22,20 @@ interface SetAction<T> {
     slideId: string;
 }
 
-export type Action<T> = UndoRedoAction | SetAction<T>;
+interface ClearAction {
+    type: 'clear';
+    slides: Slides;
+}
+
+export type Action<T> = UndoRedoAction | SetAction<T> | ClearAction;
+
+export type UUID = `${string}-${string}-${string}-${string}-${string}`;
+
+export type Slides = {[slideId: UUID]: Node<any>};
 
 const ensureValidActionForSlide = <T>(
     slide: TimeState<T> | undefined,
-    action: Action<T>
+    action: Action<T>,
 ) => {
     if (!slide && action.type !== 'set') {
         throw new Error(`invalid action=(${action.type}) for new slide`);
@@ -33,7 +43,7 @@ const ensureValidActionForSlide = <T>(
 };
 
 const getOrCreateTimeStateForSlide = <T>(
-    slide: TimeState<T> | undefined
+    slide: TimeState<T> | undefined,
 ): TimeState<T> => {
     if (slide) {
         return slide;
@@ -48,8 +58,25 @@ const getOrCreateTimeStateForSlide = <T>(
 
 export const useHistoryStateReducer = <T>(
     state: State<T>,
-    action: Action<T>
+    action: Action<T>,
 ): State<T> => {
+    if(action.type === 'clear') {
+        const slides = action.slides;
+        const newState = new Map();
+
+        for(const [slideId, nodes] of Object.entries(slides)) {
+           newState.set(slideId, {
+               past: [],
+               present: nodes,
+               future: []
+           });
+        }
+
+        console.log(newState)
+
+        return newState;
+    }
+
     const slideId = action.slideId;
     const slide = state.get(slideId);
 
@@ -106,7 +133,7 @@ export function useHistoryState<T>(initialState?: {
 
     const [state, dispatch] = useReducer<Reducer<State<T>, Action<T>>>(
         useHistoryStateReducer,
-        initialUseHistoryState
+        initialUseHistoryState,
     );
 
     const canUndo = useCallback(
@@ -115,7 +142,7 @@ export function useHistoryState<T>(initialState?: {
             const pastLength = slide?.past.length ?? 0;
             return pastLength > 0;
         },
-        [state]
+        [state],
     );
 
     const canRedo = useCallback(
@@ -124,7 +151,7 @@ export function useHistoryState<T>(initialState?: {
             const futureLength = slide?.future.length ?? 0;
             return futureLength > 0;
         },
-        [state]
+        [state],
     );
 
     const undo = useCallback(
@@ -133,7 +160,7 @@ export function useHistoryState<T>(initialState?: {
                 dispatch({ type: 'undo', slideId });
             }
         },
-        [canUndo]
+        [canUndo],
     );
 
     const redo = useCallback(
@@ -142,14 +169,16 @@ export function useHistoryState<T>(initialState?: {
                 dispatch({ type: 'redo', slideId });
             }
         },
-        [canRedo]
+        [canRedo],
     );
 
     const set = useCallback(
         (slideId: string, newPresent: T) =>
             dispatch({ type: 'set', newPresent, slideId }),
-        []
+        [],
     );
 
-    return { state: state, set, undo, redo, canUndo, canRedo };
+    const clear = useCallback((slides: Slides) => dispatch({ type: 'clear', slides }), []);
+
+    return { state: state, set, undo, redo, clear, canUndo, canRedo };
 }
