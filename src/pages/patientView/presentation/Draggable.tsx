@@ -9,7 +9,7 @@ import {
 } from 'pages/patientView/presentation/model/dynamic-component';
 import { Resizable } from 'pages/patientView/presentation/Resizable';
 
-type Width = number | 'auto';
+type Width = number | null;
 
 interface Props {
     id: string;
@@ -23,7 +23,10 @@ interface Props {
         props: Omit<DynamicComponentProps<any>, 'draggableChanged'>;
     };
     selectedChanged: SelectedChangedFn;
+    widthChanged: WidthChangedFn;
 }
+
+type WidthChangedFn = (width: number) => void;
 
 interface State {
     selected: boolean;
@@ -32,11 +35,20 @@ interface State {
 }
 
 export const Draggable = observer(
-    ({ id, left, top, component, slideId, selectedChanged, width }: Props) => {
+    ({
+        id,
+        left,
+        top,
+        component,
+        slideId,
+        selectedChanged,
+        widthChanged,
+        width,
+    }: Props) => {
         const containerRef = useRef<HTMLDivElement | null>(null);
         const [state, setState] = React.useState<State>({
             selected: false,
-            width: width || 'auto',
+            width: width,
             left: 0,
         });
         const [draggable, setDraggable] = React.useState(true);
@@ -48,6 +60,10 @@ export const Draggable = observer(
                 slideId,
             },
         });
+
+        useEffect(() => {
+            setState(current => ({ ...current, width }));
+        }, [width]);
 
         useEffect(() => {
             const controller = new AbortController();
@@ -115,7 +131,7 @@ export const Draggable = observer(
                 0}px, 0)`,
             left: left + state.left,
             top,
-            width: state.width,
+            width: state.width ?? 'auto',
         };
 
         const setContainerRef = (element: HTMLDivElement) => {
@@ -125,13 +141,14 @@ export const Draggable = observer(
 
         const onWidthChanged = (width: number) => {
             setState(current => ({ ...current, width }));
+            widthChanged(width);
         };
 
         const onLeftChanged = (left: number) => {
             setState(current => ({ ...current, left }));
         };
 
-        return width !== 'auto' ? (
+        return width !== null ? (
             <Resizable
                 width={typeof state.width === 'number' ? state.width : 200}
                 left={state.left}

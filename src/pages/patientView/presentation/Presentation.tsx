@@ -6,7 +6,11 @@ import './style.scss';
 import Reveal from 'reveal.js';
 import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
-import { Slides, useHistoryState, UUID } from 'shared/lib/hooks/use-history-state';
+import {
+    Slides,
+    useHistoryState,
+    UUID,
+} from 'shared/lib/hooks/use-history-state';
 import { CreateTextIcon } from './icons/CreateTextIcon';
 import { AddMutationTableIcon } from 'pages/patientView/presentation/icons/AddMutationTableIcon';
 import { ToggleFullscreenIcon } from 'pages/patientView/presentation/icons/ToggleFullscreenIcon';
@@ -61,18 +65,30 @@ interface PresentationProps {
 }
 
 export const Presentation: React.FunctionComponent<PresentationProps> = observer(
-    ({ clinicalData, patientViewPageStore, ...mutationTableProps }: PresentationProps) => {
+    ({
+        clinicalData,
+        patientViewPageStore,
+        ...mutationTableProps
+    }: PresentationProps) => {
         const deckDivRef = useRef<HTMLDivElement>(null); // reference to deck container div
         const deckRef = useRef<Reveal.Api | null>(null); // reference to deck reveal instance
 
         const pointerSensor = useSensor(PointerSensor);
         const sensors = useSensors(pointerSensor);
 
-        const [currentSlideId, setCurrentSlideId] = useState(crypto.randomUUID());
+        const [currentSlideId, setCurrentSlideId] = useState(
+            crypto.randomUUID()
+        );
 
-        const { state, set, undo, redo, clear, canRedo, canUndo } = useHistoryState<
-            (Node<string> | Node<null>)[]
-        >({
+        const {
+            state,
+            set,
+            undo,
+            redo,
+            clear,
+            canRedo,
+            canUndo,
+        } = useHistoryState<(Node<string> | Node<null>)[]>({
             slideId: currentSlideId,
             initialPresent: [],
         });
@@ -117,17 +133,19 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             deckRef.current.initialize().then(reveal => {
                 deckRef.current?.on('slidechanged', (e: any) =>
-                    setCurrentSlideId(e.currentSlide.id),
+                    setCurrentSlideId(e.currentSlide.id)
                 );
             });
 
             // createTitle();
-            loadPresentation().then((slides: Slides) => {
-                clear(slides);
-                const slideIds = Object.keys(slides) as UUID[];
-                setCurrentSlideId(slideIds[0])
-                deckRef.current?.slide(0);
-            }).catch(() => createTitle());
+            loadPresentation()
+                .then((slides: Slides) => {
+                    clear(slides);
+                    const slideIds = Object.keys(slides) as UUID[];
+                    setCurrentSlideId(slideIds[0]);
+                    deckRef.current?.slide(0);
+                })
+                .catch(() => createTitle());
 
             return () => {
                 try {
@@ -147,12 +165,14 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 const { port } = fhirspark;
                 const patientId = patientViewPageStore.getSafePatientId();
 
-                const response = await fetch(`http://localhost:${port}/presentation/${patientId}`);
-                if(response.status === 200) {
+                const response = await fetch(
+                    `http://localhost:${port}/presentation/${patientId}`
+                );
+                if (response.status === 200) {
                     const presentation = await response.json();
                     return presentation.slides;
                 } else {
-                   throw Error('not found');
+                    throw Error('not found');
                 }
             }
         }
@@ -163,7 +183,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 for (const clipboardItem of clipboardItems) {
                     for (const type of clipboardItem.types) {
                         const asImage = clipboardItem.types.find(type =>
-                            type.startsWith('image/'),
+                            type.startsWith('image/')
                         );
                         if (asImage) {
                             const blob = await clipboardItem.getType(asImage);
@@ -172,7 +192,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         }
 
                         const asHTML = clipboardItem.types.find(
-                            type => type === 'text/html',
+                            type => type === 'text/html'
                         );
                         if (asHTML) {
                             const blob = await clipboardItem.getType(asHTML);
@@ -181,7 +201,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         }
 
                         const asText = clipboardItem.types.find(
-                            type => type === 'text/plain',
+                            type => type === 'text/plain'
                         );
                         if (asText) {
                             const blob = await clipboardItem.getType(asText);
@@ -205,17 +225,22 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             if (fhirspark && fhirspark.port) {
                 const { port } = fhirspark;
                 const data = await blobToBase64(blob);
-                const response = await fetch(`http://localhost:${port}/presentation/image`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        contentType: blob.type,
-                        data,
-                    }),
-                });
+                const response = await fetch(
+                    `http://localhost:${port}/presentation/image`,
+                    {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            contentType: blob.type,
+                            data,
+                        }),
+                    }
+                );
 
                 const responseData = await response.json();
 
-                const imageResponse = await fetch(`http://localhost:8080/fhir/${responseData.location}`);
+                const imageResponse = await fetch(
+                    `http://localhost:8080/fhir/${responseData.location}`
+                );
                 const image = await imageResponse.text();
                 createImage(image);
             }
@@ -227,7 +252,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             return new Promise((resolve, reject) => {
                 reader.onloadend = () => {
                     if (reader.result && typeof reader.result === 'string') {
-                        resolve(reader.result.replace(/oata:.+\/.+base64,/, ''));
+                        resolve(
+                            reader.result.replace(/oata:.+\/.+base64,/, '')
+                        );
                     } else {
                         reject();
                     }
@@ -250,7 +277,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             const selectedNode = selectedNodes[0];
             const present = state.get(selectedNode.slideId)?.present;
             const presentOfSelectedNode = present?.find(
-                node => node.id === selectedNode.nodeId,
+                node => node.id === selectedNode.nodeId
             );
 
             if (presentOfSelectedNode) {
@@ -285,7 +312,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             try {
                 const blob = await fetch(value).then(response =>
-                    response.blob(),
+                    response.blob()
                 );
                 const clipboardItem = new ClipboardItem({ 'image/png': blob });
                 await navigator.clipboard.write([clipboardItem]);
@@ -314,13 +341,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             const present = state.get(selectedNode.slideId)?.present;
             if (present) {
                 const presentWithoutSelected = present.filter(
-                    node => node.id !== selectedNode.nodeId,
+                    node => node.id !== selectedNode.nodeId
                 );
                 set(selectedNode.slideId, presentWithoutSelected);
                 onSelectedChanged(
                     selectedNode.slideId,
                     selectedNode.nodeId,
-                    false,
+                    false
                 );
             }
         }
@@ -328,7 +355,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
                 const fullscreenElement = document.querySelector(
-                    '.presentation',
+                    '.presentation'
                 );
 
                 fullscreenElement!.requestFullscreen();
@@ -338,10 +365,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         function findClinicalAttributeOrEmptyString(
-            attributeId: string,
+            attributeId: string
         ): string {
             const attribute = clinicalData.find(
-                cd => cd.clinicalAttributeId === attributeId,
+                cd => cd.clinicalAttributeId === attributeId
             );
             return attribute ? attribute.value : '';
         }
@@ -372,13 +399,15 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         function createTitle() {
             const id = crypto.randomUUID();
-            const value = `${findClinicalAttributeOrEmptyString('PATIENT_DISPLAY_NAME')}<br>${findClinicalAttributeOrEmptyString('AGE')} years old`;
+            const value = `${findClinicalAttributeOrEmptyString(
+                'PATIENT_DISPLAY_NAME'
+            )}<br>${findClinicalAttributeOrEmptyString('AGE')} years old`;
 
             const component = Dynamic('text', {
-                selectedChanged: () => {
-                }, stateChanged: value => {
-                }, initialValue: value, draggableChanged: draggable => {
-                },
+                selectedChanged: () => {},
+                stateChanged: value => {},
+                initialValue: value,
+                draggableChanged: draggable => {},
             });
             const container = document.createElement('div');
             container.classList.add('reveal', 'temp');
@@ -387,19 +416,24 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             ReactDOM.render(component, container);
 
             setTimeout(() => {
-                const rendered = document.querySelector('.temp.reveal .presentation__text-node');
-                const { width, height } = rendered?.getBoundingClientRect() ?? { width: 0, height: 0 };
+                const rendered = document.querySelector(
+                    '.temp.reveal .presentation__text-node'
+                );
+                const { width, height } = rendered?.getBoundingClientRect() ?? {
+                    width: 0,
+                    height: 0,
+                };
                 const left = 960 / 2 - width / 2;
                 const top = 700 / 2 - height / 2;
 
                 const node: Node<string> = {
                     id,
-                    position: { left, top },
+                    position: { left, top, width: null },
                     type: 'text',
                     value: `${findClinicalAttributeOrEmptyString(
-                        'PATIENT_DISPLAY_NAME',
+                        'PATIENT_DISPLAY_NAME'
                     )}<br>${findClinicalAttributeOrEmptyString(
-                        'AGE',
+                        'AGE'
                     )} years old`,
                 };
 
@@ -413,7 +447,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 20 * Number(id), top: 20 * Number(id) },
+                position: { left: 20, top: 20, width: null },
                 type: 'text',
                 value: value ?? 'Neuer Textbaustein',
             };
@@ -427,7 +461,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 20 * Number(id), top: 20 * Number(id) },
+                position: { left: 20, top: 20, width: 200 },
                 type: 'image',
                 value: location,
             };
@@ -441,7 +475,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<null> = {
                 id,
-                position: { left: 20 * Number(id), top: 20 * Number(id) },
+                position: { left: 20, top: 20, width: null },
                 type: 'mutationTable',
                 value: null,
             };
@@ -455,7 +489,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 20 * Number(id), top: 20 * Number(id) },
+                position: { left: 20, top: 20, width: null },
                 type: 'html',
                 value: html,
             };
@@ -466,22 +500,22 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         function mapClinicalData(): PresentationClinicalData {
             const name = findClinicalAttributeOrEmptyString(
-                'PATIENT_DISPLAY_NAME',
+                'PATIENT_DISPLAY_NAME'
             );
             const age = findClinicalAttributeOrEmptyString('AGE');
             const dfsStatus = findClinicalAttributeOrEmptyString('DFS_STATUS');
             const ecogStatus = findClinicalAttributeOrEmptyString(
-                'ECOG _STATUS',
+                'ECOG _STATUS'
             );
             const gender = findClinicalAttributeOrEmptyString('GENDER');
             const karnofskyPerformanceScore = findClinicalAttributeOrEmptyString(
-                'KARNOFSKY_PERFORMANCE_SCORE',
+                'KARNOFSKY_PERFORMANCE_SCORE'
             );
             const kasId = findClinicalAttributeOrEmptyString('KAS_ID');
             const osMonths = findClinicalAttributeOrEmptyString('OS_MONTHS');
             const osStatus = findClinicalAttributeOrEmptyString('OS_STATUS');
             const sampleCount = findClinicalAttributeOrEmptyString(
-                'SAMPLE_COUNT',
+                'SAMPLE_COUNT'
             );
             const cancerType = findClinicalAttributeOrEmptyString('TEST');
 
@@ -554,7 +588,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         function onSelectedChanged(
             slideId: string,
             id: string,
-            selected: boolean,
+            selected: boolean
         ) {
             if (selected) {
                 setSelectedNodes(current => [
@@ -565,9 +599,34 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 setSelectedNodes(current => {
                     return current.filter(
                         ({ slideId: currentSlideId, nodeId: currentNodeId }) =>
-                            currentNodeId !== id,
+                            currentNodeId !== id
                     );
                 });
+            }
+        }
+
+        function onWidthChanged(slideId: string, id: string, width: number) {
+            const present = state.get(slideId)?.present;
+
+            if (!present) return;
+
+            const copiedPresent = deepCopy(present);
+
+            let modified = false;
+
+            const nextPresent = copiedPresent.map(node => {
+                if (node.id === id && node.position.width !== width) {
+                    node.position.width = width;
+                    modified = true;
+                    return node;
+                } else {
+                    return node;
+                }
+            });
+
+            if (modified) {
+                console.log(nextPresent);
+                set(slideId, nextPresent);
             }
         }
 
@@ -586,12 +645,15 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                     };
                 }
 
-                const response = await fetch(`http://localhost:${port}/presentation/${patientId}`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        slides: presentation,
-                    }),
-                });
+                const response = await fetch(
+                    `http://localhost:${port}/presentation/${patientId}`,
+                    {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            slides: presentation,
+                        }),
+                    }
+                );
             }
         }
 
@@ -657,61 +719,76 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                     slideId,
                                                                     id: node.id,
                                                                     top:
-                                                                    node.position.top,
+                                                                        node
+                                                                            .position
+                                                                            .top,
                                                                     left:
-                                                                    node.position.left,
+                                                                        node
+                                                                            .position
+                                                                            .left,
                                                                     width:
                                                                         node.type ===
                                                                         'image'
-                                                                            ? 200
-                                                                            : 'auto',
+                                                                            ? node
+                                                                                  .position
+                                                                                  .width ||
+                                                                              200
+                                                                            : null,
                                                                     resizable:
                                                                         node.type ===
                                                                         'image',
                                                                     key:
-                                                                    node.id,
+                                                                        node.id,
                                                                     selectedChanged: (
-                                                                        selected: boolean,
+                                                                        selected: boolean
                                                                     ) =>
                                                                         onSelectedChanged(
                                                                             slideId,
                                                                             node.id,
-                                                                            selected,
+                                                                            selected
+                                                                        ),
+                                                                    widthChanged: (
+                                                                        width: number
+                                                                    ) =>
+                                                                        onWidthChanged(
+                                                                            slideId,
+                                                                            node.id,
+                                                                            width
                                                                         ),
                                                                     component: {
                                                                         type:
-                                                                        node.type,
+                                                                            node.type,
                                                                         props: {
                                                                             ...(node.type ===
                                                                                 'mutationTable' && {
-                                                                                    ...mutationTableProps,
-                                                                                }),
+                                                                                ...mutationTableProps,
+                                                                            }),
                                                                             initialValue:
-                                                                            node.value,
+                                                                                node.value,
                                                                             selectedChanged: (
-                                                                                selected: boolean,
+                                                                                selected: boolean
                                                                             ) =>
                                                                                 onSelectedChanged(
                                                                                     slideId,
                                                                                     node.id,
-                                                                                    selected,
+                                                                                    selected
                                                                                 ),
                                                                             stateChanged: (
-                                                                                value: any,
+                                                                                value: any
                                                                             ) =>
                                                                                 onStateChanged(
                                                                                     slideId,
                                                                                     node.id,
-                                                                                    value,
+                                                                                    value
                                                                                 ),
                                                                         },
                                                                     },
-                                                                },
-                                                            ),
+                                                                }
+                                                            )
                                                     )}
                                             </DndContext>
                                         </section>
-                                    ),
+                                    )
                                 )}
                             </div>
                         </div>
@@ -719,5 +796,5 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 </div>
             </div>
         );
-    },
+    }
 );

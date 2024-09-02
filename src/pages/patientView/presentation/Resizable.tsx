@@ -132,28 +132,26 @@ export const Resizable = ({
                 <div className="node__transform">
                     <div
                         className="node__anchor-point"
-                        data-direction="nw"
-                        onMouseEnter={beforeResize}
-                        onPointerDown={event => startResize(event, -1)}
-                    ></div>
-                    <div
-                        className="node__anchor-point"
-                        data-direction="ne"
-                        onMouseEnter={beforeResize}
-                        onPointerDown={event => startResize(event, 1)}
-                    ></div>
-                    <div
-                        className="node__anchor-point"
                         data-direction="se"
                         onMouseEnter={beforeResize}
                         onPointerDown={event => startResize(event, 1)}
-                    ></div>
-                    <div
-                        className="node__anchor-point"
-                        data-direction="sw"
-                        onMouseEnter={beforeResize}
-                        onPointerDown={event => startResize(event, -1)}
-                    ></div>
+                    >
+                        <svg
+                            width="auto"
+                            height="auto"
+                            viewBox="0 0 18 18"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                d="M1.5 1.5L16.5 16.5M16.5 16.5V7.25M16.5 16.5H7.25M1 10.25V1H10.25"
+                                stroke="#3786c2"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </div>
                 </div>
             )}
         </div>

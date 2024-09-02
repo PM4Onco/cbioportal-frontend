@@ -3,6 +3,7 @@ import { ComponentKeys } from 'pages/patientView/presentation/model/dynamic-comp
 interface Position {
     left: number;
     top: number;
+    width: number | null;
 }
 
 export interface Node<T> {

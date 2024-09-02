@@ -105,10 +105,12 @@
     pointer-events: none;
 }
 
-$anchor-point-size: 0.75rem;
+$anchor-point-size: 1.5rem;
 
 .node__anchor-point {
     position: absolute;
+    display: flex;
+    padding: 0.3rem;
     width: $anchor-point-size;
     height: $anchor-point-size;
     background: white;
@@ -138,7 +140,7 @@ $anchor-point-size: 0.75rem;
     right: 0;
     margin-bottom: $anchor-point-size / -2;
     margin-right: $anchor-point-size / -2;
-    cursor: se-resize;
+    cursor: nwse-resize;
 }
 
 .node__anchor-point[data-direction='sw'] {
