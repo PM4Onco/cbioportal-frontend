@@ -20,7 +20,6 @@ import TextStyle from '@tiptap/extension-text-style';
 import ReactDOM from 'react-dom';
 import { EditorMenu } from 'pages/patientView/presentation/toolbar/editor-menu/EditorMenu';
 import { FontSize } from 'tiptap-extension-font-size';
-import { AlignmentMenu } from 'pages/patientView/presentation/toolbar/AlignmentMenu';
 
 interface State {
     down: boolean;
@@ -76,6 +75,10 @@ export const TextNode = ({
         extensions,
         content: initialValue,
     });
+
+    useEffect(() => {
+        editor?.commands.setContent(initialValue);
+    }, [initialValue]);
 
     useEffect(() => {
         editor?.setEditable(false);
@@ -144,7 +147,7 @@ export const TextNode = ({
         if (!textNode) return;
 
         editor?.setEditable(false);
-        stateChanged(textNode.innerHTML);
+        stateChanged(editor?.getHTML());
         draggableChanged(true);
         setState(current => ({ ...current, editing: false }));
     };
