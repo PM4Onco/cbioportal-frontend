@@ -6,11 +6,7 @@ import './style.scss';
 import Reveal from 'reveal.js';
 import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
-import {
-    Slides,
-    useHistoryState,
-    UUID,
-} from 'shared/lib/hooks/use-history-state';
+import { Slides, useHistoryState } from 'shared/lib/hooks/use-history-state';
 import { CreateTextIcon } from './icons/CreateTextIcon';
 import { AddMutationTableIcon } from 'pages/patientView/presentation/icons/AddMutationTableIcon';
 import { ToggleFullscreenIcon } from 'pages/patientView/presentation/icons/ToggleFullscreenIcon';
@@ -76,9 +72,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         const pointerSensor = useSensor(PointerSensor);
         const sensors = useSensors(pointerSensor);
 
-        const [currentSlideId, setCurrentSlideId] = useState(
-            crypto.randomUUID()
-        );
+        const [currentSlideId, setCurrentSlideId] = useState(1);
 
         const {
             state,
@@ -94,7 +88,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         });
 
         const [selectedNodes, setSelectedNodes] = useState<
-            { slideId: string; nodeId: string }[]
+            { slideId: number; nodeId: string }[]
         >([]);
 
         useHotkeys('ctrl+v,meta+v', () => handlePaste(), [
@@ -133,7 +127,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             deckRef.current.initialize().then(reveal => {
                 deckRef.current?.on('slidechanged', (e: any) =>
-                    setCurrentSlideId(e.currentSlide.id)
+                    setCurrentSlideId(Number(e.currentSlide.id))
                 );
             });
 
@@ -141,7 +135,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             loadPresentation()
                 .then((slides: Slides) => {
                     clear(slides);
-                    const slideIds = Object.keys(slides) as UUID[];
+                    const slideIds = Object.keys(slides).map(id => Number(id));
                     setCurrentSlideId(slideIds[0]);
                     deckRef.current?.slide(0);
                 })
@@ -394,7 +388,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         function onAddSlideClick() {
-            set(crypto.randomUUID(), []);
+            set(getCurrentSlideId() + 1, []);
         }
 
         function createTitle() {
@@ -561,7 +555,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(slideId, nextPresent);
         }
 
-        function onStateChanged(slideId: string, id: string, value: any) {
+        function onStateChanged(slideId: number, id: string, value: any) {
             const present = state.get(slideId)?.present;
 
             if (!present) return;
@@ -586,7 +580,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         function onSelectedChanged(
-            slideId: string,
+            slideId: number,
             id: string,
             selected: boolean
         ) {
@@ -605,7 +599,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             }
         }
 
-        function onWidthChanged(slideId: string, id: string, width: number) {
+        function onWidthChanged(slideId: number, id: string, width: number) {
             const present = state.get(slideId)?.present;
 
             if (!present) return;
@@ -625,7 +619,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             });
 
             if (modified) {
-                console.log(nextPresent);
                 set(slideId, nextPresent);
             }
         }
@@ -690,6 +683,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         </div>
                         <div onClick={onAddSlideClick}>Add Slide</div>
                         <div onClick={savePresentation}>Save Presentation</div>
+                        <div className="toolbar__editor-menu-items"></div>
                         <div
                             className="toolbar__fullscreen"
                             onClick={toggleFullscreen}
@@ -705,7 +699,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                             <div className="slides">
                                 {Array.from(state.entries()).map(
                                     ([slideId, timeState]) => (
-                                        <section id={slideId} key={slideId}>
+                                        <section
+                                            id={`${slideId}`}
+                                            key={slideId}
+                                        >
                                             <DndContext
                                                 sensors={sensors}
                                                 onDragEnd={onDragEnd}

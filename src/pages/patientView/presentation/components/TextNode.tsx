@@ -4,6 +4,22 @@ import {
     SelectedChangedFn,
     StateChangedFn,
 } from 'pages/patientView/presentation/model/dynamic-component';
+import { EditorContent, useEditor } from '@tiptap/react';
+import Typography from '@tiptap/extension-typography';
+import Document from '@tiptap/extension-document';
+import Paragraph from '@tiptap/extension-paragraph';
+import Text from '@tiptap/extension-text';
+import Bold from '@tiptap/extension-bold';
+import Underline from '@tiptap/extension-underline';
+import Strike from '@tiptap/extension-strike';
+import TextAlign from '@tiptap/extension-text-align';
+import BulletList from '@tiptap/extension-bullet-list';
+import ListItem from '@tiptap/extension-list-item';
+import TextStyle from '@tiptap/extension-text-style';
+
+import ReactDOM from 'react-dom';
+import { EditorMenu } from 'pages/patientView/presentation/editor-menu/EditorMenu';
+import { FontSize } from 'tiptap-extension-font-size';
 
 interface State {
     down: boolean;
@@ -35,6 +51,33 @@ export const TextNode = ({
     const documentRef = useRef(document);
     const containerRef = useRef<HTMLDivElement>(null);
     const elementRef = useRef<HTMLDivElement>(null);
+    const toolbarPortal = document.querySelector('.toolbar__editor-menu-items');
+
+    const extensions = [
+        Document,
+        Paragraph,
+        Typography,
+        Text,
+        Bold,
+        Underline,
+        Strike,
+        TextAlign.configure({
+            types: ['heading', 'paragraph'],
+        }),
+        BulletList,
+        ListItem,
+        TextStyle,
+        FontSize,
+    ];
+
+    const editor = useEditor({
+        extensions,
+        content: initialValue,
+    });
+
+    useEffect(() => {
+        editor?.setEditable(false);
+    }, [editor]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -55,18 +98,17 @@ export const TextNode = ({
         return () => {
             controller.abort();
         };
-    }, [state, documentRef]);
+    }, [state, documentRef, editor]);
 
     const focus = () => {
-        if (!elementRef.current) return;
-
-        elementRef.current.focus();
-        document.getSelection()!.collapse(elementRef.current, 1);
+        editor?.commands.focus('end');
     };
 
     const startEditing = useCallback(() => {
         if (state.editing) return;
+
         draggableChanged(false);
+        editor?.setEditable(true);
         setState(current => ({ ...current, editing: true }));
         focus();
     }, [state]);
@@ -99,6 +141,7 @@ export const TextNode = ({
         const textNode = elementRef.current;
         if (!textNode) return;
 
+        editor?.setEditable(false);
         stateChanged(textNode.innerHTML);
         draggableChanged(true);
         setState(current => ({ ...current, editing: false }));
@@ -117,7 +160,8 @@ export const TextNode = ({
         (event: MouseEvent) => {
             if (
                 event.target !== containerRef.current &&
-                !containerRef.current?.contains(event.target as Node)
+                !containerRef.current?.contains(event.target as Node) &&
+                !toolbarPortal?.contains(event.target as Node)
             ) {
                 handleEscapePress();
             }
@@ -126,18 +170,24 @@ export const TextNode = ({
     );
 
     return (
-        <div className="presentation__node" ref={containerRef}>
+        <div ref={containerRef}>
+            {state.editing &&
+                toolbarPortal &&
+                ReactDOM.createPortal(
+                    <EditorMenu editor={editor}></EditorMenu>,
+                    toolbarPortal
+                )}
             <div
-                className={`presentation__text-node
-                     ${state.selected ? 'presentation__node--selected' : ''} 
-                     ${state.editing ? 'presentation__node--editing' : ''}
-                `}
-                ref={elementRef}
-                onPointerDown={onPointerDown}
-                contentEditable={state.editing}
-                suppressContentEditableWarning={true}
-                dangerouslySetInnerHTML={{ __html: initialValue }}
-            ></div>
+                className={`presentation__node presentation__node--text ${
+                    state.selected ? 'presentation__node--selected' : ''
+                } ${state.editing ? 'presentation__node--editing' : ''}`}
+            >
+                <EditorContent
+                    editor={editor}
+                    ref={elementRef}
+                    onPointerDown={onPointerDown}
+                />
+            </div>
         </div>
     );
 };

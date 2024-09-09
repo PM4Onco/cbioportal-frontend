@@ -13,7 +13,7 @@ type Width = number | null;
 
 interface Props {
     id: string;
-    slideId: string;
+    slideId: number;
     left: number;
     top: number;
     width: Width;
@@ -61,6 +61,10 @@ export const Draggable = observer(
             },
         });
 
+        const toolbarPortal = document.querySelector(
+            '.toolbar__editor-menu-items'
+        );
+
         useEffect(() => {
             setState(current => ({ ...current, width }));
         }, [width]);
@@ -94,7 +98,9 @@ export const Draggable = observer(
         };
 
         const onPointerUp = () => {
-            setDraggable(true);
+            if (component.type === 'image') {
+                setDraggable(true);
+            }
         };
 
         const onPointerDown = (event: React.PointerEvent) => {
@@ -108,13 +114,15 @@ export const Draggable = observer(
         const onOutsideClick = (event: MouseEvent) => {
             if (
                 event.target !== containerRef.current &&
-                !containerRef.current?.contains(event.target as Node)
+                !containerRef.current?.contains(event.target as Node) &&
+                !toolbarPortal?.contains(event.target as Node)
             ) {
                 handleEscapePress();
             }
         };
 
         const handleEscapePress = () => {
+            setDraggable(true);
             unselectNode();
         };
 
@@ -174,7 +182,11 @@ export const Draggable = observer(
                 style={style}
                 {...listeners}
                 {...attributes}
-                className={state.selected ? 'presentation__node--selected' : ''}
+                className={
+                    state.selected && component.type !== 'text'
+                        ? 'presentation__node--selected presentation__node'
+                        : 'presentation__node'
+                }
                 onPointerDown={onPointerDown}
             >
                 {Dynamic(component.type, {

@@ -3,7 +3,7 @@
 import { Reducer, useCallback, useReducer } from 'react';
 import { Node } from 'pages/patientView/presentation/model/node';
 
-export type State<T> = Map<string, TimeState<T>>;
+export type State<T> = Map<number, TimeState<T>>;
 
 interface TimeState<T> {
     past: T[];
@@ -13,13 +13,13 @@ interface TimeState<T> {
 
 interface UndoRedoAction {
     type: 'undo' | 'redo';
-    slideId: string;
+    slideId: number;
 }
 
 interface SetAction<T> {
     type: 'set';
     newPresent: T;
-    slideId: string;
+    slideId: number;
 }
 
 interface ClearAction {
@@ -29,13 +29,11 @@ interface ClearAction {
 
 export type Action<T> = UndoRedoAction | SetAction<T> | ClearAction;
 
-export type UUID = `${string}-${string}-${string}-${string}-${string}`;
-
-export type Slides = {[slideId: UUID]: Node<any>};
+export type Slides = { [slideId: number]: Node<any> };
 
 const ensureValidActionForSlide = <T>(
     slide: TimeState<T> | undefined,
-    action: Action<T>,
+    action: Action<T>
 ) => {
     if (!slide && action.type !== 'set') {
         throw new Error(`invalid action=(${action.type}) for new slide`);
@@ -43,7 +41,7 @@ const ensureValidActionForSlide = <T>(
 };
 
 const getOrCreateTimeStateForSlide = <T>(
-    slide: TimeState<T> | undefined,
+    slide: TimeState<T> | undefined
 ): TimeState<T> => {
     if (slide) {
         return slide;
@@ -58,21 +56,21 @@ const getOrCreateTimeStateForSlide = <T>(
 
 export const useHistoryStateReducer = <T>(
     state: State<T>,
-    action: Action<T>,
+    action: Action<T>
 ): State<T> => {
-    if(action.type === 'clear') {
+    if (action.type === 'clear') {
         const slides = action.slides;
         const newState = new Map();
 
-        for(const [slideId, nodes] of Object.entries(slides)) {
-           newState.set(slideId, {
-               past: [],
-               present: nodes,
-               future: []
-           });
+        for (const [slideId, nodes] of Object.entries(slides)) {
+            newState.set(Number(slideId), {
+                past: [],
+                present: nodes,
+                future: [],
+            });
         }
 
-        console.log(newState)
+        console.log(newState);
 
         return newState;
     }
@@ -117,7 +115,7 @@ export const useHistoryStateReducer = <T>(
 };
 
 export function useHistoryState<T>(initialState?: {
-    slideId: string;
+    slideId: number;
     initialPresent: T;
 }) {
     const initialUseHistoryState = new Map();
@@ -133,52 +131,55 @@ export function useHistoryState<T>(initialState?: {
 
     const [state, dispatch] = useReducer<Reducer<State<T>, Action<T>>>(
         useHistoryStateReducer,
-        initialUseHistoryState,
+        initialUseHistoryState
     );
 
     const canUndo = useCallback(
-        (slideId: string) => {
+        (slideId: number) => {
             const slide = state.get(slideId);
             const pastLength = slide?.past.length ?? 0;
             return pastLength > 0;
         },
-        [state],
+        [state]
     );
 
     const canRedo = useCallback(
-        (slideId: string) => {
+        (slideId: number) => {
             const slide = state.get(slideId);
             const futureLength = slide?.future.length ?? 0;
             return futureLength > 0;
         },
-        [state],
+        [state]
     );
 
     const undo = useCallback(
-        (slideId: string) => {
+        (slideId: number) => {
             if (canUndo(slideId)) {
                 dispatch({ type: 'undo', slideId });
             }
         },
-        [canUndo],
+        [canUndo]
     );
 
     const redo = useCallback(
-        (slideId: string) => {
+        (slideId: number) => {
             if (canRedo(slideId)) {
                 dispatch({ type: 'redo', slideId });
             }
         },
-        [canRedo],
+        [canRedo]
     );
 
     const set = useCallback(
-        (slideId: string, newPresent: T) =>
+        (slideId: number, newPresent: T) =>
             dispatch({ type: 'set', newPresent, slideId }),
-        [],
+        []
     );
 
-    const clear = useCallback((slides: Slides) => dispatch({ type: 'clear', slides }), []);
+    const clear = useCallback(
+        (slides: Slides) => dispatch({ type: 'clear', slides }),
+        []
+    );
 
     return { state: state, set, undo, redo, clear, canUndo, canRedo };
 }

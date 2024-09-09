@@ -176,7 +176,6 @@ export const Menu = forwardRef<
                                             listItemsRef.current[index] = node;
                                         },
                                         onClick() {
-                                            console.log('menu click');
                                             child.props.onClick?.();
                                             setIsOpen(false);
                                         },
