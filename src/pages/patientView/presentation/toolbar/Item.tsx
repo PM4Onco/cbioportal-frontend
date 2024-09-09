@@ -1,20 +1,23 @@
 import React from 'react';
 
+import './toolbar-item.scss';
+
 interface Props {
-    active: boolean;
+    active?: boolean;
 }
 
 export const Item = ({
     children,
     disabled,
     onClick,
-    active,
+    className = '',
+    active = false,
 }: Props & React.HTMLProps<HTMLButtonElement>) => {
     return (
         <button
-            className={`editor__menu-item ${
-                active ? 'editor__menu-item--active' : ''
-            }`}
+            className={`toolbar__menu-item ${
+                active ? 'toolbar__menu-item--active' : ''
+            } ${className}`}
             disabled={disabled}
             onClick={onClick}
         >

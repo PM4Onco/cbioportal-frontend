@@ -2,6 +2,7 @@ import React, { FunctionComponent } from 'react';
 
 export const CreateTextIcon: FunctionComponent<{}> = () => (
     <svg
+        className="create-text-icon"
         width="26"
         height="15"
         viewBox="0 0 26 15"

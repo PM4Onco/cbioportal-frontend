@@ -1,0 +1,53 @@
+.toolbar {
+    .toolbar__menu-item {
+        background: rgba(61, 37, 20, 0.08);
+        border-radius: 0.5rem;
+        border: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.15;
+        padding: 0.375rem 0.625rem;
+        transition: all 0.2s cubic-bezier(0.65, 0.05, 0.36, 1);
+        cursor: pointer;
+
+        &:hover {
+            background-color: rgba(61, 37, 20, 0.12);
+        }
+
+        &:disabled {
+            background-color: rgba(61, 37, 20, 0.02);
+            color: rgba(0, 0, 0, 0.5);
+        }
+
+        svg:not(.create-text-icon) {
+            width: 16px;
+            height: 16px;
+        }
+
+        svg {
+            margin-bottom: -0.175rem;
+        }
+    }
+
+    .toolbar__menu-item--active {
+        background-color: rgb(55 134 194 / 80%);
+        color: white;
+
+        &:hover {
+            background-color: rgb(55 134 194 / 60%);
+        }
+    }
+
+    .toolbar__menu-item--space {
+        margin-left: 24px;
+    }
+
+    .toolbar__menu-item--hug-right {
+        margin-left: auto;
+    }
+
+    .toolbar__item-container {
+        display: flex;
+        column-gap: 8px;
+    }
+}

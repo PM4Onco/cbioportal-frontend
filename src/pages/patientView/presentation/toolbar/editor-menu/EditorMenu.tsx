@@ -1,5 +1,5 @@
 import { Editor } from '@tiptap/react';
-import { Item } from 'pages/patientView/presentation/editor-menu/Item';
+import { Item } from 'pages/patientView/presentation/toolbar/Item';
 import React from 'react';
 
 import './editor-menu.scss';
@@ -124,6 +124,7 @@ export const EditorMenu = ({ editor }: { editor: Editor | null }) => {
                 </svg>
             </Item>
             <Item
+                className="toolbar__menu-item--space"
                 onClick={() =>
                     editor!
                         .chain()

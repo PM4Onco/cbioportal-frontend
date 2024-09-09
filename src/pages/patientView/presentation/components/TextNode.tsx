@@ -18,8 +18,9 @@ import ListItem from '@tiptap/extension-list-item';
 import TextStyle from '@tiptap/extension-text-style';
 
 import ReactDOM from 'react-dom';
-import { EditorMenu } from 'pages/patientView/presentation/editor-menu/EditorMenu';
+import { EditorMenu } from 'pages/patientView/presentation/toolbar/editor-menu/EditorMenu';
 import { FontSize } from 'tiptap-extension-font-size';
+import { AlignmentMenu } from 'pages/patientView/presentation/toolbar/AlignmentMenu';
 
 interface State {
     down: boolean;
@@ -51,7 +52,8 @@ export const TextNode = ({
     const documentRef = useRef(document);
     const containerRef = useRef<HTMLDivElement>(null);
     const elementRef = useRef<HTMLDivElement>(null);
-    const toolbarPortal = document.querySelector('.toolbar__editor-menu-items');
+    const toolbar = document.querySelector('.toolbar');
+    const toolbarEditorMenu = document.querySelector('.toolbar__editor-menu');
 
     const extensions = [
         Document,
@@ -161,7 +163,7 @@ export const TextNode = ({
             if (
                 event.target !== containerRef.current &&
                 !containerRef.current?.contains(event.target as Node) &&
-                !toolbarPortal?.contains(event.target as Node)
+                !toolbar?.contains(event.target as Node)
             ) {
                 handleEscapePress();
             }
@@ -172,10 +174,10 @@ export const TextNode = ({
     return (
         <div ref={containerRef}>
             {state.editing &&
-                toolbarPortal &&
+                toolbarEditorMenu &&
                 ReactDOM.createPortal(
                     <EditorMenu editor={editor}></EditorMenu>,
-                    toolbarPortal
+                    toolbarEditorMenu
                 )}
             <div
                 className={`presentation__node presentation__node--text ${

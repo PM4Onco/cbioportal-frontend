@@ -1,23 +1,24 @@
 .toolbar {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 14px;
+    row-gap: 14px;
     width: 960px;
     margin-left: auto;
     margin-right: auto;
 }
 
-.toolbar > div {
-    cursor: pointer;
+.toolbar__row-container {
+    display: flex;
+    width: 100%;
+    column-gap: 14px;
 }
 
-.toolbar__editor-menu-items {
-    margin-left: 24px;
-}
-
-.toolbar__fullscreen {
-    margin-left: auto;
+.toolbar__editor-menu {
+    display: flex;
+    width: 100%;
+    column-gap: 8px;
 }
 
 .overview-presentation-container {
@@ -60,7 +61,6 @@
 }
 
 .presentation__text-node {
-    //border: 1px solid transparent;
     padding: 8px 12px;
     display: inline-block;
     user-select: none;
@@ -69,6 +69,7 @@
 .presentation__node--text {
     text-align: left;
     font-size: 16px;
+    user-select: none;
 }
 
 .presentation__node--html {

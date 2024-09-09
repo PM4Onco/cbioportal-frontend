@@ -8,7 +8,6 @@ import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
 import { Slides, useHistoryState } from 'shared/lib/hooks/use-history-state';
 import { CreateTextIcon } from './icons/CreateTextIcon';
-import { AddMutationTableIcon } from 'pages/patientView/presentation/icons/AddMutationTableIcon';
 import { ToggleFullscreenIcon } from 'pages/patientView/presentation/icons/ToggleFullscreenIcon';
 import { UndoIcon } from 'pages/patientView/presentation/icons/UndoIcon';
 import { RedoIcon } from 'pages/patientView/presentation/icons/RedoIcon';
@@ -23,6 +22,9 @@ import { Dynamic } from 'pages/patientView/presentation/model/dynamic-component'
 import ReactDOM from 'react-dom';
 import { getServerConfig } from 'config/config';
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
+import { Item } from 'pages/patientView/presentation/toolbar/Item';
+import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
+import { restrictToAxis } from 'pages/patientView/presentation/restrictToAxis';
 
 export interface PresentationClinicalData {
     name: string;
@@ -73,6 +75,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         const sensors = useSensors(pointerSensor);
 
         const [currentSlideId, setCurrentSlideId] = useState(1);
+        const [shiftDown, setShiftDown] = useState(false);
 
         const {
             state,
@@ -112,6 +115,21 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         ]);
 
         useHotkeys('backspace', () => onBackspacePressed(), [selectedNodes]);
+
+        useEffect(() => {
+            const controller = new AbortController();
+
+            document.addEventListener('keydown', () => setShiftDown(true), {
+                signal: controller.signal,
+            });
+            document.addEventListener('keyup', () => setShiftDown(false), {
+                signal: controller.signal,
+            });
+
+            return () => {
+                controller.abort();
+            };
+        }, [state]);
 
         useEffect(() => {
             // Prevents double initialization in strict mode
@@ -388,7 +406,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         function onAddSlideClick() {
-            set(getCurrentSlideId() + 1, []);
+            set(state.size + 1, []);
         }
 
         function createTitle() {
@@ -623,6 +641,45 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             }
         }
 
+        function onPositionChanged(
+            slideId: number,
+            id: string,
+            left?: number,
+            top?: number
+        ) {
+            const present = state.get(slideId)?.present;
+
+            if (!present) return;
+
+            const copiedPresent = deepCopy(present);
+
+            let modified = false;
+
+            const nextPresent = copiedPresent.map(node => {
+                if (node.id === id) {
+                    if (left && node.position.left !== left) {
+                        node.position.left = left;
+                        modified = true;
+                        return node;
+                    }
+
+                    if (top && node.position.top !== top) {
+                        node.position.top = top;
+                        modified = true;
+                        return node;
+                    }
+
+                    return node;
+                } else {
+                    return node;
+                }
+            });
+
+            if (modified) {
+                set(slideId, nextPresent);
+            }
+        }
+
         async function savePresentation() {
             const { fhirspark } = getServerConfig();
             if (fhirspark && fhirspark.port) {
@@ -659,36 +716,35 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 {/*</div>*/}
                 <div className="presentation-container">
                     <div className="toolbar">
-                        <div onClick={() => createText()}>
-                            <CreateTextIcon></CreateTextIcon>
+                        <div className="toolbar__row-container">
+                            <Item onClick={onAddSlideClick}>Add Slide</Item>
+                            <Item onClick={savePresentation}>
+                                Save Presentation
+                            </Item>
+                            <Item
+                                className="toolbar__menu-item--hug-right"
+                                onClick={onUndoClick}
+                                disabled={!canUndo(getCurrentSlideId())}
+                            >
+                                <UndoIcon></UndoIcon>
+                            </Item>
+                            <Item
+                                onClick={onRedoClick}
+                                disabled={!canRedo(getCurrentSlideId())}
+                            >
+                                <RedoIcon></RedoIcon>
+                            </Item>
+                            <Item onClick={toggleFullscreen}>
+                                <ToggleFullscreenIcon></ToggleFullscreenIcon>
+                            </Item>
                         </div>
-                        <div onClick={addMutationTable}>
-                            <AddMutationTableIcon></AddMutationTableIcon>
-                        </div>
-                        <div
-                            onClick={onUndoClick}
-                            className={
-                                canUndo(getCurrentSlideId()) ? '' : 'disabled'
-                            }
-                        >
-                            <UndoIcon></UndoIcon>
-                        </div>
-                        <div
-                            onClick={onRedoClick}
-                            className={
-                                canRedo(getCurrentSlideId()) ? '' : 'disabled'
-                            }
-                        >
-                            <RedoIcon></RedoIcon>
-                        </div>
-                        <div onClick={onAddSlideClick}>Add Slide</div>
-                        <div onClick={savePresentation}>Save Presentation</div>
-                        <div className="toolbar__editor-menu-items"></div>
-                        <div
-                            className="toolbar__fullscreen"
-                            onClick={toggleFullscreen}
-                        >
-                            <ToggleFullscreenIcon></ToggleFullscreenIcon>
+                        <div className="toolbar__row-container">
+                            <div className="toolbar__editor-menu">
+                                <Item onClick={() => createText()}>
+                                    <CreateTextIcon></CreateTextIcon>
+                                </Item>
+                            </div>
+                            <div className="toolbar__alignment toolbar__menu-item--space"></div>
                         </div>
                     </div>
                     <div className="presentation">
@@ -705,6 +761,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                         >
                                             <DndContext
                                                 sensors={sensors}
+                                                modifiers={[
+                                                    restrictToAxis(shiftDown),
+                                                ]}
                                                 onDragEnd={onDragEnd}
                                             >
                                                 {timeState.present &&
@@ -751,6 +810,16 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                             slideId,
                                                                             node.id,
                                                                             width
+                                                                        ),
+                                                                    positionChanged: (
+                                                                        left?: number,
+                                                                        top?: number
+                                                                    ) =>
+                                                                        onPositionChanged(
+                                                                            slideId,
+                                                                            node.id,
+                                                                            left,
+                                                                            top
                                                                         ),
                                                                     component: {
                                                                         type:

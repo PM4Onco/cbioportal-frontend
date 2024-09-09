@@ -3,16 +3,13 @@ import React, { FunctionComponent } from 'react';
 export const RedoIcon: FunctionComponent<{}> = () => (
     <svg
         xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth="1.5"
-        stroke="currentColor"
-        className="presentation__toolbar-item"
+        viewBox="0 0 16 16"
+        fill="currentColor"
     >
         <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3"
+            fillRule="evenodd"
+            d="M3.5 9.75A2.75 2.75 0 0 1 6.25 7h5.19L9.22 9.22a.75.75 0 1 0 1.06 1.06l3.5-3.5a.75.75 0 0 0 0-1.06l-3.5-3.5a.75.75 0 1 0-1.06 1.06l2.22 2.22H6.25a4.25 4.25 0 0 0 0 8.5h1a.75.75 0 0 0 0-1.5h-1A2.75 2.75 0 0 1 3.5 9.75Z"
+            clipRule="evenodd"
         />
     </svg>
 );

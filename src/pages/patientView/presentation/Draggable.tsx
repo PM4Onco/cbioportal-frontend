@@ -8,6 +8,8 @@ import {
     SelectedChangedFn,
 } from 'pages/patientView/presentation/model/dynamic-component';
 import { Resizable } from 'pages/patientView/presentation/Resizable';
+import ReactDOM from 'react-dom';
+import { AlignmentMenu } from 'pages/patientView/presentation/toolbar/AlignmentMenu';
 
 type Width = number | null;
 
@@ -24,9 +26,11 @@ interface Props {
     };
     selectedChanged: SelectedChangedFn;
     widthChanged: WidthChangedFn;
+    positionChanged: PositionChangedFn;
 }
 
 type WidthChangedFn = (width: number) => void;
+export type PositionChangedFn = (left?: number, top?: number) => void;
 
 interface State {
     selected: boolean;
@@ -43,6 +47,7 @@ export const Draggable = observer(
         slideId,
         selectedChanged,
         widthChanged,
+        positionChanged,
         width,
     }: Props) => {
         const containerRef = useRef<HTMLDivElement | null>(null);
@@ -60,9 +65,9 @@ export const Draggable = observer(
                 slideId,
             },
         });
-
-        const toolbarPortal = document.querySelector(
-            '.toolbar__editor-menu-items'
+        const toolbar = document.querySelector('.toolbar');
+        const toolbarAlignmentMenu = document.querySelector(
+            '.toolbar__alignment'
         );
 
         useEffect(() => {
@@ -115,7 +120,7 @@ export const Draggable = observer(
             if (
                 event.target !== containerRef.current &&
                 !containerRef.current?.contains(event.target as Node) &&
-                !toolbarPortal?.contains(event.target as Node)
+                !toolbar?.contains(event.target as Node)
             ) {
                 handleEscapePress();
             }
@@ -156,44 +161,67 @@ export const Draggable = observer(
             setState(current => ({ ...current, left }));
         };
 
-        return width !== null ? (
-            <Resizable
-                width={typeof state.width === 'number' ? state.width : 200}
-                left={state.left}
-                draggableChanged={draggable => setDraggable(draggable)}
-                widthChanged={onWidthChanged}
-                leftChanged={onLeftChanged}
-                selected={state.selected}
-                forwardedRef={setContainerRef}
-                style={style}
-                listeners={listeners}
-                attributes={attributes}
-                className={state.selected ? 'presentation__node--selected' : ''}
-                onPointerDown={onPointerDown}
-            >
-                {Dynamic(component.type, {
-                    ...component.props,
-                    draggableChanged: draggable => setDraggable(draggable),
-                })}
-            </Resizable>
-        ) : (
-            <div
-                ref={setContainerRef}
-                style={style}
-                {...listeners}
-                {...attributes}
-                className={
-                    state.selected && component.type !== 'text'
-                        ? 'presentation__node--selected presentation__node'
-                        : 'presentation__node'
-                }
-                onPointerDown={onPointerDown}
-            >
-                {Dynamic(component.type, {
-                    ...component.props,
-                    draggableChanged: draggable => setDraggable(draggable),
-                })}
-            </div>
+        const onPositionChanged = (left?: number, top?: number) => {
+            positionChanged(left, top);
+        };
+
+        return (
+            <>
+                {state.selected &&
+                    toolbarAlignmentMenu &&
+                    ReactDOM.createPortal(
+                        <AlignmentMenu
+                            positionChanged={onPositionChanged}
+                            selected={containerRef}
+                        ></AlignmentMenu>,
+                        toolbarAlignmentMenu
+                    )}
+                {width !== null ? (
+                    <Resizable
+                        width={
+                            typeof state.width === 'number' ? state.width : 200
+                        }
+                        left={state.left}
+                        draggableChanged={draggable => setDraggable(draggable)}
+                        widthChanged={onWidthChanged}
+                        leftChanged={onLeftChanged}
+                        selected={state.selected}
+                        forwardedRef={setContainerRef}
+                        style={style}
+                        listeners={listeners}
+                        attributes={attributes}
+                        className={
+                            state.selected ? 'presentation__node--selected' : ''
+                        }
+                        onPointerDown={onPointerDown}
+                    >
+                        {Dynamic(component.type, {
+                            ...component.props,
+                            draggableChanged: draggable =>
+                                setDraggable(draggable),
+                        })}
+                    </Resizable>
+                ) : (
+                    <div
+                        ref={setContainerRef}
+                        style={style}
+                        {...listeners}
+                        {...attributes}
+                        className={
+                            state.selected && component.type !== 'text'
+                                ? 'presentation__node--selected presentation__node'
+                                : 'presentation__node'
+                        }
+                        onPointerDown={onPointerDown}
+                    >
+                        {Dynamic(component.type, {
+                            ...component.props,
+                            draggableChanged: draggable =>
+                                setDraggable(draggable),
+                        })}
+                    </div>
+                )}
+            </>
         );
     }
 );
