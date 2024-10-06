@@ -23,6 +23,7 @@ import ReactDOM from 'react-dom';
 import { getServerConfig } from 'config/config';
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
 import { Item } from 'pages/patientView/presentation/toolbar/Item';
+import { Tooltip, TooltipTrigger, TooltipContent } from './Tooltip';
 import { restrictToAxis } from 'pages/patientView/presentation/restrictToAxis';
 import { AddMutationTableIcon } from './icons/AddMutationTableIcon';
 import { toast } from 'react-toastify';
@@ -763,31 +764,68 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                             <Item onClick={deletePresentation}>
                                 Delete Presentation
                             </Item>
-                            <Item
-                                className="toolbar__menu-item--hug-right"
-                                onClick={onUndoClick}
-                                disabled={!canUndo(getCurrentSlideId())}
-                            >
-                                <UndoIcon></UndoIcon>
-                            </Item>
-                            <Item
-                                onClick={onRedoClick}
-                                disabled={!canRedo(getCurrentSlideId())}
-                            >
-                                <RedoIcon></RedoIcon>
-                            </Item>
-                            <Item onClick={toggleFullscreen}>
-                                <ToggleFullscreenIcon></ToggleFullscreenIcon>
-                            </Item>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Item
+                                        className="toolbar__menu-item--hug-right"
+                                        onClick={onUndoClick}
+                                        disabled={!canUndo(getCurrentSlideId())}
+                                    >
+                                        <UndoIcon></UndoIcon>
+                                    </Item>
+                                </TooltipTrigger>
+                                <TooltipContent className="Tooltip">
+                                    Undo
+                                </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <Item
+                                        onClick={onRedoClick}
+                                        disabled={!canRedo(getCurrentSlideId())}
+                                    >
+                                        <RedoIcon></RedoIcon>
+                                    </Item>
+                                </TooltipTrigger>
+                                <TooltipContent className="Tooltip">
+                                    Redo
+                                </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <Item onClick={toggleFullscreen}>
+                                        <ToggleFullscreenIcon></ToggleFullscreenIcon>
+                                    </Item>
+                                </TooltipTrigger>
+                                <TooltipContent className="Tooltip">
+                                    Enable fullscreen
+                                </TooltipContent>
+                            </Tooltip>
                         </div>
                         <div className="toolbar__row-container">
                             <div className="toolbar__editor-menu">
-                                <Item onClick={() => createText()}>
-                                    <CreateTextIcon></CreateTextIcon>
-                                </Item>
-                                <Item onClick={() => addMutationTable()}>
-                                    <AddMutationTableIcon></AddMutationTableIcon>
-                                </Item>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Item onClick={() => createText()}>
+                                            <CreateTextIcon></CreateTextIcon>
+                                        </Item>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="Tooltip">
+                                        Add text
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Item
+                                            onClick={() => addMutationTable()}
+                                        >
+                                            <AddMutationTableIcon></AddMutationTableIcon>
+                                        </Item>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="Tooltip">
+                                        Add mutation table
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
                             <div className="toolbar__alignment toolbar__menu-item--space"></div>
                         </div>

@@ -3,6 +3,12 @@ import { Item } from 'pages/patientView/presentation/toolbar/Item';
 import { VerticalCenterIcon } from 'pages/patientView/presentation/icons/VerticalCenterIcon';
 import { HorizontalCenterIcon } from '../icons/HorizontalCenterIcon';
 import { PositionChangedFn } from 'pages/patientView/presentation/Draggable';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from 'pages/patientView/presentation/Tooltip';
+import { AddMutationTableIcon } from 'pages/patientView/presentation/icons/AddMutationTableIcon';
 
 interface Props {
     selected: RefObject<HTMLDivElement>;
@@ -34,12 +40,26 @@ export const AlignmentMenu = ({ selected, positionChanged }: Props) => {
 
     return (
         <div className="toolbar__item-container">
-            <Item onClick={() => centerVertically()}>
-                <VerticalCenterIcon></VerticalCenterIcon>
-            </Item>
-            <Item onClick={() => centerHorizontally()}>
-                <HorizontalCenterIcon></HorizontalCenterIcon>
-            </Item>
+            <Tooltip>
+                <TooltipTrigger>
+                    <Item onClick={() => centerVertically()}>
+                        <VerticalCenterIcon></VerticalCenterIcon>
+                    </Item>
+                </TooltipTrigger>
+                <TooltipContent className="Tooltip">
+                    Center vertically
+                </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+                <TooltipTrigger>
+                    <Item onClick={() => centerHorizontally()}>
+                        <HorizontalCenterIcon></HorizontalCenterIcon>
+                    </Item>
+                </TooltipTrigger>
+                <TooltipContent className="Tooltip">
+                    Center horizontally
+                </TooltipContent>
+            </Tooltip>
         </div>
     );
 };
