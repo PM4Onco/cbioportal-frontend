@@ -23,8 +23,8 @@ import ReactDOM from 'react-dom';
 import { getServerConfig } from 'config/config';
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
 import { Item } from 'pages/patientView/presentation/toolbar/Item';
-import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
 import { restrictToAxis } from 'pages/patientView/presentation/restrictToAxis';
+import { AddMutationTableIcon } from './icons/AddMutationTableIcon';
 
 export interface PresentationClinicalData {
     name: string;
@@ -406,7 +406,12 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         function onAddSlideClick() {
-            set(state.size + 1, []);
+            const slideId = state.size + 1;
+
+            set(slideId, []);
+            setTimeout(() => {
+                deckRef.current?.slide(slideId + 1);
+            });
         }
 
         function createTitle() {
@@ -743,6 +748,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                 <Item onClick={() => createText()}>
                                     <CreateTextIcon></CreateTextIcon>
                                 </Item>
+                                <Item onClick={() => addMutationTable()}>
+                                    <AddMutationTableIcon></AddMutationTableIcon>
+                                </Item>
                             </div>
                             <div className="toolbar__alignment toolbar__menu-item--space"></div>
                         </div>
@@ -827,7 +835,21 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                         props: {
                                                                             ...(node.type ===
                                                                                 'mutationTable' && {
+                                                                                marco:
+                                                                                    'test',
+                                                                                patientViewPageStore,
                                                                                 ...mutationTableProps,
+                                                                                columnVisibility: {
+                                                                                    Exon: true,
+                                                                                    'Allele Freq': true,
+                                                                                    HGVSc: true,
+                                                                                    HGVSg: true,
+                                                                                    ClinVar: false,
+                                                                                    MS: false,
+                                                                                    COSMIC: false,
+                                                                                    gnomAD: false,
+                                                                                    dbSNP: false,
+                                                                                },
                                                                             }),
                                                                             initialValue:
                                                                                 node.value,
