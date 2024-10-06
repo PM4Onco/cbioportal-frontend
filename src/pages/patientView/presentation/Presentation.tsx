@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { ClinicalData } from 'cbioportal-ts-api-client';
-
+import 'react-toastify/dist/ReactToastify.css';
 import './style.scss';
 import Reveal from 'reveal.js';
 import 'reveal.js/dist/reveal.css';
@@ -25,6 +25,7 @@ import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/Pati
 import { Item } from 'pages/patientView/presentation/toolbar/Item';
 import { restrictToAxis } from 'pages/patientView/presentation/restrictToAxis';
 import { AddMutationTableIcon } from './icons/AddMutationTableIcon';
+import { toast } from 'react-toastify';
 
 export interface PresentationClinicalData {
     name: string;
@@ -709,6 +710,39 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         }),
                     }
                 );
+
+                if (response.status === 200) {
+                    toast.success('Presentation saved successfully', {
+                        delay: 0,
+                        position: 'top-right',
+                        autoClose: 4000,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: 'light',
+                    });
+                }
+            }
+        }
+
+        async function deletePresentation() {
+            const { fhirspark } = getServerConfig();
+            if (fhirspark && fhirspark.port) {
+                const { port } = fhirspark;
+                const patientId = patientViewPageStore.getSafePatientId();
+
+                const response = await fetch(
+                    `http://localhost:${port}/presentation/${patientId}`,
+                    {
+                        method: 'DELETE',
+                    }
+                );
+
+                if (response.status === 204) {
+                    location.reload();
+                }
             }
         }
 
@@ -725,6 +759,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                             <Item onClick={onAddSlideClick}>Add Slide</Item>
                             <Item onClick={savePresentation}>
                                 Save Presentation
+                            </Item>
+                            <Item onClick={deletePresentation}>
+                                Delete Presentation
                             </Item>
                             <Item
                                 className="toolbar__menu-item--hug-right"
