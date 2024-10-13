@@ -252,11 +252,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
                 const responseData = await response.json();
 
-                const imageResponse = await fetch(
-                    `http://localhost:8080/fhir/${responseData.location}`
-                );
-                const image = await imageResponse.text();
-                createImage(image);
+                createImage(responseData.location);
             }
         }
 
