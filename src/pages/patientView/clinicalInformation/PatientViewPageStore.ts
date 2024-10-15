@@ -8,6 +8,10 @@ import {
     DiscreteCopyNumberFilter,
     GenePanel,
     GenePanelData,
+    GenericAssayData,
+    GenericAssayDataMultipleStudyFilter,
+    GenericAssayMeta,
+    GenericAssayMetaFilter,
     MolecularProfile,
     Mutation,
     MutationFilter,
@@ -16,15 +20,12 @@ import {
     ResourceData,
     Sample,
     SampleMolecularIdentifier,
-    GenericAssayData,
-    GenericAssayMeta,
-    GenericAssayDataMultipleStudyFilter,
-    GenericAssayMetaFilter,
+    StructuralVariantFilter,
 } from 'cbioportal-ts-api-client';
 import client from '../../../shared/api/cbioportalClientInstance';
 import internalClient from '../../../shared/api/cbioportalInternalClientInstance';
 import oncokbClient from '../../../shared/api/oncokbClientInstance';
-import { computed, observable, action, makeObservable } from 'mobx';
+import { action, computed, makeObservable, observable } from 'mobx';
 import {
     cached,
     remoteData,
@@ -58,6 +59,8 @@ import CancerTypeCache from 'shared/cache/CancerTypeCache';
 import MutationCountCache from 'shared/cache/MutationCountCache';
 import {
     concatMutationData,
+    evaluatePutativeDriverInfo,
+    evaluatePutativeDriverInfoWithHotspots,
     existsSomeMutationWithAscnPropertyInCollection,
     fetchClinicalData,
     fetchClinicalDataForPatient,
@@ -76,6 +79,7 @@ import {
     fetchOncoKbInfo,
     fetchReferenceGenomeGenes,
     fetchSamplesForPatient,
+    fetchStructuralVariantOncoKbData,
     fetchStudiesForSamplesWithoutCancerTypeClinicalData,
     fetchVariantAnnotationsIndexedByGenomicLocation,
     filterAndAnnotateMolecularData,
@@ -86,6 +90,7 @@ import {
     findMutationMolecularProfile,
     findSamplesWithoutCancerTypeClinicalData,
     findUncalledMutationMolecularProfileId,
+    generateStructuralVariantId,
     generateUniqueSampleKeyToTumorTypeMap,
     getGenomeNexusUrl,
     getOtherBiomarkersQueryId,
@@ -102,12 +107,8 @@ import {
     mergeMutations,
     mergeMutationsIncludingUncalled,
     ONCOKB_DEFAULT,
-    generateStructuralVariantId,
-    fetchStructuralVariantOncoKbData,
     parseOtherBiomarkerQueryId,
     tumorTypeResolver,
-    evaluatePutativeDriverInfoWithHotspots,
-    evaluatePutativeDriverInfo,
 } from 'shared/lib/StoreUtils';
 import {
     computeGenePanelInformation,
@@ -143,8 +144,8 @@ import { AppStore } from '../../../AppStore';
 import { getGeneFilterDefault } from './PatientViewPageStoreUtil';
 import {
     checkNonProfiledGenesExist,
-    retrieveMutationalSignatureMap,
     createMutationalCountsObjects,
+    retrieveMutationalSignatureMap,
 } from '../PatientViewPageUtils';
 import autobind from 'autobind-decorator';
 import { createVariantAnnotationsByMutationFetcher } from 'shared/components/mutationMapper/MutationMapperUtils';
@@ -155,11 +156,17 @@ import {
     getMyVariantInfoAnnotationsFromIndexedVariantAnnotations,
     ICivicGeneIndex,
     ICivicVariantIndex,
+    IClinicalData,
+    IClinicalTrial,
+    IDeletions,
+    IFollowUp,
     IHotspotIndex,
+    IMtb,
     IMyCancerGenomeData,
     IMyVariantInfoIndex,
     indexHotspotsData,
     IOncoKbData,
+    ITherapyRecommendation,
 } from 'cbioportal-utils';
 import { makeGeneticTrackData } from 'shared/components/oncoprint/DataUtils';
 import { GeneticTrackDatum } from 'shared/components/oncoprint/Oncoprint';
@@ -169,26 +176,26 @@ import {
     getSimplifiedMutationType,
 } from 'shared/lib/oql/AccessorsForOqlFilter';
 import {
-    CLINICAL_ATTRIBUTE_ID_ENUM,
-    MIS_TYPE_VALUE,
-    GENOME_NEXUS_ARG_FIELD_ENUM,
-    TMB_H_THRESHOLD,
     AlterationTypeConstants,
+    CLINICAL_ATTRIBUTE_ID_ENUM,
     DataTypeConstants,
+    GENOME_NEXUS_ARG_FIELD_ENUM,
+    MIS_TYPE_VALUE,
+    TMB_H_THRESHOLD,
 } from 'shared/constants';
 import {
     OTHER_BIOMARKER_HUGO_SYMBOL,
-    OtherBiomarkersQueryType,
     OTHER_BIOMARKER_NAME,
+    OtherBiomarkersQueryType,
 } from 'oncokb-frontend-commons';
 import {
+    IMutationalCounts,
     IMutationalSignature,
     IMutationalSignatureMeta,
-    IMutationalCounts,
 } from 'shared/model/MutationalSignature';
 import {
-    getGenericAssayMetaPropertyOrDefault,
     getGenericAssayCategoryFromName,
+    getGenericAssayMetaPropertyOrDefault,
 } from 'shared/lib/GenericAssayUtils/GenericAssayCommonUtils';
 import { GenericAssayTypeConstants } from 'shared/lib/GenericAssayUtils/GenericAssayConfig';
 
@@ -197,58 +204,42 @@ import {
     retrieveMutationalSignatureVersionFromData,
 } from 'shared/lib/GenericAssayUtils/MutationalSignaturesUtils';
 import { getServerConfig } from 'config/config';
-import { StructuralVariantFilter } from 'cbioportal-ts-api-client';
 import { IGenePanelDataByProfileIdAndSample } from 'shared/lib/isSampleProfiled';
 import { NamespaceColumnConfig } from 'shared/components/namespaceColumns/NamespaceColumnConfig';
 import { buildNamespaceColumnConfig } from 'shared/components/namespaceColumns/namespaceColumnsUtils';
 import { SiteError } from 'shared/model/appMisc';
 import { AnnotatedExtendedAlteration } from 'shared/model/AnnotatedExtendedAlteration';
 import { CustomDriverNumericGeneMolecularData } from 'shared/model/CustomDriverNumericGeneMolecularData';
-
 import {
-    IMtb,
-    IDeletions,
-    IFollowUp,
-    ITherapyRecommendation,
-    IClinicalTrial,
-    IClinicalData,
-} from 'cbioportal-utils';
-import {
-    StudyListEntry,
     StudyList,
+    StudyListEntry,
 } from '../clinicalTrialMatch/utils/StudyList';
 import {
-    Study,
     ClinicalTrialsGovStudies,
-    Location,
-    LocationList,
     Intervention,
-    InterventionList,
-    EligibilityModule,
+    Location,
+    Study,
 } from 'shared/api/ClinicalTrialsGovStudyStrucutre';
 import { IDetailedClinicalTrialMatch } from '../clinicalTrialMatch/ClinicalTrialMatchTable';
 import {
-    searchStudiesForKeywordAsString,
-    getStudiesByCondtionsFromOncoKB,
-    IOncoKBStudyDictionary,
-    getAllStudyNctIdsByOncoTreeCode,
     getAllStudyNctIdsByOncoTreeCodes,
+    getStudiesByCondtionsFromOncoKB,
     getStudiesNCTIds,
+    IOncoKBStudyDictionary,
+    searchStudiesForKeywordAsString,
 } from 'shared/api/ClinicalTrialMatchAPI';
 import {
-    fetchMtbsUsingGET,
-    updateMtbUsingPUT,
-    deleteMtbUsingDELETE,
-    fetchFollowupUsingGET,
-    updateFollowupUsingPUT,
-    deleteFollowupUsingDELETE,
     checkPermissionUsingGET,
-    fetchTherapyRecommendationsByAlterationsUsingPOST,
-    fetchFollowUpsByAlterationsUsingPOST as fetchLocalFollowUpsUsingPOST,
+    deleteFollowupUsingDELETE,
+    deleteMtbUsingDELETE,
     fetchFollowUpsByAlterationsUsingPOST,
+    fetchFollowupUsingGET,
+    fetchMtbsUsingGET,
+    fetchTherapyRecommendationsByAlterationsUsingPOST,
+    updateFollowupUsingPUT,
+    updateMtbUsingPUT,
 } from 'shared/api/TherapyRecommendationAPI';
 import { RecruitingStatus } from 'shared/enums/ClinicalTrialsGovRecruitingStatus';
-import { ageAsNumber } from '../clinicalTrialMatch/utils/AgeSexConverter';
 import { City } from '../clinicalTrialMatch/ClinicalTrialMatchSelectUtil';
 
 type PageMode = 'patient' | 'sample';
@@ -468,10 +459,12 @@ export class PatientViewPageStore {
     @observable _sampleId = '';
 
     private openResourceTabMap = observable.map<ResourceId, boolean>();
+
     @autobind
     public isResourceTabOpen(resourceId: string) {
         return !!this.openResourceTabMap.get(resourceId);
     }
+
     @action.bound
     public setResourceTabOpen(resourceId: string, open: boolean) {
         this.openResourceTabMap.set(resourceId, open);
@@ -912,6 +905,7 @@ export class PatientViewPageStore {
             this.initialMutationalSignatureVersion.result!
         );
     }
+
     @action
     setMutationalSignaturesVersion(version: string) {
         this._selectedMutationalSignatureVersion = version;
@@ -982,10 +976,12 @@ export class PatientViewPageStore {
     );
 
     @observable _selectedSampleIdMutationalSignatureData: string;
+
     @action
     setSampleMutationalSignatureData(sample: string) {
         this._selectedSampleIdMutationalSignatureData = sample;
     }
+
     @computed get selectedSampleMutationalSignatureData() {
         return (
             this._selectedSampleIdMutationalSignatureData ||
@@ -998,6 +994,7 @@ export class PatientViewPageStore {
                 .map(sample => sample.sampleId)[0]
         );
     }
+
     @computed get selectedSampleUniqueKeyMutationalSignatureData() {
         const sampleToFilter = this.selectedSampleMutationalSignatureData;
         return this.samplesWithUniqueKeys.result
@@ -1197,6 +1194,34 @@ export class PatientViewPageStore {
                 .concat(this.patientResourceData.result!)
                 .concat(this.studyResourceData.result!);
             return Promise.resolve(_.groupBy(allData, d => d.resourceId));
+        },
+    });
+
+    readonly presentationResourceData = remoteData<ResourceData[]>({
+        await: () => [this.derivedPatientId],
+        invoke: async () => {
+            const response = await fetch(
+                `http://localhost:3001/resources/${this.derivedPatientId.result}`
+            );
+            const patientResources: { files: string[] } = await response.json();
+            return patientResources.files.map(file => ({
+                patientId: this.derivedPatientId.result,
+                resourceDefinition: {
+                    resourceId: undefined,
+                    studyId: undefined,
+                    resourceType: undefined,
+                    description: undefined,
+                    displayName: file,
+                    priority: '99',
+                    openByDefault: false,
+                },
+                resourceId: undefined,
+                studyId: undefined,
+                sampleId: undefined,
+                url: file,
+                uniquePatientKey: '123',
+                uniqueSampleKey: '123',
+            })) as ResourceData[];
         },
     });
 

@@ -7,9 +7,9 @@ import { PatientViewPageStore } from '../clinicalInformation/PatientViewPageStor
 import { remoteData } from 'cbioportal-frontend-commons';
 import { ResourcesTableRowData } from '../../../shared/components/resources/ResourcesTableUtils';
 import { MakeMobxView } from '../../../shared/components/MobxView';
-import _ from 'lodash';
 import { ResourceData } from 'cbioportal-ts-api-client';
 import ResourceTable from 'shared/components/resources/ResourceTable';
+import { FileUpload } from 'pages/patientView/resources/FileUpload';
 
 export interface IResourcesTabProps {
     sampleManager: SampleManager | null;
@@ -118,6 +118,25 @@ export default class ResourcesTab extends React.Component<
         },
     });
 
+    readonly presentationResources = MakeMobxView({
+        await: () => [this.props.store.presentationResourceData],
+        render: () => {
+            if (this.props.store.presentationResourceData.result!.length > 0) {
+                return (
+                    <ResourceTable
+                        resources={
+                            this.props.store.presentationResourceData.result!
+                        }
+                        isTabOpen={this.props.store.isResourceTabOpen}
+                        openResource={this.props.openResource}
+                    />
+                );
+            } else {
+                return null;
+            }
+        },
+    });
+
     render() {
         return (
             <div className="resourcesTab">
@@ -131,11 +150,14 @@ export default class ResourcesTab extends React.Component<
                     className={'pull-left'}
                 />
                 <br />
+                <FileUpload patientId={this.props.store.patientId} />
+                <br />
                 <br />
                 <div>
                     {this.patientResources.component}
                     {this.sampleResources.component}
                     {this.studyResources.component}
+                    {this.presentationResources.component}
                 </div>
             </div>
         );

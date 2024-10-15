@@ -8,7 +8,6 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from 'pages/patientView/presentation/Tooltip';
-import { AddMutationTableIcon } from 'pages/patientView/presentation/icons/AddMutationTableIcon';
 
 interface Props {
     selected: RefObject<HTMLDivElement>;

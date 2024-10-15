@@ -238,9 +238,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             const { fhirspark } = getServerConfig();
             if (fhirspark && fhirspark.port) {
                 const { port } = fhirspark;
+                const patientId = patientViewPageStore.getSafePatientId();
                 const data = await blobToBase64(blob);
                 const response = await fetch(
-                    `http://localhost:${port}/presentation/image`,
+                    `http://localhost:${port}/presentation/${patientId}/image`,
                     {
                         method: 'POST',
                         body: JSON.stringify({
@@ -761,7 +762,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                 Delete Presentation
                             </Item>
                             <Tooltip>
-                                <TooltipTrigger asChild>
+                                <TooltipTrigger className="toolbar__menu-item--hug-right">
                                     <Item
                                         className="toolbar__menu-item--hug-right"
                                         onClick={onUndoClick}
