@@ -23,10 +23,11 @@ import ReactDOM from 'react-dom';
 import { getServerConfig } from 'config/config';
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
 import { Item } from 'pages/patientView/presentation/toolbar/Item';
-import { Tooltip, TooltipTrigger, TooltipContent } from './Tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from './Tooltip';
 import { restrictToAxis } from 'pages/patientView/presentation/restrictToAxis';
 import { AddMutationTableIcon } from './icons/AddMutationTableIcon';
 import { toast } from 'react-toastify';
+import { TimelineIcon } from './icons/TimelineIcon';
 
 export interface PresentationClinicalData {
     name: string;
@@ -62,12 +63,16 @@ interface PresentationProps {
     columns: string[];
     pageMode: 'sample' | 'patient';
     alleleFreqHeaderRender: ((name: string) => JSX.Element) | undefined;
+    width: number;
 }
 
 export const Presentation: React.FunctionComponent<PresentationProps> = observer(
     ({
         clinicalData,
         patientViewPageStore,
+        width,
+        dataStore,
+        sampleManager,
         ...mutationTableProps
     }: PresentationProps) => {
         const deckDivRef = useRef<HTMLDivElement>(null); // reference to deck container div
@@ -500,6 +505,20 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(getCurrentSlideId(), [...present, node]);
         }
 
+        function addTimeline() {
+            const id = crypto.randomUUID();
+
+            const node: Node<null> = {
+                id,
+                position: { left: 20, top: 20, width: null },
+                type: 'timeline',
+                value: null,
+            };
+
+            const present = state.get(getCurrentSlideId())?.present ?? [];
+            set(getCurrentSlideId(), [...present, node]);
+        }
+
         function createHTML(html: string) {
             const id = crypto.randomUUID();
 
@@ -823,6 +842,16 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                         Add mutation table
                                     </TooltipContent>
                                 </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Item onClick={() => addTimeline()}>
+                                            <TimelineIcon></TimelineIcon>
+                                        </Item>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="Tooltip">
+                                        Add timeline
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
                             <div className="toolbar__alignment toolbar__menu-item--space"></div>
                         </div>
@@ -907,9 +936,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                         props: {
                                                                             ...(node.type ===
                                                                                 'mutationTable' && {
-                                                                                marco:
-                                                                                    'test',
                                                                                 patientViewPageStore,
+                                                                                dataStore,
+                                                                                sampleManager,
                                                                                 ...mutationTableProps,
                                                                                 columnVisibility: {
                                                                                     Exon: true,
@@ -922,6 +951,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                     gnomAD: false,
                                                                                     dbSNP: false,
                                                                                 },
+                                                                            }),
+                                                                            ...(node.type ===
+                                                                                'timeline' && {
+                                                                                patientViewPageStore,
+                                                                                dataStore,
+                                                                                width,
+                                                                                sampleManager,
                                                                             }),
                                                                             initialValue:
                                                                                 node.value,
