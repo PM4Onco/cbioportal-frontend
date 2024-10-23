@@ -9,6 +9,8 @@ interface ISimpleTableProps {
     rows: JSX.Element[];
     noRowsText?: string;
     className?: string;
+
+    headerGroups?: JSX.Element[];
 }
 
 @observer
@@ -17,7 +19,13 @@ export default class SimpleTable extends React.Component<
     {}
 > {
     public render() {
-        const { headers, rows, className, noRowsText } = this.props;
+        const {
+            headers,
+            rows,
+            className,
+            noRowsText,
+            headerGroups,
+        } = this.props;
         const tableRows =
             rows.length > 0
                 ? rows
@@ -31,6 +39,10 @@ export default class SimpleTable extends React.Component<
                           </td>
                       </tr>,
                   ];
+        const tableHeaderGroups =
+            headerGroups && headerGroups.length > 0 ? (
+                <tr>{headerGroups}</tr>
+            ) : null;
 
         return (
             <table
@@ -40,6 +52,7 @@ export default class SimpleTable extends React.Component<
                 )}
             >
                 <thead>
+                    {tableHeaderGroups}
                     <tr>{headers}</tr>
                 </thead>
                 <tbody>{tableRows}</tbody>

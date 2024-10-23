@@ -1,4 +1,5 @@
 declare const styles: {
+  readonly "MutationSimilarityTable": string;
   readonly "bg_comparisonEqual": string;
   readonly "bg_comparisonGene": string;
   readonly "bg_comparisonPathway": string;

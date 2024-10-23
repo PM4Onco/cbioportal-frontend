@@ -39,6 +39,7 @@ import LazyMobXTable, {
 import { observer } from 'mobx-react';
 import autobind from 'autobind-decorator';
 import generalStyles from 'shared/components/mutationTable/column/styles.module.scss';
+import styles from './styles.module.scss';
 
 export interface IPatientSimilarityMutationTableProps
     extends LazyMobXTableProps<SimilarMutation> {
@@ -72,6 +73,8 @@ export enum SimilarMutationColumnType {
     START = 'Start',
     REF = 'Ref',
     ALT = 'Alt',
+    GENE = 'Gene',
+    ENSEMBL = 'Ensembl Gene ID',
 
     // comparison
     COMPCHROM = 'Chrom2',
@@ -203,6 +206,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             ) => d.similarityTag.toUpperCase().includes(filterStringUpper),
             visible: true,
             align: 'right',
+            group: 'general',
         };
 
         // reference mutation
@@ -210,17 +214,13 @@ export class PatientSimilarityMutationTable extends React.Component<
             name: SimilarMutationColumnType.CHROM,
             render: (d: SimilarMutation, i: number) => {
                 return (
-                    <div className={generalStyles['integer-data']}>
+                    <div>
                         {ChromosomeColumnFormatter.getData(
                             this.getMutationData(d, 'mutations1')
                         )}
                     </div>
                 );
             },
-            download: (d: SimilarMutation) =>
-                ChromosomeColumnFormatter.getData(
-                    this.getMutationData(d, 'mutations1')
-                ) || '',
             sortBy: (d: SimilarMutation) =>
                 ChromosomeColumnFormatter.getSortValue(
                     this.getMutationData(d, 'mutations1')
@@ -239,6 +239,7 @@ export class PatientSimilarityMutationTable extends React.Component<
                     .includes(filterStringUpper),
             visible: true,
             align: 'right',
+            group: 'Patient 1',
         };
         this._columns[SimilarMutationColumnType.START] = {
             name: SimilarMutationColumnType.START,
@@ -255,6 +256,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'right',
+            group: 'Patient 1',
         };
         this._columns[SimilarMutationColumnType.REF] = {
             name: SimilarMutationColumnType.REF,
@@ -271,6 +273,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'right',
+            group: 'Patient 1',
         };
         this._columns[SimilarMutationColumnType.ALT] = {
             name: SimilarMutationColumnType.ALT,
@@ -287,6 +290,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'right',
+            group: 'Patient 1',
         };
 
         // comparison mutation
@@ -301,6 +305,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'right',
+            group: 'Patient 2',
         };
         this._columns[SimilarMutationColumnType.COMPSTART] = {
             name: SimilarMutationColumnType.COMPSTART,
@@ -317,6 +322,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'right',
+            group: 'Patient 2',
         };
         this._columns[SimilarMutationColumnType.COMPREF] = {
             name: SimilarMutationColumnType.COMPREF,
@@ -333,6 +339,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'right',
+            group: 'Patient 2',
         };
         this._columns[SimilarMutationColumnType.COMPALT] = {
             name: SimilarMutationColumnType.COMPALT,
@@ -349,6 +356,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'right',
+            group: 'Patient 2',
         };
 
         // reference mutation columns
@@ -397,45 +405,49 @@ export class PatientSimilarityMutationTable extends React.Component<
         //this._columns[MutationTableColumnType.GENE_PANEL].order = 10,
         //this._columns[MutationTableColumnType.CENTER].order = 15,
 
-        (this._columns[SimilarMutationColumnType.SIMILARITYTAG].order = 19),
-            //this._columns[MutationTableColumnType.CHROMOSOME].order = 20,
-            //this._columns[MutationTableColumnType.START_POS].order = 25,
-            //this._columns[MutationTableColumnType.END_POS].order = 30,
-            //this._columns[MutationTableColumnType.REF_ALLELE].order = 35,
-            //this._columns[MutationTableColumnType.VAR_ALLELE].order = 40,
-            //this._columns[MutationTableColumnType.GENE].order = 45,
-            //this._columns[MutationTableColumnType.HGVSG].order = 50,
-            //this._columns[MutationTableColumnType.HGVSC].order = 55,
-            //this._columns[MutationTableColumnType.PROTEIN_CHANGE].order = 60,
-            //this._columns[MutationTableColumnType.EXON].order = 65,
+        (this._columns[SimilarMutationColumnType.SIMILARITYTAG].order = 5),
+            (this._columns[SimilarMutationColumnType.CHROM].order = 10),
+            (this._columns[SimilarMutationColumnType.START].order = 15),
+            (this._columns[SimilarMutationColumnType.REF].order = 20),
+            (this._columns[SimilarMutationColumnType.ALT].order = 25),
+            (this._columns[SimilarMutationColumnType.COMPCHROM].order = 100),
+            (this._columns[SimilarMutationColumnType.COMPSTART].order = 105),
+            (this._columns[SimilarMutationColumnType.COMPREF].order = 110),
+            (this._columns[SimilarMutationColumnType.COMPALT].order = 115);
 
-            //this._columns[MutationTableColumnType.REF_READS_N].order = 70,
-            //this._columns[MutationTableColumnType.VAR_READS_N].order = 75,
-            //this._columns[MutationTableColumnType.REF_READS].order = 80,
-            //this._columns[MutationTableColumnType.VAR_READS].order = 85,
-            //this._columns[MutationTableColumnType.COPY_NUM].order = 90,
-            //this._columns[MutationTableColumnType.MUTATION_STATUS].order = 95,
-            //this._columns[MutationTableColumnType.VALIDATION_STATUS].order = 100,
-            //this._columns[MutationTableColumnType.TUMOR_ALLELE_FREQ].order = 105,
-            //this._columns[MutationTableColumnType.COHORT].order = 110,
+        //this._columns[MutationTableColumnType.CHROMOSOME].order = 20,
+        //this._columns[MutationTableColumnType.START_POS].order = 25,
+        //this._columns[MutationTableColumnType.END_POS].order = 30,
+        //this._columns[MutationTableColumnType.REF_ALLELE].order = 35,
+        //this._columns[MutationTableColumnType.VAR_ALLELE].order = 40,
+        //this._columns[MutationTableColumnType.GENE].order = 45,
+        //this._columns[MutationTableColumnType.HGVSG].order = 50,
+        //this._columns[MutationTableColumnType.HGVSC].order = 55,
+        //this._columns[MutationTableColumnType.PROTEIN_CHANGE].order = 60,
+        //this._columns[MutationTableColumnType.EXON].order = 65,
 
-            //this._columns[MutationTableColumnType.CUSTOM_DRIVER_TIER].order = 115,
-            //this._columns[MutationTableColumnType.MUTATION_TYPE].order = 120,
-            //this._columns[MutationTableColumnType.VARIANT_TYPE].order = 125,
-            //this._columns[MutationTableColumnType.FUNCTIONAL_IMPACT].order = 130,
-            ////this._columns[MutationTableColumnType.MRNA_EXPR].order =
+        //this._columns[MutationTableColumnType.REF_READS_N].order = 70,
+        //this._columns[MutationTableColumnType.VAR_READS_N].order = 75,
+        //this._columns[MutationTableColumnType.REF_READS].order = 80,
+        //this._columns[MutationTableColumnType.VAR_READS].order = 85,
+        //this._columns[MutationTableColumnType.COPY_NUM].order = 90,
+        //this._columns[MutationTableColumnType.MUTATION_STATUS].order = 95,
+        //this._columns[MutationTableColumnType.VALIDATION_STATUS].order = 100,
+        //this._columns[MutationTableColumnType.TUMOR_ALLELE_FREQ].order = 105,
+        //this._columns[MutationTableColumnType.COHORT].order = 110,
 
-            //this._columns[MutationTableColumnType.ANNOTATION].order = 135,
-            //this._columns[MutationTableColumnType.COSMIC].order = 140,
-            //this._columns[MutationTableColumnType.GNOMAD].order = 145,
-            //this._columns[MutationTableColumnType.CLINVAR].order = 150,
-            //this._columns[MutationTableColumnType.DBSNP].order = 155,
-            //this._columns[MutationTableColumnType.SIGNAL].order = 160,
+        //this._columns[MutationTableColumnType.CUSTOM_DRIVER_TIER].order = 115,
+        //this._columns[MutationTableColumnType.MUTATION_TYPE].order = 120,
+        //this._columns[MutationTableColumnType.VARIANT_TYPE].order = 125,
+        //this._columns[MutationTableColumnType.FUNCTIONAL_IMPACT].order = 130,
+        ////this._columns[MutationTableColumnType.MRNA_EXPR].order =
 
-            (this._columns[SimilarMutationColumnType.CHROM].order = 165),
-            (this._columns[SimilarMutationColumnType.START].order = 170),
-            (this._columns[SimilarMutationColumnType.REF].order = 175),
-            (this._columns[SimilarMutationColumnType.ALT].order = 180);
+        //this._columns[MutationTableColumnType.ANNOTATION].order = 135,
+        //this._columns[MutationTableColumnType.COSMIC].order = 140,
+        //this._columns[MutationTableColumnType.GNOMAD].order = 145,
+        //this._columns[MutationTableColumnType.CLINVAR].order = 150,
+        //this._columns[MutationTableColumnType.DBSNP].order = 155,
+        //this._columns[MutationTableColumnType.SIGNAL].order = 160,
     }
 
     @computed protected get columns(): Column<SimilarMutation>[] {
@@ -445,6 +457,7 @@ export class PatientSimilarityMutationTable extends React.Component<
     public render() {
         return (
             <PatientSimilarityMutationTableComponent
+                className={styles.MutationSimilarityTable}
                 ref={this.tableRef}
                 columns={this.columns}
                 data={this.props.data}

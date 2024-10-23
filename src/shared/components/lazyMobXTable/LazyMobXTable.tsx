@@ -44,6 +44,8 @@ import { ILazyMobXTableApplicationLazyDownloadDataFetcher } from '../../lib/ILaz
 import { maxPage } from './utils';
 import { inputBoxChangeTimeoutEvent } from '../../lib/EventUtils';
 import _ from 'lodash';
+import { column } from '../flexbox/styles.module.scss';
+import { header } from '../structureViewer/structureViewer.module.scss';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -78,6 +80,7 @@ export type Column<T> = {
 
     order?: number;
     shouldExclude?: () => boolean;
+    group?: string;
 };
 
 export type LazyMobXTableProps<T> = {
@@ -125,6 +128,11 @@ export type LazyMobXTableProps<T> = {
     deactivateColumnFilter?: (columnId: string) => void;
     customControls?: JSX.Element;
     rowColorFunc?: (d: T) => string;
+};
+
+type HeaderGroup = {
+    name: string;
+    cardinality: number;
 };
 
 function compareValues<U extends number | string>(
@@ -455,6 +463,60 @@ export class LazyMobXTableStore<T> {
     }
 
     @computed
+    get headerGroupBreakpoints(): HeaderGroup[] {
+        // collect header groups
+        var result = [] as HeaderGroup[];
+        var currentGroupName = '';
+        var currentGroupCardinality = 0;
+        for (const column of this.visibleColumns) {
+            if (column.group) {
+                if (
+                    currentGroupCardinality > 0 &&
+                    column.group != currentGroupName
+                ) {
+                    result.push({
+                        name: currentGroupName,
+                        cardinality: currentGroupCardinality,
+                    });
+                    currentGroupCardinality = 1;
+                }
+                currentGroupName = column.group;
+                currentGroupCardinality++;
+            } else {
+                return []; // only draw groups if all columns have the group attribute
+            }
+        }
+
+        if (currentGroupCardinality > 0) {
+            result.push({
+                name: currentGroupName,
+                cardinality: currentGroupCardinality,
+            });
+        }
+
+        return result;
+    }
+
+    @computed
+    get headerGroups(): JSX.Element[] {
+        // collect header groups
+        const headerGroupBreakpoints = this.headerGroupBreakpoints;
+        var result = [] as JSX.Element[];
+        return headerGroupBreakpoints.map((headerGroup: HeaderGroup) => {
+            return (
+                <React.Fragment key={headerGroup.name}>
+                    <th
+                        className="multilineHeader"
+                        colSpan={headerGroup.cardinality}
+                    >
+                        {headerGroup.name}
+                    </th>
+                </React.Fragment>
+            );
+        });
+    }
+
+    @computed
     get headers(): JSX.Element[] {
         return this.visibleColumns.map((column: Column<T>, index: number) => {
             const headerProps: {
@@ -656,33 +718,48 @@ export class LazyMobXTableStore<T> {
     }
 
     @computed get tds(): JSX.Element[][] {
+        // this is needed to draw lines between each group
+        const headerGroupBreakpoints = this.headerGroupBreakpoints;
+        const headerGroupCardinalities = headerGroupBreakpoints.map(
+            (headerGroup: HeaderGroup) => {
+                return headerGroup.cardinality;
+            }
+        );
+
         return this.visibleData.map((datum: T, rowIndex: number) => {
-            return this.visibleColumns.map((column: Column<T>) => {
-                const cellProps: any = {
-                    key: column.name,
-                };
+            return this.visibleColumns.map(
+                (column: Column<T>, columnIndex: number) => {
+                    const cellProps: any = {
+                        key: column.name,
+                        className: '',
+                    };
 
-                if (column.resizable && column.truncateOnResize) {
-                    cellProps.className = 'lazyMobXTableTruncatedCell';
-                }
+                    if (column.resizable && column.truncateOnResize) {
+                        cellProps.className += 'lazyMobXTableTruncatedCell';
+                    }
 
-                const result = (
-                    <td {...cellProps}>{column.render(datum, rowIndex)}</td>
-                );
+                    if (headerGroupCardinalities.includes(columnIndex)) {
+                        cellProps.className += 'border-right';
+                    }
 
-                if (column.resizable) {
-                    return (
-                        <React.Fragment>
-                            {result}
-                            <ColumnResizer
-                                className="columnResizer"
-                                minWidth={0}
-                            />
-                        </React.Fragment>
+                    const result = (
+                        <td {...cellProps}>{column.render(datum, rowIndex)}</td>
                     );
+
+                    if (column.resizable) {
+                        return (
+                            <React.Fragment>
+                                {result}
+                                <ColumnResizer
+                                    className="columnResizer"
+                                    minWidth={0}
+                                />
+                            </React.Fragment>
+                        );
+                    }
+                    return result;
                 }
-                return result;
-            });
+            );
         });
     }
 
@@ -1302,6 +1379,7 @@ export default class LazyMobXTable<T> extends React.Component<
                     headers={this.store.headers}
                     rows={this.store.rows}
                     className={this.props.className}
+                    headerGroups={this.store.headerGroups}
                 />
             </div>
         );

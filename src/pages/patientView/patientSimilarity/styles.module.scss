@@ -1,15 +1,21 @@
 .bg_comparisonEqual {
-    background-color: #e66f00 !important;
+    background-color: rgb(246, 162, 46) !important;
 }
 .bg_comparisonGene {
-    background-color: #3ab600 !important;
+    background-color: rgb(202, 237, 93) !important;
 }
 .bg_comparisonPathway {
-    background-color: #007adf !important;
+    background-color: rgb(121, 214, 255) !important;
 }
 .bg_comparisonPhgvs {
     background-color: #aa65b8 !important;
 }
 .bg_comparisonUnequal {
-    background-color: #818181 !important;
+    background-color: rgb(249, 249, 249) !important;
+}
+.MutationSimilarityTable tbody tr:nth-of-type(odd) {
+    filter: brightness(110%);
+}
+.MutationSimilarityTable tbody td {
+    text-align: right;
 }

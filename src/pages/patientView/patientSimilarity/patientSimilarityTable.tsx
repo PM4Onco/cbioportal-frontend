@@ -229,10 +229,6 @@ export class PatientSimilarityTable extends React.Component<
             ['equal', 'phgvs', 'pathway', 'gene']
         );
 
-        console.group('### TEST RELOAD PATIENTS ###');
-        console.log(mergedSimilarMutations);
-        console.groupEnd();
-
         this.setState({
             selectedSimilarPatient: selectedSimilarPatient,
             similarMutations: filteredSimilarMutations,

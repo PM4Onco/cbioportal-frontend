@@ -47,7 +47,8 @@ export function getSimilarMutations(
             if (
                 referenceMutation.proteinChange ===
                     comareingMutation.proteinChange &&
-                referenceMutation.gene === comareingMutation.gene &&
+                referenceMutation.gene.entrezGeneId ===
+                    comareingMutation.gene.entrezGeneId &&
                 equalityScore < 40
             ) {
                 newMutation['similarityTag'] = 'phgvs';
@@ -60,7 +61,8 @@ export function getSimilarMutations(
 
             // equal gene
             if (
-                referenceMutation.gene === comareingMutation.gene &&
+                referenceMutation.gene.entrezGeneId ===
+                    comareingMutation.gene.entrezGeneId &&
                 equalityScore < 20
             ) {
                 newMutation['similarityTag'] = 'gene';
@@ -76,6 +78,7 @@ export function getSimilarMutations(
             result.push(newMutation);
         }
     }
+
     return result;
 }
 
