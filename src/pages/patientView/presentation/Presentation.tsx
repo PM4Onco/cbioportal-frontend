@@ -854,6 +854,22 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                 </Tooltip>
                             </div>
                             <div className="toolbar__alignment toolbar__menu-item--space"></div>
+                            <Tooltip>
+                                <TooltipTrigger className="toolbar__menu-item--hug-right">
+                                    <Item className="toolbar__menu-item--hug-right">
+                                        ?
+                                    </Item>
+                                    <TooltipContent className="Tooltip">
+                                        Adding images is currently available via
+                                        copy (<kbd>Ctrl</kbd>+<kbd>c</kbd>) and
+                                        paste (<kbd>Ctrl</kbd>+<kbd>v</kbd>).
+                                        <br />
+                                        To limit the direction to one axis when
+                                        moving an element, hold <kbd>Shift</kbd>
+                                        .
+                                    </TooltipContent>
+                                </TooltipTrigger>
+                            </Tooltip>
                         </div>
                     </div>
                     <div className="presentation">
