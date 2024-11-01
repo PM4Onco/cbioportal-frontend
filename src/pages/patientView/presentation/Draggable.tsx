@@ -10,8 +10,8 @@ import {
 import { Resizable } from 'pages/patientView/presentation/Resizable';
 import ReactDOM from 'react-dom';
 import { AlignmentMenu } from 'pages/patientView/presentation/toolbar/AlignmentMenu';
-
-type Width = number | null;
+import { ResizableScale } from 'pages/patientView/presentation/ResizableScale';
+import { Scale, Width } from 'pages/patientView/presentation/model/node';
 
 interface Props {
     id: string;
@@ -19,6 +19,7 @@ interface Props {
     left: number;
     top: number;
     width: Width;
+    scale: Scale;
     resizable: boolean;
     component: {
         type: ComponentKeys;
@@ -26,15 +27,18 @@ interface Props {
     };
     selectedChanged: SelectedChangedFn;
     widthChanged: WidthChangedFn;
+    scaleChanged: ScaleChangedFn;
     positionChanged: PositionChangedFn;
 }
 
 type WidthChangedFn = (width: number) => void;
+type ScaleChangedFn = (scale: number) => void;
 export type PositionChangedFn = (left?: number, top?: number) => void;
 
 interface State {
     selected: boolean;
     width: Width;
+    scale: Scale;
     left: number;
 }
 
@@ -47,13 +51,16 @@ export const Draggable = observer(
         slideId,
         selectedChanged,
         widthChanged,
+        scaleChanged,
         positionChanged,
         width,
+        scale,
     }: Props) => {
         const containerRef = useRef<HTMLDivElement | null>(null);
         const [state, setState] = React.useState<State>({
             selected: false,
             width: width,
+            scale: scale,
             left: 0,
         });
         const [draggable, setDraggable] = React.useState(true);
@@ -157,6 +164,11 @@ export const Draggable = observer(
             widthChanged(width);
         };
 
+        const onScaleChanged = (scale: number) => {
+            setState(current => ({ ...current, scale }));
+            scaleChanged(scale);
+        };
+
         const onLeftChanged = (left: number) => {
             setState(current => ({ ...current, left }));
         };
@@ -201,6 +213,31 @@ export const Draggable = observer(
                                 setDraggable(draggable),
                         })}
                     </Resizable>
+                ) : component.type === 'mutationTable' ? (
+                    <ResizableScale
+                        scale={
+                            typeof state.scale === 'number' ? state.scale : 1
+                        }
+                        left={state.left}
+                        draggableChanged={draggable => setDraggable(draggable)}
+                        scaleChanged={onScaleChanged}
+                        leftChanged={onLeftChanged}
+                        selected={state.selected}
+                        forwardedRef={setContainerRef}
+                        style={style}
+                        listeners={listeners}
+                        attributes={attributes}
+                        className={
+                            state.selected ? 'presentation__node--selected' : ''
+                        }
+                        onPointerDown={onPointerDown}
+                    >
+                        {Dynamic(component.type, {
+                            ...component.props,
+                            draggableChanged: draggable =>
+                                setDraggable(draggable),
+                        })}
+                    </ResizableScale>
                 ) : (
                     <div
                         ref={setContainerRef}

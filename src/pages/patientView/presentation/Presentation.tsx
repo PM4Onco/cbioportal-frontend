@@ -449,7 +449,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
                 const node: Node<string> = {
                     id,
-                    position: { left, top, width: null },
+                    position: { left, top, width: null, scale: 1 },
                     type: 'text',
                     value: `${findClinicalAttributeOrEmptyString(
                         'PATIENT_DISPLAY_NAME'
@@ -468,7 +468,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 20, top: 20, width: null },
+                position: { left: 20, top: 20, width: null, scale: 1 },
                 type: 'text',
                 value: value ?? 'Neuer Textbaustein',
             };
@@ -482,7 +482,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 20, top: 20, width: 200 },
+                position: { left: 20, top: 20, width: 200, scale: 1 },
                 type: 'image',
                 value: location,
             };
@@ -496,7 +496,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<null> = {
                 id,
-                position: { left: 20, top: 20, width: null },
+                position: { left: 20, top: 20, width: null, scale: 1 },
                 type: 'mutationTable',
                 value: null,
             };
@@ -510,7 +510,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<null> = {
                 id,
-                position: { left: 20, top: 20, width: null },
+                position: { left: 20, top: 20, width: null, scale: 1 },
                 type: 'timeline',
                 value: null,
             };
@@ -524,7 +524,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 20, top: 20, width: null },
+                position: { left: 20, top: 20, width: null, scale: null },
                 type: 'html',
                 value: html,
             };
@@ -652,6 +652,30 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             const nextPresent = copiedPresent.map(node => {
                 if (node.id === id && node.position.width !== width) {
                     node.position.width = width;
+                    modified = true;
+                    return node;
+                } else {
+                    return node;
+                }
+            });
+
+            if (modified) {
+                set(slideId, nextPresent);
+            }
+        }
+
+        function onScaleChanged(slideId: number, id: string, scale: number) {
+            const present = state.get(slideId)?.present;
+
+            if (!present) return;
+
+            const copiedPresent = deepCopy(present);
+
+            let modified = false;
+
+            const nextPresent = copiedPresent.map(node => {
+                if (node.id === id && node.position.scale !== width) {
+                    node.position.scale = width;
                     modified = true;
                     return node;
                 } else {
@@ -915,6 +939,17 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                   .width ||
                                                                               200
                                                                             : null,
+                                                                    scale: [
+                                                                        'mutationTable',
+                                                                        'timeline',
+                                                                    ].includes(
+                                                                        node.type
+                                                                    )
+                                                                        ? node
+                                                                              .position
+                                                                              .scale ||
+                                                                          1
+                                                                        : null,
                                                                     resizable:
                                                                         node.type ===
                                                                         'image',
@@ -935,6 +970,14 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                             slideId,
                                                                             node.id,
                                                                             width
+                                                                        ),
+                                                                    scaleChanged: (
+                                                                        scale: number
+                                                                    ) =>
+                                                                        onScaleChanged(
+                                                                            slideId,
+                                                                            node.id,
+                                                                            scale
                                                                         ),
                                                                     positionChanged: (
                                                                         left?: number,
