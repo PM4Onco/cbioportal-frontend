@@ -179,20 +179,16 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }, []);
 
         async function loadPresentation() {
-            const { fhirspark } = getServerConfig();
-            if (fhirspark && fhirspark.port) {
-                const { port } = fhirspark;
-                const patientId = patientViewPageStore.getSafePatientId();
+            const patientId = patientViewPageStore.getSafePatientId();
 
-                const response = await fetch(
-                    `http://localhost:${port}/presentation/${patientId}`
-                );
-                if (response.status === 200) {
-                    const presentation = await response.json();
-                    return presentation.slides;
-                } else {
-                    throw Error('not found');
-                }
+            const response = await fetch(
+                `${fhirsparkURL()}/presentation/${patientId}`
+            );
+            if (response.status === 200) {
+                const presentation = await response.json();
+                return presentation.slides;
+            } else {
+                throw Error('not found');
             }
         }
 
@@ -240,26 +236,22 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         async function handlePasteAsImage(blob: Blob) {
-            const { fhirspark } = getServerConfig();
-            if (fhirspark && fhirspark.port) {
-                const { port } = fhirspark;
-                const patientId = patientViewPageStore.getSafePatientId();
-                const data = await blobToBase64(blob);
-                const response = await fetch(
-                    `http://localhost:${port}/presentation/${patientId}/image`,
-                    {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            contentType: blob.type,
-                            data,
-                        }),
-                    }
-                );
+            const patientId = patientViewPageStore.getSafePatientId();
+            const data = await blobToBase64(blob);
+            const response = await fetch(
+                `${fhirsparkURL()}/presentation/${patientId}/image`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        contentType: blob.type,
+                        data,
+                    }),
+                }
+            );
 
-                const responseData = await response.json();
+            const responseData = await response.json();
 
-                createImage(responseData.location);
-            }
+            createImage(responseData.location);
         }
 
         const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -728,62 +720,73 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         async function savePresentation() {
-            const { fhirspark } = getServerConfig();
-            if (fhirspark && fhirspark.port) {
-                const { port } = fhirspark;
-                const patientId = patientViewPageStore.getSafePatientId();
-                let presentation = {};
+            const patientId = patientViewPageStore.getSafePatientId();
+            let presentation = {};
 
-                for (const slide of state) {
-                    const [slideId, history] = slide;
-                    presentation = {
-                        ...presentation,
-                        [slideId]: history.present,
-                    };
+            for (const slide of state) {
+                const [slideId, history] = slide;
+                presentation = {
+                    ...presentation,
+                    [slideId]: history.present,
+                };
+            }
+
+            const response = await fetch(
+                `${fhirsparkURL()}/presentation/${patientId}`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        slides: presentation,
+                    }),
                 }
+            );
 
-                const response = await fetch(
-                    `http://localhost:${port}/presentation/${patientId}`,
-                    {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            slides: presentation,
-                        }),
-                    }
-                );
-
-                if (response.status === 200) {
-                    toast.success('Presentation saved successfully', {
-                        delay: 0,
-                        position: 'top-right',
-                        autoClose: 4000,
-                        hideProgressBar: true,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                        progress: undefined,
-                        theme: 'light',
-                    });
-                }
+            if (response.status === 200) {
+                toast.success('Presentation saved successfully', {
+                    delay: 0,
+                    position: 'top-right',
+                    autoClose: 4000,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'light',
+                });
             }
         }
 
+        function fhirsparkURL() {
+            let host: string | null = window.location.hostname;
+            let port = ':' + window.location.port;
+            if (
+                getServerConfig().fhirspark &&
+                getServerConfig().fhirspark!.host &&
+                getServerConfig().fhirspark!.host !== 'undefined'
+            )
+                host = getServerConfig().fhirspark!.host;
+            if (
+                getServerConfig().fhirspark &&
+                getServerConfig().fhirspark!.port &&
+                getServerConfig().fhirspark!.port !== 'undefined'
+            )
+                port = ':' + getServerConfig().fhirspark!.port;
+
+            return `//${host}${port}`;
+        }
+
         async function deletePresentation() {
-            const { fhirspark } = getServerConfig();
-            if (fhirspark && fhirspark.port) {
-                const { port } = fhirspark;
-                const patientId = patientViewPageStore.getSafePatientId();
+            const patientId = patientViewPageStore.getSafePatientId();
 
-                const response = await fetch(
-                    `http://localhost:${port}/presentation/${patientId}`,
-                    {
-                        method: 'DELETE',
-                    }
-                );
-
-                if (response.status === 204) {
-                    location.reload();
+            const response = await fetch(
+                `${fhirsparkURL()}/presentation/${patientId}`,
+                {
+                    method: 'DELETE',
                 }
+            );
+
+            if (response.status === 204) {
+                location.reload();
             }
         }
 
