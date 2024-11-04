@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './file-upload.scss';
+import { fhirsparkURL } from 'shared/api/FhirsparkAPI';
 
 interface Props {
     patientId: string;
@@ -21,7 +22,7 @@ export const FileUpload = ({ patientId }: Props) => {
             body.append('file', file);
 
             const response = await fetch(
-                `http://localhost:3001/resources/${patientId}/upload`,
+                `${fhirsparkURL()}/resources/${patientId}/upload`,
                 {
                     method: 'POST',
                     body: body,

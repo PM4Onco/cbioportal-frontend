@@ -28,6 +28,7 @@ import { restrictToAxis } from 'pages/patientView/presentation/restrictToAxis';
 import { AddMutationTableIcon } from './icons/AddMutationTableIcon';
 import { toast } from 'react-toastify';
 import { TimelineIcon } from './icons/TimelineIcon';
+import { fhirsparkURL } from 'shared/api/FhirsparkAPI';
 
 export interface PresentationClinicalData {
     name: string;
@@ -756,25 +757,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                     theme: 'light',
                 });
             }
-        }
-
-        function fhirsparkURL() {
-            let host: string | null = window.location.hostname;
-            let port = ':' + window.location.port;
-            if (
-                getServerConfig().fhirspark &&
-                getServerConfig().fhirspark!.host &&
-                getServerConfig().fhirspark!.host !== 'undefined'
-            )
-                host = getServerConfig().fhirspark!.host;
-            if (
-                getServerConfig().fhirspark &&
-                getServerConfig().fhirspark!.port &&
-                getServerConfig().fhirspark!.port !== 'undefined'
-            )
-                port = ':' + getServerConfig().fhirspark!.port;
-
-            return `//${host}${port}`;
         }
 
         async function deletePresentation() {

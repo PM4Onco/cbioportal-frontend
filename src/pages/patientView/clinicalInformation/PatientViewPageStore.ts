@@ -241,6 +241,7 @@ import {
 } from 'shared/api/TherapyRecommendationAPI';
 import { RecruitingStatus } from 'shared/enums/ClinicalTrialsGovRecruitingStatus';
 import { City } from '../clinicalTrialMatch/ClinicalTrialMatchSelectUtil';
+import { fhirsparkURL } from 'shared/api/FhirsparkAPI';
 
 type PageMode = 'patient' | 'sample';
 type ResourceId = string;
@@ -1201,7 +1202,7 @@ export class PatientViewPageStore {
         await: () => [this.derivedPatientId],
         invoke: async () => {
             const response = await fetch(
-                `http://localhost:3001/resources/${this.derivedPatientId.result}`
+                `${fhirsparkURL()}/resources/${this.derivedPatientId.result}`
             );
             const patientResources: { files: string[] } = await response.json();
             return patientResources.files.map(file => ({
@@ -1218,7 +1219,7 @@ export class PatientViewPageStore {
                 resourceId: undefined,
                 studyId: undefined,
                 sampleId: undefined,
-                url: file,
+                url: `${window.location.protocol}//${window.location.hostname}:9000${file}`,
                 uniquePatientKey: '123',
                 uniqueSampleKey: '123',
             })) as ResourceData[];
