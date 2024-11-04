@@ -251,7 +251,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const responseData = await response.json();
 
-            createImage(responseData.location);
+            createImage(
+                `//${window.location.hostname}:9000${responseData.location}`
+            );
         }
 
         const blobToBase64 = (blob: Blob): Promise<string> => {
