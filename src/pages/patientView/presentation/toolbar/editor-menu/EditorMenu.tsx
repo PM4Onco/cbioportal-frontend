@@ -11,6 +11,18 @@ export const EditorMenu = ({ editor }: { editor: Editor | null }) => {
     return (
         <div className="editor__menu-container">
             <FontSize editor={editor!}></FontSize>
+            <input
+                className="editor__color"
+                type="color"
+                onInput={event =>
+                    editor!
+                        .chain()
+                        .focus()
+                        .setColor(event.currentTarget.value)
+                        .run()
+                }
+                value={editor!.getAttributes('textStyle').color}
+            />
             <Item
                 onClick={() =>
                     editor!
@@ -37,6 +49,35 @@ export const EditorMenu = ({ editor }: { editor: Editor | null }) => {
                         fillRule="evenodd"
                         d="M3 3a1 1 0 0 1 1-1h5a3.5 3.5 0 0 1 2.843 5.541A3.75 3.75 0 0 1 9.25 14H4a1 1 0 0 1-1-1V3Zm2.5 3.5v-2H9a1 1 0 0 1 0 2H5.5Zm0 2.5v2.5h3.75a1.25 1.25 0 1 0 0-2.5H5.5Z"
                         clipRule="evenodd"
+                    />
+                </svg>
+            </Item>
+            <Item
+                onClick={() =>
+                    editor!
+                        .chain()
+                        .focus()
+                        .toggleItalic()
+                        .run()
+                }
+                active={editor.isActive('italic')}
+                disabled={
+                    !editor!
+                        .can()
+                        .chain()
+                        .toggleItalic()
+                        .run()
+                }
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                >
+                    <path
+                        fill-rule="evenodd"
+                        d="M6.25 2.75A.75.75 0 0 1 7 2h6a.75.75 0 0 1 0 1.5h-2.483l-3.429 9H9A.75.75 0 0 1 9 14H3a.75.75 0 0 1 0-1.5h2.483l3.429-9H7a.75.75 0 0 1-.75-.75Z"
+                        clip-rule="evenodd"
                     />
                 </svg>
             </Item>

@@ -4,14 +4,21 @@ import {
     SelectedChangedFn,
     StateChangedFn,
 } from 'pages/patientView/presentation/model/dynamic-component';
-import { EditorContent, useEditor } from '@tiptap/react';
+import {
+    AnyExtension,
+    EditorContent,
+    Extensions,
+    useEditor,
+} from '@tiptap/react';
 import Typography from '@tiptap/extension-typography';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
 import Bold from '@tiptap/extension-bold';
+import Italic from '@tiptap/extension-italic';
 import Underline from '@tiptap/extension-underline';
 import Strike from '@tiptap/extension-strike';
+import Color from '@tiptap/extension-color';
 import TextAlign from '@tiptap/extension-text-align';
 import BulletList from '@tiptap/extension-bullet-list';
 import ListItem from '@tiptap/extension-list-item';
@@ -54,12 +61,13 @@ export const TextNode = ({
     const toolbar = document.querySelector('.toolbar');
     const toolbarEditorMenu = document.querySelector('.toolbar__editor-menu');
 
-    const extensions = [
+    const extensions: Extensions = [
         Document,
         Paragraph,
         Typography,
         Text,
         Bold,
+        Italic,
         Underline,
         Strike,
         TextAlign.configure({
@@ -68,7 +76,8 @@ export const TextNode = ({
         BulletList,
         ListItem,
         TextStyle,
-        FontSize,
+        Color,
+        FontSize as AnyExtension,
     ];
 
     const editor = useEditor({
