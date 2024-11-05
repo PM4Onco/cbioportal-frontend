@@ -415,9 +415,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         function createTitle() {
             const id = crypto.randomUUID();
-            const value = `${findClinicalAttributeOrEmptyString(
+            const value = `<p style="text-align: center;"><span style="font-size: 42px; font-weight: bold;">${findClinicalAttributeOrEmptyString(
                 'PATIENT_DISPLAY_NAME'
-            )}<br>${findClinicalAttributeOrEmptyString('AGE')} years old`;
+            )}</span></p><p style="text-align: center;"><span style="font-size: 42px">${findClinicalAttributeOrEmptyString(
+                'AGE'
+            )} years old</span></p>`;
 
             const component = Dynamic('text', {
                 selectedChanged: () => {},
@@ -427,30 +429,30 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             });
             const container = document.createElement('div');
             container.classList.add('reveal', 'temp');
+            container.style.display = 'inline-flex';
             container.style.visibility = 'hidden';
             document.body.appendChild(container);
             ReactDOM.render(component, container);
 
             setTimeout(() => {
                 const rendered = document.querySelector(
-                    '.temp.reveal .presentation__text-node'
+                    '.temp.reveal .presentation__node--text'
                 );
                 const { width, height } = rendered?.getBoundingClientRect() ?? {
                     width: 0,
                     height: 0,
                 };
+
                 const left = 960 / 2 - width / 2;
                 const top = 700 / 2 - height / 2;
+
+                document.body.removeChild(container);
 
                 const node: Node<string> = {
                     id,
                     position: { left, top, width: null, scale: 1 },
                     type: 'text',
-                    value: `${findClinicalAttributeOrEmptyString(
-                        'PATIENT_DISPLAY_NAME'
-                    )}<br>${findClinicalAttributeOrEmptyString(
-                        'AGE'
-                    )} years old`,
+                    value: value,
                 };
 
                 const present = state.get(getCurrentSlideId())?.present ?? [];
