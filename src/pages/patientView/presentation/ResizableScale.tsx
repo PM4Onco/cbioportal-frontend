@@ -25,7 +25,6 @@ type Direction = 1 | -1;
 interface State {
     resizing: boolean;
     pointerDownCoordinates: Coordinates;
-    dx: number;
     ds: number;
     direction: Direction;
     initialWidth: number;
@@ -33,11 +32,9 @@ interface State {
 
 export const ResizableScale = ({
     scale,
-    left,
     draggableChanged,
     children,
     scaleChanged,
-    leftChanged,
     className,
     onPointerDown,
     forwardedRef,
@@ -50,14 +47,12 @@ export const ResizableScale = ({
     const [state, setState] = React.useState<State>({
         resizing: false,
         pointerDownCoordinates: { x: 0, y: 0 },
-        dx: 0,
         ds: 0,
         direction: 1,
         initialWidth: -1,
     });
 
     useEffect(() => {
-        console.log(scale);
         const controller = new AbortController();
 
         document.addEventListener('pointermove', onPointerMove, {
@@ -96,7 +91,8 @@ export const ResizableScale = ({
 
         const dx = (event.clientX - state.pointerDownCoordinates.x) * -1;
         const ds = dx / state.initialWidth;
-        setState(current => ({ ...current, dx: 0, ds }));
+
+        setState(current => ({ ...current, ds }));
     };
 
     const onPointerUp = (event: PointerEvent) => {
@@ -104,14 +100,10 @@ export const ResizableScale = ({
 
         scaleChanged(scale - state.ds);
 
-        if (state.direction === -1) {
-            leftChanged(left - state.dx);
-        }
-
         setState(current => ({
             ...current,
             resizing: false,
-            dx: 0,
+            ds: 0,
         }));
     };
 
@@ -122,8 +114,7 @@ export const ResizableScale = ({
 
     const style = {
         position: styleProps.position,
-        transform: `translate3d(${styleProps.transformX -
-            (state.direction === -1 ? state.dx : 0)}px, ${
+        transform: `translate3d(${styleProps.transformX}px, ${
             styleProps.transformY
         }px, 0) scale(${scale - state.ds})`,
         transformOrigin: 'left',

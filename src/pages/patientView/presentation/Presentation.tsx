@@ -671,8 +671,8 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             let modified = false;
 
             const nextPresent = copiedPresent.map(node => {
-                if (node.id === id && node.position.scale !== width) {
-                    node.position.scale = width;
+                if (node.id === id && node.position.scale !== scale) {
+                    node.position.scale = scale;
                     modified = true;
                     return node;
                 } else {

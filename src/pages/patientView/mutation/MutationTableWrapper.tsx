@@ -96,7 +96,6 @@ export default class MutationTableWrapper extends React.Component<
     constructor(props: IMutationTableWrapperProps) {
         super(props);
         makeObservable(this);
-        console.log(123);
 
         // here we wait for the oncokb icons to fully finish rendering
         // then update the oncokb width in order to align annotation column header icons with the cell content
