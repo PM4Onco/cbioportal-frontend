@@ -98,6 +98,7 @@ export class SimilarMutation {
     mutations1: Mutation[];
     mutations2: Mutation[];
     similarityTag: 'equal' | 'phgvs' | 'pathway' | 'gene' | 'unequal';
+    similarityScore: number;
 
     //get StringRepr() {
     //    const genomicMut1 = [this.mutation1.chr, this.mutation1.startPosition, this.mutation1.referenceAllele, this.mutation1.variantAllele].join('-')

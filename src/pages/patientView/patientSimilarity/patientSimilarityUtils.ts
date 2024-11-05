@@ -21,6 +21,7 @@ export function getSimilarMutations(
         var newMutation = {
             mutations1: referenceMutations,
             similarityTag: 'unequal',
+            similarityScore: 0,
         } as SimilarMutation;
         var equalityScore = 0;
         for (const comparingMutations of mergedMutationData2) {
@@ -37,9 +38,10 @@ export function getSimilarMutations(
                     comareingMutation.variantAllele &&
                 equalityScore < 50
             ) {
-                newMutation['similarityTag'] = 'equal';
-                newMutation['mutations2'] = comparingMutations;
                 equalityScore = 50;
+                newMutation['similarityTag'] = 'equal';
+                newMutation['similarityScore'] = equalityScore;
+                newMutation['mutations2'] = comparingMutations;
                 break;
             }
 
@@ -51,9 +53,10 @@ export function getSimilarMutations(
                     comareingMutation.gene.entrezGeneId &&
                 equalityScore < 40
             ) {
-                newMutation['similarityTag'] = 'phgvs';
-                newMutation['mutations2'] = comparingMutations;
                 equalityScore = 40;
+                newMutation['similarityTag'] = 'phgvs';
+                newMutation['similarityScore'] = equalityScore;
+                newMutation['mutations2'] = comparingMutations;
                 continue;
             }
 
@@ -65,9 +68,10 @@ export function getSimilarMutations(
                     comareingMutation.gene.entrezGeneId &&
                 equalityScore < 20
             ) {
-                newMutation['similarityTag'] = 'gene';
-                newMutation['mutations2'] = comparingMutations;
                 equalityScore = 20;
+                newMutation['similarityTag'] = 'gene';
+                newMutation['similarityScore'] = equalityScore;
+                newMutation['mutations2'] = comparingMutations;
                 continue;
             }
 

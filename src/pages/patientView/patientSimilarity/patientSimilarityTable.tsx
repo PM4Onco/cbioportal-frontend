@@ -82,13 +82,7 @@ export class PatientSimilarityTable extends React.Component<
         {
             name: ColumnKey.STUDY,
             render: (patient: SimilarPatient, i: any) => (
-                <div
-                    onClick={() => {
-                        this.selectPatient(i);
-                    }}
-                >
-                    {patient.study_id}
-                </div>
+                <div>{patient.study_id}</div>
             ),
             width: 250,
             resizable: true,
@@ -295,12 +289,16 @@ export class PatientSimilarityTable extends React.Component<
                         data={this.state.currentSimilarPatients} //
                         columns={this._columns}
                         initialItemsPerPage={this.ENTRIES_PER_PAGE}
+                        onRowClick={(d: SimilarPatient, i: number) => {
+                            this.selectPatient(i);
+                        }}
                     />
                 </div>
                 <div>
                     <PatientSimilarityMutationTable
                         //data={this.props.store.mergedMutationData} //{this.props.store.mergedMutationData} mergeMutations(this.state.selectedSimilarPatient.mutationData)
                         data={this.state.similarMutations}
+                        //dataStore={this.patientViewDataStore}
                         // reference mutations
                         sampleManager1={this.props.sampleManager}
                         sampleToGenePanelId1={
@@ -337,6 +335,9 @@ export class PatientSimilarityTable extends React.Component<
                                     return styles.bg_comparisonUnequal;
                             }
                         }}
+                        initialSortColumn={
+                            SimilarMutationColumnType.SIMILARITYTAG
+                        }
 
                         //customDriverName={
                         //    getServerConfig()

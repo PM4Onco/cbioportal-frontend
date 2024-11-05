@@ -118,7 +118,7 @@ export type LazyMobXTableProps<T> = {
     ) => void;
     pageToHighlight?: boolean;
     showCountHeader?: boolean;
-    onRowClick?: (d: T) => void;
+    onRowClick?: (d: T, i: number) => void;
     onRowMouseEnter?: (d: T) => void;
     onRowMouseLeave?: (d: T) => void;
     filterPlaceholder?: string;
@@ -133,6 +133,7 @@ export type LazyMobXTableProps<T> = {
 type HeaderGroup = {
     name: string;
     cardinality: number;
+    first_index: number;
 };
 
 function compareValues<U extends number | string>(
@@ -293,7 +294,7 @@ export class LazyMobXTableStore<T> {
     @observable public downloadDataFetcher:
         | ILazyMobXTableApplicationLazyDownloadDataFetcher
         | undefined;
-    @observable private onRowClick: ((d: T) => void) | undefined;
+    @observable private onRowClick: ((d: T, i: number) => void) | undefined;
     @observable private onRowMouseEnter: ((d: T) => void) | undefined;
     @observable private onRowMouseLeave: ((d: T) => void) | undefined;
     @observable private rowColorFunc: ((d: T) => string) | undefined;
@@ -468,6 +469,8 @@ export class LazyMobXTableStore<T> {
         var result = [] as HeaderGroup[];
         var currentGroupName = '';
         var currentGroupCardinality = 0;
+        var first_index = 0;
+        var i = 0;
         for (const column of this.visibleColumns) {
             if (column.group) {
                 if (
@@ -477,20 +480,24 @@ export class LazyMobXTableStore<T> {
                     result.push({
                         name: currentGroupName,
                         cardinality: currentGroupCardinality,
+                        first_index: first_index,
                     });
-                    currentGroupCardinality = 1;
+                    currentGroupCardinality = 0;
+                    first_index = i;
                 }
                 currentGroupName = column.group;
                 currentGroupCardinality++;
             } else {
                 return []; // only draw groups if all columns have the group attribute
             }
+            i++;
         }
 
         if (currentGroupCardinality > 0) {
             result.push({
                 name: currentGroupName,
                 cardinality: currentGroupCardinality,
+                first_index: first_index,
             });
         }
 
@@ -501,12 +508,19 @@ export class LazyMobXTableStore<T> {
     get headerGroups(): JSX.Element[] {
         // collect header groups
         const headerGroupBreakpoints = this.headerGroupBreakpoints;
-        var result = [] as JSX.Element[];
         return headerGroupBreakpoints.map((headerGroup: HeaderGroup) => {
+            var classes = ['multilineHeader'];
+            if (
+                this.headerGroupFirstIndices.includes(headerGroup.first_index)
+            ) {
+                classes.push('border-left');
+            }
             return (
-                <React.Fragment key={headerGroup.name}>
+                <React.Fragment
+                    key={headerGroup.name + headerGroup.first_index}
+                >
                     <th
-                        className="multilineHeader"
+                        className={classes.join(' ')}
                         colSpan={headerGroup.cardinality}
                     >
                         {headerGroup.name}
@@ -619,11 +633,16 @@ export class LazyMobXTableStore<T> {
                 style.width = column.width;
             }
 
+            var classes = ['multilineHeader'];
+            if (this.headerGroupFirstIndices.includes(index)) {
+                classes.push('border-left');
+            }
+
             return (
                 <React.Fragment key={index}>
                     <th
                         ref={this.headerRefs[index]}
-                        className="multilineHeader"
+                        className={classes.join(' ')}
                         style={style}
                     >
                         {thContents}
@@ -717,14 +736,21 @@ export class LazyMobXTableStore<T> {
         return `Showing ${firstVisibleItemDisp}-${lastVisibleItemDisp} of ${this.displayData.length}${itemsLabel}`;
     }
 
-    @computed get tds(): JSX.Element[][] {
-        // this is needed to draw lines between each group
-        const headerGroupBreakpoints = this.headerGroupBreakpoints;
-        const headerGroupCardinalities = headerGroupBreakpoints.map(
+    @computed
+    get headerGroupFirstIndices(): number[] {
+        const res = this.headerGroupBreakpoints.map(
             (headerGroup: HeaderGroup) => {
-                return headerGroup.cardinality;
+                return headerGroup.first_index;
             }
         );
+        return res.filter((value: number) => {
+            return value > 0;
+        });
+    }
+
+    @computed get tds(): JSX.Element[][] {
+        // this is needed to draw lines between each group
+        const headerGroupFirstIndices = this.headerGroupFirstIndices;
 
         return this.visibleData.map((datum: T, rowIndex: number) => {
             return this.visibleColumns.map(
@@ -735,11 +761,17 @@ export class LazyMobXTableStore<T> {
                     };
 
                     if (column.resizable && column.truncateOnResize) {
-                        cellProps.className += 'lazyMobXTableTruncatedCell';
+                        cellProps.className += ' lazyMobXTableTruncatedCell';
                     }
 
-                    if (headerGroupCardinalities.includes(columnIndex)) {
-                        cellProps.className += 'border-right';
+                    if (headerGroupFirstIndices.includes(columnIndex)) {
+                        cellProps.className += ' border-left';
+                    }
+
+                    if (this.rowColorFunc) {
+                        const rowColorFunc = this.rowColorFunc;
+                        cellProps.className +=
+                            ' ' + rowColorFunc(this.visibleData[rowIndex]);
                     }
 
                     const result = (
@@ -786,7 +818,7 @@ export class LazyMobXTableStore<T> {
                         .toArray()
                         .includes(e.currentTarget);
                     if (isTargetWithinTheTable) {
-                        onRowClick(this.visibleData[i]);
+                        onRowClick(this.visibleData[i], i);
                     }
                 };
             }
@@ -802,10 +834,10 @@ export class LazyMobXTableStore<T> {
                     onRowMouseLeave!(this.visibleData[i]);
                 };
             }
-            if (this.rowColorFunc) {
-                const rowColorFunc = this.rowColorFunc;
-                classNames.push(rowColorFunc(this.visibleData[i]));
-            }
+            //if (this.rowColorFunc) {
+            //    const rowColorFunc = this.rowColorFunc;
+            //    classNames.push(rowColorFunc(this.visibleData[i]));
+            //}
             if (classNames.length) {
                 rowProps.className = classNames.join(' ');
             }

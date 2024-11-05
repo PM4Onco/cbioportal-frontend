@@ -40,6 +40,7 @@ import { observer } from 'mobx-react';
 import autobind from 'autobind-decorator';
 import generalStyles from 'shared/components/mutationTable/column/styles.module.scss';
 import styles from './styles.module.scss';
+import { Dict } from '../clinicalTrialMatch/ClinicalTrialMatchSelectUtil';
 
 export interface IPatientSimilarityMutationTableProps
     extends LazyMobXTableProps<SimilarMutation> {
@@ -75,12 +76,14 @@ export enum SimilarMutationColumnType {
     ALT = 'Alt',
     GENE = 'Gene',
     ENSEMBL = 'Ensembl Gene ID',
+    PATHWAYS = 'Pathways',
 
     // comparison
     COMPCHROM = 'Chrom2',
     COMPSTART = 'Start2',
     COMPREF = 'Ref2',
     COMPALT = 'Alt2',
+    COMPPATHWAYS = 'Pathways2',
 }
 
 export type ExtendedColumnType = SimilarMutationColumnType | string;
@@ -179,9 +182,30 @@ export class PatientSimilarityMutationTable extends React.Component<
         const data = this.getMutationData(similarMutation, mutations);
         if (data.length > 0) {
             return data[0][key as keyof Mutation] as string;
-        } else {
-            return null;
         }
+        return null;
+    }
+
+    protected getNamespaceDataString(
+        similarMutation: SimilarMutation,
+        mutations: string,
+        namespace: string,
+        namespaceKey: string
+    ): string | null {
+        const data = this.getMutationData(similarMutation, mutations);
+        if (data.length > 0) {
+            console.log(data[0]);
+            const namespacecolumns = data[0].namespaceColumns as {
+                [key: string]: any;
+            };
+            const temp = namespacecolumns[namespace];
+            if (temp === undefined) {
+                return '';
+            }
+            return temp[namespaceKey];
+        }
+        console.log('YOYO2');
+        return null;
     }
 
     protected getSimilarMutationDataTag(
@@ -198,7 +222,7 @@ export class PatientSimilarityMutationTable extends React.Component<
                 return <div>{d.similarityTag}</div>;
             },
             download: (d: SimilarMutation) => d.similarityTag,
-            sortBy: (d: SimilarMutation) => d.similarityTag,
+            sortBy: (d: SimilarMutation) => d.similarityScore,
             filter: (
                 d: SimilarMutation,
                 filterString: string,
@@ -292,6 +316,24 @@ export class PatientSimilarityMutationTable extends React.Component<
             align: 'right',
             group: 'Patient 1',
         };
+        this._columns[SimilarMutationColumnType.PATHWAYS] = {
+            name: SimilarMutationColumnType.PATHWAYS,
+            render: (d: SimilarMutation, i: number) => {
+                return (
+                    <div>
+                        {this.getNamespaceDataString(
+                            d,
+                            'mutations1',
+                            'sim',
+                            'Pathways'
+                        )}
+                    </div>
+                );
+            },
+            visible: true,
+            align: 'right',
+            group: 'Patient 1',
+        };
 
         // comparison mutation
         this._columns[SimilarMutationColumnType.COMPCHROM] = {
@@ -358,6 +400,24 @@ export class PatientSimilarityMutationTable extends React.Component<
             align: 'right',
             group: 'Patient 2',
         };
+        this._columns[SimilarMutationColumnType.COMPPATHWAYS] = {
+            name: SimilarMutationColumnType.COMPPATHWAYS,
+            render: (d: SimilarMutation, i: number) => {
+                return (
+                    <div>
+                        {this.getNamespaceDataString(
+                            d,
+                            'mutations2',
+                            'sim',
+                            'Pathways'
+                        )}
+                    </div>
+                );
+            },
+            visible: true,
+            align: 'right',
+            group: 'Patient 2',
+        };
 
         // reference mutation columns
         //this._columns[MutationTableColumnType.SAMPLES] = {
@@ -410,10 +470,12 @@ export class PatientSimilarityMutationTable extends React.Component<
             (this._columns[SimilarMutationColumnType.START].order = 15),
             (this._columns[SimilarMutationColumnType.REF].order = 20),
             (this._columns[SimilarMutationColumnType.ALT].order = 25),
+            (this._columns[SimilarMutationColumnType.PATHWAYS].order = 50),
             (this._columns[SimilarMutationColumnType.COMPCHROM].order = 100),
             (this._columns[SimilarMutationColumnType.COMPSTART].order = 105),
             (this._columns[SimilarMutationColumnType.COMPREF].order = 110),
             (this._columns[SimilarMutationColumnType.COMPALT].order = 115);
+        this._columns[SimilarMutationColumnType.COMPPATHWAYS].order = 120;
 
         //this._columns[MutationTableColumnType.CHROMOSOME].order = 20,
         //this._columns[MutationTableColumnType.START_POS].order = 25,

@@ -3552,6 +3552,7 @@ export class PatientViewPageStore {
                         patient.patientId
                     )
                 ).map(el => el.sampleId);
+
                 const mutationFilter = {
                     sampleIds: currentSampleIds,
                 } as MutationFilter;
@@ -3560,9 +3561,19 @@ export class PatientViewPageStore {
                     mutationalProfile?.molecularProfileId
                 );
 
-                //const mergedMutationData = mergeMutations(
-                //    mutationData
-                //);
+                //const mutationAnnotations = await fetchVariantAnnotationsIndexedByGenomicLocation(
+                //    mutationData,
+                //    [
+                //        GENOME_NEXUS_ARG_FIELD_ENUM.ANNOTATION_SUMMARY,
+                //        GENOME_NEXUS_ARG_FIELD_ENUM.HOTSPOTS,
+                //        GENOME_NEXUS_ARG_FIELD_ENUM.CLINVAR,
+                //        getServerConfig().show_signal
+                //            ? GENOME_NEXUS_ARG_FIELD_ENUM.SIGNAL
+                //            : '',
+                //    ].filter(f => f),
+                //    getServerConfig().genomenexus_isoform_override_source,
+                //    this.genomeNexusClient
+                //)
 
                 result.push({
                     patient_id: patient.patientId,

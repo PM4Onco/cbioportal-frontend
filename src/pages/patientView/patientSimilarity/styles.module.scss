@@ -1,20 +1,22 @@
 .bg_comparisonEqual {
-    background-color: rgb(246, 162, 46) !important;
+    background-color: rgba(255, 149, 0, 0.24) !important;
 }
 .bg_comparisonGene {
-    background-color: rgb(202, 237, 93) !important;
+    background-color: rgba(43, 255, 0, 0.24) !important;
 }
 .bg_comparisonPathway {
-    background-color: rgb(121, 214, 255) !important;
+    background-color: rgba(0, 238, 255, 0.24) !important;
 }
 .bg_comparisonPhgvs {
-    background-color: #aa65b8 !important;
+    background-color: rgba(255, 0, 221, 0.24) !important;
 }
 .bg_comparisonUnequal {
     background-color: rgb(249, 249, 249) !important;
 }
-.MutationSimilarityTable tbody tr:nth-of-type(odd) {
-    filter: brightness(110%);
+.MutationSimilarityTable tbody tr:nth-of-type(odd) td {
+    //filter: brightness(110%);
+    //background-color: lighten($color: $linkcolour, $amount: 50%)
+    box-shadow: inset 0 0 100px 100px rgba(112, 112, 112, 0.01);
 }
 .MutationSimilarityTable tbody td {
     text-align: right;
