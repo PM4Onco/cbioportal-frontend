@@ -5,7 +5,8 @@ export const minioURL = () => {
     const host =
         minio?.host ??
         `${window.location.protocol}//${window.location.hostname}`;
-    const port = minio?.port ?? 9000; // default minio port
+    const port = minio?.port ?? window.location.port; // default minio port
+    const portSeparator = port ? ':' : '';
 
-    return `${host}:${port}`;
+    return `${host}${portSeparator}${port}`;
 };

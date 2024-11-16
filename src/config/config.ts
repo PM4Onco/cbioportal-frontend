@@ -373,10 +373,20 @@ export function initializeServerConfiguration(rawConfiguration: any) {
 
     miracumConfig.minio = miracumConfig.minio || {};
     // @ts-ignore: ENV_* are defined in webpack.config.js
-    miracumConfig.minio.host = `${ENV_MINIO_HOST || miracumConfig.minio.host}`;
+    console.log('config.ts', ENV_MINIO_HOST);
+    miracumConfig.minio.host =
+        // @ts-ignore: ENV_* are defined in webpack.config.js
+        ENV_MINIO_HOST || miracumConfig.minio.host
+            ? // @ts-ignore: ENV_* are defined in webpack.config.js
+              `${ENV_MINIO_HOST || miracumConfig.minio.host}`
+            : undefined;
 
-    // @ts-ignore: ENV_* are defined in webpack.config.js
-    miracumConfig.minio.port = `${ENV_MINIO_PORT || miracumConfig.minio.port}`;
+    miracumConfig.minio.port =
+        // @ts-ignore: ENV_* are defined in webpack.config.js
+        ENV_MINIO_PORT || miracumConfig.minio.port
+            ? // @ts-ignore: ENV_* are defined in webpack.config.js
+              `${ENV_MINIO_PORT || miracumConfig.minio.port}`
+            : undefined;
 
     localStorage.setItem('cancerdrugsUrl', miracumConfig.cancerdrugsUrl || '');
     localStorage.setItem(
