@@ -242,6 +242,7 @@ import {
 import { RecruitingStatus } from 'shared/enums/ClinicalTrialsGovRecruitingStatus';
 import { City } from '../clinicalTrialMatch/ClinicalTrialMatchSelectUtil';
 import { fhirsparkURL } from 'shared/api/FhirsparkAPI';
+import { minioURL } from 'shared/api/MinIOAPI';
 
 type PageMode = 'patient' | 'sample';
 type ResourceId = string;
@@ -1219,7 +1220,7 @@ export class PatientViewPageStore {
                 resourceId: undefined,
                 studyId: undefined,
                 sampleId: undefined,
-                url: `${window.location.protocol}//${window.location.hostname}:9000${file}`,
+                url: `${minioURL()}${file}`,
                 uniquePatientKey: '123',
                 uniqueSampleKey: '123',
             })) as ResourceData[];

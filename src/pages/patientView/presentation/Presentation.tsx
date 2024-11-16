@@ -29,6 +29,7 @@ import { AddMutationTableIcon } from './icons/AddMutationTableIcon';
 import { toast } from 'react-toastify';
 import { TimelineIcon } from './icons/TimelineIcon';
 import { fhirsparkURL } from 'shared/api/FhirsparkAPI';
+import { minioURL } from 'shared/api/MinIOAPI';
 
 export interface PresentationClinicalData {
     name: string;
@@ -252,9 +253,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const responseData = await response.json();
 
-            createImage(
-                `//${window.location.hostname}:9000${responseData.location}`
-            );
+            createImage(`${minioURL()}${responseData.location}`);
         }
 
         const blobToBase64 = (blob: Blob): Promise<string> => {

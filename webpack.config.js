@@ -164,6 +164,8 @@ var config = {
             ENV_CANCERDRUGSJSON_URL: JSON.stringify(
                 process.env.CANCERDRUGSJSON_URL
             ),
+            ENV_MINIO_HOST: JSON.stringify(process.env.MINIO_HOST),
+            ENV_MINIO_PORT: JSON.stringify(process.env.MINIO_PORT),
         }),
         new HtmlWebpackPlugin({ cache: false, template: 'my-index.ejs' }),
         new ProgressBarPlugin(),

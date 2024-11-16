@@ -350,6 +350,10 @@ export function initializeServerConfiguration(rawConfiguration: any) {
         miracumConfig.cancerdrugsJsonUrl = frontendOverride.cancerdrugsJsonUrl;
     }
 
+    if (frontendOverride.minio) {
+        miracumConfig.minio = frontendOverride.minio;
+    }
+
     miracumConfig.fhirspark = miracumConfig.fhirspark || {};
     // @ts-ignore: ENV_* are defined in webpack.config.js
     miracumConfig.fhirspark.host = `${ENV_FHIRSPARK_HOST ||
@@ -366,6 +370,13 @@ export function initializeServerConfiguration(rawConfiguration: any) {
     // @ts-ignore: ENV_* are defined in webpack.config.js
     miracumConfig.cancerdrugsJsonUrl = `${ENV_CANCERDRUGSJSON_URL ||
         miracumConfig.cancerdrugsJsonUrl}`;
+
+    miracumConfig.minio = miracumConfig.minio || {};
+    // @ts-ignore: ENV_* are defined in webpack.config.js
+    miracumConfig.minio.host = `${ENV_MINIO_HOST || miracumConfig.minio.host}`;
+
+    // @ts-ignore: ENV_* are defined in webpack.config.js
+    miracumConfig.minio.port = `${ENV_MINIO_PORT || miracumConfig.minio.port}`;
 
     localStorage.setItem('cancerdrugsUrl', miracumConfig.cancerdrugsUrl || '');
     localStorage.setItem(
