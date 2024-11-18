@@ -903,13 +903,9 @@ export default class MutationTable<
         this._columns[MutationTableColumnType.FUNCTIONAL_IMPACT] = {
             name: MutationTableColumnType.FUNCTIONAL_IMPACT,
             render: (d: Mutation[]) => {
-                if (
-                    this.props.genomeNexusCache ||
-                    this.props.genomeNexusMutationAssessorCache
-                ) {
+                if (this.props.genomeNexusMutationAssessorCache) {
                     return FunctionalImpactColumnFormatter.renderFunction(
                         d,
-                        this.props.genomeNexusCache,
                         this.props.genomeNexusMutationAssessorCache,
                         this.props.selectedTranscriptId
                     );
@@ -920,7 +916,6 @@ export default class MutationTable<
             download: (d: Mutation[]) =>
                 FunctionalImpactColumnFormatter.download(
                     d,
-                    this.props.genomeNexusCache as GenomeNexusCache,
                     this.props
                         .genomeNexusMutationAssessorCache as GenomeNexusMutationAssessorCache,
                     this.props.selectedTranscriptId
