@@ -4,6 +4,7 @@ import { ClinicalData } from 'cbioportal-ts-api-client';
 import 'react-toastify/dist/ReactToastify.css';
 import './style.scss';
 import Reveal from 'reveal.js';
+import Overview from './reveal/overview';
 import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
 import { Slides, useHistoryState } from 'shared/lib/hooks/use-history-state';
@@ -20,7 +21,6 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { Menu, MenuItem } from 'pages/patientView/presentation/ContextMenu';
 import { Dynamic } from 'pages/patientView/presentation/model/dynamic-component';
 import ReactDOM from 'react-dom';
-import { getServerConfig } from 'config/config';
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
 import { Item } from 'pages/patientView/presentation/toolbar/Item';
 import { Tooltip, TooltipContent, TooltipTrigger } from './Tooltip';
@@ -89,6 +89,8 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         const {
             state,
             set,
+            insert,
+            remove,
             undo,
             redo,
             clear,
@@ -141,6 +143,15 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }, [state]);
 
         useEffect(() => {
+            deckRef.current?.dispatchEvent({
+                type: 'overview:update',
+                bubbles: false,
+                data: undefined,
+                target: undefined,
+            });
+        }, [state]);
+
+        useEffect(() => {
             // Prevents double initialization in strict mode
             if (deckRef.current) return;
 
@@ -150,11 +161,18 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 progress: false,
                 embedded: true,
                 center: false,
+                overview: false,
             });
 
-            deckRef.current.initialize().then(reveal => {
+            deckRef.current.initialize({ plugins: [Overview] }).then(reveal => {
                 deckRef.current?.on('slidechanged', (e: any) =>
                     setCurrentSlideId(Number(e.currentSlide.id))
+                );
+
+                deckRef.current?.on(
+                    'overview:action:delete',
+                    (event: Event & { slideId: number }) =>
+                        removeSlide(event.slideId)
                 );
             });
 
@@ -166,7 +184,22 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                     setCurrentSlideId(slideIds[0]);
                     deckRef.current?.slide(0);
                 })
-                .catch(() => createTitle());
+                .catch(() => createTitle())
+                .finally(() => {
+                    const updateEvent = {
+                        type: 'overview:update',
+                        bubbles: false,
+                        data: undefined,
+                        target: undefined,
+                    };
+                    deckRef.current?.dispatchEvent(updateEvent);
+                    // update after some time when timeline and mutation tables are loaded.
+                    // it would be better to have some kind of loaded event form these components.
+                    setTimeout(
+                        () => deckRef.current?.dispatchEvent(updateEvent),
+                        2000
+                    );
+                });
 
             return () => {
                 try {
@@ -404,12 +437,17 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         function onAddSlideClick() {
-            const slideId = state.size + 1;
+            const slideId =
+                (Number(deckRef.current?.getCurrentSlide().id) ?? 0) + 1;
 
-            set(slideId, []);
+            insert(slideId, []);
             setTimeout(() => {
-                deckRef.current?.slide(slideId + 1);
+                deckRef.current?.slide(slideId - 1);
             });
+        }
+
+        function removeSlide(slideId: number) {
+            remove(slideId);
         }
 
         function createTitle() {
@@ -589,7 +627,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 }
             });
 
-            set(slideId, nextPresent);
+            setPresentForSlideId(slideId, nextPresent);
         }
 
         function onStateChanged(slideId: number, id: string, value: any) {
@@ -612,7 +650,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             });
 
             if (modified) {
-                set(slideId, nextPresent);
+                setPresentForSlideId(slideId, nextPresent);
             }
         }
 
@@ -656,7 +694,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             });
 
             if (modified) {
-                set(slideId, nextPresent);
+                setPresentForSlideId(slideId, nextPresent);
             }
         }
 
@@ -680,7 +718,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             });
 
             if (modified) {
-                set(slideId, nextPresent);
+                setPresentForSlideId(slideId, nextPresent);
             }
         }
 
@@ -719,8 +757,15 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             });
 
             if (modified) {
-                set(slideId, nextPresent);
+                setPresentForSlideId(slideId, nextPresent);
             }
+        }
+
+        function setPresentForSlideId(
+            slideId: number,
+            present: (Node<string> | Node<null>)[]
+        ) {
+            set(slideId, present);
         }
 
         async function savePresentation() {
@@ -777,11 +822,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         return (
             <div className="overview-presentation-container">
-                {/*<div className="overview">*/}
-                {/*    {Array.from({length: deckRef.current?.getTotalSlides() ?? 0}, (v, i) => i).map((number) => {*/}
-                {/*        return `Slide ${number + 1}`*/}
-                {/*    })}*/}
-                {/*</div>*/}
+                <div className="reveal-overview"></div>
                 <div className="presentation-container">
                     <div className="toolbar">
                         <div className="toolbar__row-container">

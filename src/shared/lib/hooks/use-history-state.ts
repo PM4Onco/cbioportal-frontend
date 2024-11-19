@@ -27,7 +27,23 @@ interface ClearAction {
     slides: Slides;
 }
 
-export type Action<T> = UndoRedoAction | SetAction<T> | ClearAction;
+interface RemoveAction {
+    type: 'remove';
+    slideId: number;
+}
+
+interface InsertAction<T> {
+    type: 'insert';
+    newPresent: T;
+    slideId: number;
+}
+
+export type Action<T> =
+    | UndoRedoAction
+    | SetAction<T>
+    | RemoveAction
+    | InsertAction<T>
+    | ClearAction;
 
 export type Slides = { [slideId: number]: Node<any> };
 
@@ -35,7 +51,7 @@ const ensureValidActionForSlide = <T>(
     slide: TimeState<T> | undefined,
     action: Action<T>
 ) => {
-    if (!slide && action.type !== 'set') {
+    if (!slide && action.type !== 'set' && action.type !== 'insert') {
         throw new Error(`invalid action=(${action.type}) for new slide`);
     }
 };
@@ -70,8 +86,6 @@ export const useHistoryStateReducer = <T>(
             });
         }
 
-        console.log(newState);
-
         return newState;
     }
 
@@ -99,7 +113,7 @@ export const useHistoryStateReducer = <T>(
     } else if (action.type === 'set') {
         const { newPresent } = action;
 
-        if (action.newPresent === present) {
+        if (newPresent === present) {
             return state;
         }
 
@@ -109,6 +123,53 @@ export const useHistoryStateReducer = <T>(
             present: newPresent,
             future: [],
         });
+    } else if (action.type === 'remove') {
+        const newState = new Map();
+        let newId = 1;
+
+        // we cannot just delete because we need to fix the indices
+        for (const [oldId, value] of state.entries()) {
+            if (oldId === slideId) {
+                continue;
+            }
+
+            newState.set(newId++, value);
+        }
+
+        return newState;
+    } else if (action.type === 'insert') {
+        if (!state.has(slideId)) {
+            const { newPresent } = action;
+
+            if (newPresent === present) {
+                return state;
+            }
+
+            const newState = new Map(state);
+
+            return newState.set(slideId, {
+                past: [...past, present],
+                present: newPresent,
+                future: [],
+            });
+        }
+
+        const newState = new Map();
+        let newId = 1;
+
+        for (const [oldId, value] of state.entries()) {
+            if (oldId === slideId) {
+                newState.set(newId++, {
+                    past: [...past, present],
+                    present: action.newPresent,
+                    future: [],
+                });
+            }
+
+            newState.set(newId++, value);
+        }
+
+        return newState;
     } else {
         throw new Error('Unsupported action type');
     }
@@ -176,10 +237,28 @@ export function useHistoryState<T>(initialState?: {
         []
     );
 
+    const remove = useCallback((slideId: number) => {
+        dispatch({ type: 'remove', slideId });
+    }, []);
+
+    const insert = useCallback((slideId: number, newPresent: T) => {
+        dispatch({ type: 'insert', newPresent, slideId });
+    }, []);
+
     const clear = useCallback(
         (slides: Slides) => dispatch({ type: 'clear', slides }),
         []
     );
 
-    return { state: state, set, undo, redo, clear, canUndo, canRedo };
+    return {
+        state: state,
+        set,
+        insert,
+        remove,
+        undo,
+        redo,
+        clear,
+        canUndo,
+        canRedo,
+    };
 }
