@@ -66,14 +66,36 @@
         padding: 0;
     }
 
+    .overview-contextmenu__action-group {
+        border-bottom: 1px solid rgba(61, 37, 20, 0.1);
+        padding-bottom: 0.25rem;
+        margin-bottom: 0.25rem;
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+
+        &:last-of-type {
+            border-bottom: 0;
+            margin-bottom: -0.5rem;
+            padding-bottom: 0;
+        }
+    }
+
     li {
+        display: flex;
+        align-items: center;
+        column-gap: 6px;
         cursor: pointer;
         padding: 0.25rem 0.5rem;
         border-radius: 5px;
-        margin-left: -0.5rem;
 
         &:hover {
             background: rgba(61, 37, 20, 0.12);
+        }
+
+        svg {
+            height: 20px;
+            width: 20px;
+            margin-top: -1px;
         }
     }
 }

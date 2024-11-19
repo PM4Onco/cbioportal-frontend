@@ -24,7 +24,30 @@ const openContextMenu = (reveal: Api, event: PointerEvent, slideId: number) => {
     menu.innerHTML = `
         <h2>Actions</h2>
         <ul>
-            <li class="overview-contextmenu__delete">Delete</li>
+            <div class="overview-contextmenu__action-group">
+                <li class="overview-contextmenu__move-up">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 17a.75.75 0 0 1-.75-.75V5.612L5.29 9.77a.75.75 0 0 1-1.08-1.04l5.25-5.5a.75.75 0 0 1 1.08 0l5.25 5.5a.75.75 0 1 1-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0 1 10 17Z" clip-rule="evenodd" />
+                    </svg>
+ 
+                    Move up
+                </li>
+                <li class="overview-contextmenu__move-down">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a.75.75 0 0 1 .75.75v10.638l3.96-4.158a.75.75 0 1 1 1.08 1.04l-5.25 5.5a.75.75 0 0 1-1.08 0l-5.25-5.5a.75.75 0 1 1 1.08-1.04l3.96 4.158V3.75A.75.75 0 0 1 10 3Z" clip-rule="evenodd" />
+                    </svg>
+                    Move down
+                </li>
+            </div>
+            <div class="overview-contextmenu__action-group">
+                <li class="overview-contextmenu__delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd" />
+                    </svg>
+
+                    Delete
+                </li>
+            </div>
         </ul>
     `;
 
@@ -54,6 +77,25 @@ const openContextMenu = (reveal: Api, event: PointerEvent, slideId: number) => {
             signal: controller.signal,
         }
     );
+
+    menu.querySelector('.overview-contextmenu__move-up')?.addEventListener(
+        'click',
+        () => {
+            moveUpClicked(reveal, slideId);
+        },
+        {
+            signal: controller.signal,
+        }
+    );
+    menu.querySelector('.overview-contextmenu__move-down')?.addEventListener(
+        'click',
+        () => {
+            moveDownClicked(reveal, slideId);
+        },
+        {
+            signal: controller.signal,
+        }
+    );
 };
 
 const closeContextMenu = () => {
@@ -78,6 +120,30 @@ const bodyClicked = (event: PointerEvent) => {
 const deleteClicked = (reveal: Api, slideId: number) => {
     reveal.dispatchEvent({
         type: 'overview:action:delete',
+        bubbles: false,
+        data: {
+            slideId,
+        },
+        target: undefined,
+    });
+    closeContextMenu();
+};
+
+const moveUpClicked = (reveal: Api, slideId: number) => {
+    reveal.dispatchEvent({
+        type: 'overview:action:move-up',
+        bubbles: false,
+        data: {
+            slideId,
+        },
+        target: undefined,
+    });
+    closeContextMenu();
+};
+
+const moveDownClicked = (reveal: Api, slideId: number) => {
+    reveal.dispatchEvent({
+        type: 'overview:action:move-down',
         bubbles: false,
         data: {
             slideId,

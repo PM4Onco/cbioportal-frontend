@@ -22,6 +22,12 @@ interface SetAction<T> {
     slideId: number;
 }
 
+interface SetHistoryAction<T> {
+    type: 'setHistory';
+    state: TimeState<T>;
+    slideId: number;
+}
+
 interface ClearAction {
     type: 'clear';
     slides: Slides;
@@ -41,6 +47,7 @@ interface InsertAction<T> {
 export type Action<T> =
     | UndoRedoAction
     | SetAction<T>
+    | SetHistoryAction<T>
     | RemoveAction
     | InsertAction<T>
     | ClearAction;
@@ -123,6 +130,10 @@ export const useHistoryStateReducer = <T>(
             present: newPresent,
             future: [],
         });
+    } else if (action.type === 'setHistory') {
+        const newState = new Map(state);
+
+        return newState.set(slideId, action.state);
     } else if (action.type === 'remove') {
         const newState = new Map();
         let newId = 1;
@@ -237,6 +248,10 @@ export function useHistoryState<T>(initialState?: {
         []
     );
 
+    const setHistory = useCallback((slideId: number, state: TimeState<T>) => {
+        dispatch({ type: 'setHistory', state, slideId });
+    }, []);
+
     const remove = useCallback((slideId: number) => {
         dispatch({ type: 'remove', slideId });
     }, []);
@@ -253,6 +268,7 @@ export function useHistoryState<T>(initialState?: {
     return {
         state: state,
         set,
+        setHistory,
         insert,
         remove,
         undo,

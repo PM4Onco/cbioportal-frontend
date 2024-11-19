@@ -89,6 +89,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         const {
             state,
             set,
+            setHistory,
             insert,
             remove,
             undo,
@@ -193,12 +194,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         target: undefined,
                     };
                     deckRef.current?.dispatchEvent(updateEvent);
-                    // update after some time when timeline and mutation tables are loaded.
-                    // it would be better to have some kind of loaded event form these components.
-                    setTimeout(
-                        () => deckRef.current?.dispatchEvent(updateEvent),
-                        2000
-                    );
+                    updateOverviewAfterTimeout();
                 });
 
             return () => {
@@ -212,6 +208,47 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 }
             };
         }, []);
+
+        useEffect(() => {
+            const controller = new AbortController();
+
+            deckRef.current?.on(
+                'overview:action:move-up',
+                (event: Event & { slideId: number }) =>
+                    moveSlideUp(event.slideId),
+                {
+                    signal: controller.signal,
+                }
+            );
+
+            deckRef.current?.on(
+                'overview:action:move-down',
+                (event: Event & { slideId: number }) =>
+                    moveSlideDown(event.slideId),
+                {
+                    signal: controller.signal,
+                }
+            );
+
+            return () => {
+                controller.abort();
+            };
+        }, [state]);
+
+        function updateOverviewAfterTimeout(timeout = 2000) {
+            const updateEvent = {
+                type: 'overview:update',
+                bubbles: false,
+                data: undefined,
+                target: undefined,
+            };
+            // update after some time when timeline and mutation tables are loaded.
+            // it would be better to have some kind of loaded event form these components.
+            setTimeout(
+                () => deckRef.current?.dispatchEvent(updateEvent),
+                timeout
+            );
+        }
 
         async function loadPresentation() {
             const patientId = patientViewPageStore.getSafePatientId();
@@ -441,13 +478,41 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 (Number(deckRef.current?.getCurrentSlide().id) ?? 0) + 1;
 
             insert(slideId, []);
-            setTimeout(() => {
-                deckRef.current?.slide(slideId - 1);
-            });
+            setActiveSlide(slideId - 1);
         }
 
         function removeSlide(slideId: number) {
             remove(slideId);
+        }
+
+        function moveSlideUp(slideId: number) {
+            const slide = state.get(slideId);
+            const previousSlide = state.get(slideId - 1);
+
+            if (!slide || !previousSlide) return;
+
+            setHistory(slideId - 1, slide);
+            setHistory(slideId, previousSlide);
+            setActiveSlide(slideId - 2);
+            updateOverviewAfterTimeout(0);
+        }
+
+        function moveSlideDown(slideId: number) {
+            const slide = state.get(slideId);
+            const nextSlide = state.get(slideId + 1);
+
+            if (!slide || !nextSlide) return;
+
+            setHistory(slideId + 1, slide);
+            setHistory(slideId, nextSlide);
+            setActiveSlide(slideId);
+            updateOverviewAfterTimeout(0);
+        }
+
+        function setActiveSlide(slideNumber: number) {
+            setTimeout(() => {
+                deckRef.current?.slide(slideNumber);
+            });
         }
 
         function createTitle() {
