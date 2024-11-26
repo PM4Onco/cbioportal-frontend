@@ -5,7 +5,7 @@ import { Node } from 'pages/patientView/presentation/model/node';
 
 export type State<T> = Map<number, TimeState<T>>;
 
-interface TimeState<T> {
+export interface TimeState<T> {
     past: T[];
     present: T;
     future: T[];
@@ -44,12 +44,19 @@ interface InsertAction<T> {
     slideId: number;
 }
 
+interface InsertHistoryAction<T> {
+    type: 'insertHistory';
+    state: TimeState<T>;
+    slideId: number;
+}
+
 export type Action<T> =
     | UndoRedoAction
     | SetAction<T>
     | SetHistoryAction<T>
     | RemoveAction
     | InsertAction<T>
+    | InsertHistoryAction<T>
     | ClearAction;
 
 export type Slides = { [slideId: number]: Node<any> };
@@ -58,7 +65,12 @@ const ensureValidActionForSlide = <T>(
     slide: TimeState<T> | undefined,
     action: Action<T>
 ) => {
-    if (!slide && action.type !== 'set' && action.type !== 'insert') {
+    if (
+        !slide &&
+        action.type !== 'set' &&
+        action.type !== 'insert' &&
+        action.type !== 'insertHistory'
+    ) {
         throw new Error(`invalid action=(${action.type}) for new slide`);
     }
 };
@@ -152,10 +164,6 @@ export const useHistoryStateReducer = <T>(
         if (!state.has(slideId)) {
             const { newPresent } = action;
 
-            if (newPresent === present) {
-                return state;
-            }
-
             const newState = new Map(state);
 
             return newState.set(slideId, {
@@ -175,6 +183,25 @@ export const useHistoryStateReducer = <T>(
                     present: action.newPresent,
                     future: [],
                 });
+            }
+
+            newState.set(newId++, value);
+        }
+
+        return newState;
+    } else if (action.type === 'insertHistory') {
+        if (!state.has(slideId)) {
+            const newState = new Map(state);
+
+            return newState.set(slideId, action.state);
+        }
+
+        const newState = new Map();
+        let newId = 1;
+
+        for (const [oldId, value] of state.entries()) {
+            if (oldId === slideId) {
+                newState.set(newId++, action.state);
             }
 
             newState.set(newId++, value);
@@ -260,6 +287,13 @@ export function useHistoryState<T>(initialState?: {
         dispatch({ type: 'insert', newPresent, slideId });
     }, []);
 
+    const insertHistory = useCallback(
+        (slideId: number, state: TimeState<T>) => {
+            dispatch({ type: 'insertHistory', state, slideId });
+        },
+        []
+    );
+
     const clear = useCallback(
         (slides: Slides) => dispatch({ type: 'clear', slides }),
         []
@@ -270,6 +304,7 @@ export function useHistoryState<T>(initialState?: {
         set,
         setHistory,
         insert,
+        insertHistory,
         remove,
         undo,
         redo,

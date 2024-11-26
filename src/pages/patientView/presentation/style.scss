@@ -28,6 +28,27 @@
     justify-content: center;
 }
 
+.overview-deleted-container {
+    display: flex;
+    flex-direction: column;
+    height: max(calc(100vh - 175px - 40px), 785px);
+}
+
+.deleted-items__button {
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(61, 37, 20, 0.15);
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+
+    svg {
+        height: 24px;
+        width: 24px;
+        margin-right: 8px;
+    }
+}
+
 .reveal-viewport:fullscreen {
     background-color: white;
 

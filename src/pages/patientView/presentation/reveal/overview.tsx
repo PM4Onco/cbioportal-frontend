@@ -1,10 +1,14 @@
 import { Api } from 'reveal.js';
 
 import './overview.scss';
+import { UUID } from 'pages/patientView/presentation/model/uuid';
 
 export default () => ({
     id: 'overview',
     init: (reveal: Api) => {
+        document
+            .querySelector('.deleted-items__button')
+            ?.addEventListener('click', () => toggleDeletedSlides());
         reveal.on('overview:update', () => updateOverview(reveal));
         reveal.on('slidechanged', () => updateSelectedSlide(reveal));
     },
@@ -12,6 +16,7 @@ export default () => ({
 
 let contextMenu: HTMLDivElement;
 let controller: AbortController;
+let deletedSlidesVisible = false;
 
 const openContextMenu = (reveal: Api, event: PointerEvent, slideId: number) => {
     event.preventDefault();
@@ -40,11 +45,12 @@ const openContextMenu = (reveal: Api, event: PointerEvent, slideId: number) => {
                 </li>
             </div>
             <div class="overview-contextmenu__action-group">
-                <li class="overview-contextmenu__delete">
+                <li class="overview-contextmenu__delete" ${
+                    reveal.getTotalSlides() === 1 ? 'disabled' : ''
+                }>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd" />
                     </svg>
-
                     Delete
                 </li>
             </div>
@@ -117,16 +123,94 @@ const bodyClicked = (event: PointerEvent) => {
     }
 };
 
+const toggleDeletedSlides = () => {
+    if (deletedSlidesVisible) {
+        deletedSlidesVisible = false;
+        document
+            .querySelector('.deleted-items__item-container')
+            ?.setAttribute('hidden', '');
+    } else {
+        deletedSlidesVisible = true;
+        document
+            .querySelector('.deleted-items__item-container')
+            ?.removeAttribute('hidden');
+    }
+};
+
 const deleteClicked = (reveal: Api, slideId: number) => {
+    if (reveal.getTotalSlides() === 1) return;
+
+    const uuid = crypto.randomUUID();
+
+    addSlideToTrash(reveal, uuid);
+    console.log('delete event:', slideId, uuid);
     reveal.dispatchEvent({
         type: 'overview:action:delete',
         bubbles: false,
         data: {
             slideId,
+            uuid,
         },
         target: undefined,
     });
     closeContextMenu();
+};
+
+const addSlideToTrash = (reveal: Api, uuid: UUID) => {
+    const slideToDelete = reveal.getCurrentSlide().cloneNode(true);
+    const deletedContainer = document.querySelector(
+        '.deleted-items__item-container'
+    );
+
+    if (!deletedContainer) return;
+
+    const container = createContainer();
+    const controller = new AbortController();
+
+    container.addEventListener(
+        'click',
+        () => {
+            restoreSlide(reveal, deletedContainer, container, uuid);
+            controller.abort();
+        },
+        { signal: controller.signal }
+    );
+    container.appendChild(slideToDelete);
+    deletedContainer.appendChild(container);
+};
+
+const createContainer = () => {
+    const container = document.createElement('div');
+    const overlay = document.createElement('div');
+    overlay.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+    </svg>
+    Restore
+    `;
+    container.classList.add('deleted-items__item');
+    overlay.classList.add('deleted-items__overlay');
+
+    container.appendChild(overlay);
+
+    return container;
+};
+
+const restoreSlide = (
+    reveal: Api,
+    deletedContainer: Element,
+    container: HTMLDivElement,
+    uuid: UUID
+) => {
+    deletedContainer.removeChild(container);
+    reveal.dispatchEvent({
+        type: 'overview:action:restore',
+        bubbles: false,
+        data: {
+            uuid,
+        },
+        target: undefined,
+    });
 };
 
 const moveUpClicked = (reveal: Api, slideId: number) => {

@@ -1,6 +1,6 @@
 .reveal-overview {
     display: flex;
-    height: max(calc(100vh - 175px - 40px), 785px);
+    height: 100%;
     overflow-y: scroll;
     padding-right: 20px;
 
@@ -44,6 +44,82 @@
     }
 }
 
+.overview-deleted-items {
+    width: 240px;
+    position: relative;
+
+    .deleted-items__button {
+        cursor: pointer;
+    }
+
+    .deleted-items__item-container {
+        display: flex;
+        flex-direction: column-reverse;
+        position: absolute;
+        overflow-y: scroll;
+        bottom: 120%;
+        height: 400px;
+        z-index: 100;
+    }
+
+    .deleted-items__item-container[hidden] {
+        display: none;
+    }
+
+    .deleted-items__item {
+        position: relative;
+        width: 240px;
+        height: 175px;
+
+        &:not(:first-child) {
+            margin-bottom: 12px;
+        }
+
+        &:hover .deleted-items__overlay {
+            display: flex;
+            cursor: pointer;
+        }
+
+        .deleted-items__overlay {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+            border-radius: 6px;
+            color: white;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+
+            svg {
+                width: 24px;
+                height: 24px;
+                margin-right: 8px;
+            }
+        }
+    }
+
+    section {
+        display: flex !important;
+        width: 960px;
+        height: 700px;
+        position: relative;
+        background-color: white;
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+            0 4px 6px -4px rgb(0 0 0 / 0.1);
+        border: 6px solid red;
+        border-radius: 20px;
+        flex-shrink: 0;
+        transform: scale(0.25);
+        transform-origin: top left;
+        cursor: pointer;
+        user-select: none;
+    }
+}
+
 .overview-contextmenu {
     position: absolute;
     background: white;
@@ -53,6 +129,7 @@
         0 4px 6px -4px rgb(0 0 0 / 0.1);
     padding: 1rem;
     width: 200px;
+    z-index: 200;
 
     h2 {
         font-size: 14px;
@@ -77,6 +154,15 @@
             border-bottom: 0;
             margin-bottom: -0.5rem;
             padding-bottom: 0;
+        }
+    }
+
+    .overview-contextmenu__delete[disabled] {
+        opacity: 0.5;
+
+        &:hover {
+            background: transparent;
+            cursor: not-allowed;
         }
     }
 

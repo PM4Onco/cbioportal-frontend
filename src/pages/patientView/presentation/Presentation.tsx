@@ -7,7 +7,11 @@ import Reveal from 'reveal.js';
 import Overview from './reveal/overview';
 import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
-import { Slides, useHistoryState } from 'shared/lib/hooks/use-history-state';
+import {
+    Slides,
+    TimeState,
+    useHistoryState,
+} from 'shared/lib/hooks/use-history-state';
 import { CreateTextIcon } from './icons/CreateTextIcon';
 import { ToggleFullscreenIcon } from 'pages/patientView/presentation/icons/ToggleFullscreenIcon';
 import { UndoIcon } from 'pages/patientView/presentation/icons/UndoIcon';
@@ -30,6 +34,7 @@ import { toast } from 'react-toastify';
 import { TimelineIcon } from './icons/TimelineIcon';
 import { fhirsparkURL } from 'shared/api/FhirsparkAPI';
 import { minioURL } from 'shared/api/MinIOAPI';
+import { UUID } from 'pages/patientView/presentation/model/uuid';
 
 export interface PresentationClinicalData {
     name: string;
@@ -68,6 +73,8 @@ interface PresentationProps {
     width: number;
 }
 
+type NodeTypes = Node<string> | Node<null>;
+
 export const Presentation: React.FunctionComponent<PresentationProps> = observer(
     ({
         clinicalData,
@@ -86,18 +93,23 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         const [currentSlideId, setCurrentSlideId] = useState(1);
         const [shiftDown, setShiftDown] = useState(false);
 
+        const [deletedSlides, setDeletedSlides] = useState<
+            Record<UUID, TimeState<NodeTypes[]>>
+        >({});
+
         const {
             state,
             set,
             setHistory,
             insert,
+            insertHistory,
             remove,
             undo,
             redo,
             clear,
             canRedo,
             canUndo,
-        } = useHistoryState<(Node<string> | Node<null>)[]>({
+        } = useHistoryState<NodeTypes[]>({
             slideId: currentSlideId,
             initialPresent: [],
         });
@@ -169,12 +181,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 deckRef.current?.on('slidechanged', (e: any) =>
                     setCurrentSlideId(Number(e.currentSlide.id))
                 );
-
-                deckRef.current?.on(
-                    'overview:action:delete',
-                    (event: Event & { slideId: number }) =>
-                        removeSlide(event.slideId)
-                );
             });
 
             // createTitle();
@@ -214,8 +220,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             deckRef.current?.on(
                 'overview:action:move-up',
-                (event: Event & { slideId: number }) =>
-                    moveSlideUp(event.slideId),
+                (
+                    event: Event & {
+                        slideId: number;
+                    }
+                ) => moveSlideUp(event.slideId),
                 {
                     signal: controller.signal,
                 }
@@ -230,10 +239,34 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 }
             );
 
+            deckRef.current?.on(
+                'overview:action:delete',
+                (
+                    event: Event & {
+                        slideId: number;
+                        uuid: UUID;
+                    }
+                ) => removeSlide(event.slideId, event.uuid),
+                {
+                    signal: controller.signal,
+                }
+            );
+
+            deckRef.current?.on(
+                'overview:action:restore',
+                (
+                    event: Event & {
+                        uuid: UUID;
+                    }
+                ) => restoreSlide(event.uuid),
+                {
+                    signal: controller.signal,
+                }
+            );
             return () => {
                 controller.abort();
             };
-        }, [state]);
+        }, [state, deletedSlides]);
 
         function updateOverviewAfterTimeout(timeout = 2000) {
             const updateEvent = {
@@ -481,8 +514,34 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             setActiveSlide(slideId - 1);
         }
 
-        function removeSlide(slideId: number) {
+        function removeSlide(slideId: number, uuid: UUID) {
+            const historyState = state.get(slideId);
+            console.log(deletedSlides);
+            if (!historyState) return;
+
+            setDeletedSlides({
+                ...deletedSlides,
+                [uuid]: historyState,
+            });
             remove(slideId);
+            deckRef.current?.prev();
+        }
+
+        function restoreSlide(uuid: UUID) {
+            const deletedSlide = deletedSlides[uuid];
+            if (!deletedSlide) return;
+
+            const slideId =
+                (Number(deckRef.current?.getCurrentSlide().id) ?? 0) + 1;
+
+            insertHistory(slideId, deletedSlide);
+            setDeletedSlides(
+                Object.fromEntries(
+                    Object.entries(deletedSlides).filter(
+                        ([oUUID, _]) => oUUID !== uuid
+                    )
+                )
+            );
         }
 
         function moveSlideUp(slideId: number) {
@@ -826,10 +885,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             }
         }
 
-        function setPresentForSlideId(
-            slideId: number,
-            present: (Node<string> | Node<null>)[]
-        ) {
+        function setPresentForSlideId(slideId: number, present: NodeTypes[]) {
             set(slideId, present);
         }
 
@@ -887,7 +943,34 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         return (
             <div className="overview-presentation-container">
-                <div className="reveal-overview"></div>
+                <div className="overview-deleted-container">
+                    <div className="reveal-overview"></div>
+                    <div className="overview-deleted-items">
+                        <div
+                            className="deleted-items__button"
+                            hidden={Object.keys(deletedSlides).length < 1}
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                                />
+                            </svg>
+                            Deleted Slides ({Object.keys(deletedSlides).length})
+                        </div>
+                        <div
+                            className="deleted-items__item-container"
+                            hidden
+                        ></div>
+                    </div>
+                </div>
                 <div className="presentation-container">
                     <div className="toolbar">
                         <div className="toolbar__row-container">
