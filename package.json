@@ -360,7 +360,8 @@
     "@tiptap/extension-underline": "^2.9.1",
     "tiptap-extension-font-size": "^1.2.0",
     "@tiptap/extension-text-style": "^2.9.1",
-    "@tiptap/extension-color": "^2.9.1"
+    "@tiptap/extension-color": "^2.9.1",
+    "react-joyride": "^2.9.3"
   },
   "devDependencies": {
     "@types/cheerio": "^0.22.23",

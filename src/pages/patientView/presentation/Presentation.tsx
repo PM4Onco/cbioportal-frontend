@@ -7,11 +7,7 @@ import Reveal from 'reveal.js';
 import Overview from './reveal/overview';
 import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
-import {
-    Slides,
-    TimeState,
-    useHistoryState,
-} from 'shared/lib/hooks/use-history-state';
+import { Slides, TimeState, useHistoryState } from 'shared/lib/hooks/use-history-state';
 import { CreateTextIcon } from './icons/CreateTextIcon';
 import { ToggleFullscreenIcon } from 'pages/patientView/presentation/icons/ToggleFullscreenIcon';
 import { UndoIcon } from 'pages/patientView/presentation/icons/UndoIcon';
@@ -35,6 +31,7 @@ import { TimelineIcon } from './icons/TimelineIcon';
 import { fhirsparkURL } from 'shared/api/FhirsparkAPI';
 import { minioURL } from 'shared/api/MinIOAPI';
 import { UUID } from 'pages/patientView/presentation/model/uuid';
+import Joyride, { CallBackProps, STATUS, Step, StoreHelpers } from 'react-joyride';
 
 export interface PresentationClinicalData {
     name: string;
@@ -96,6 +93,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         const [deletedSlides, setDeletedSlides] = useState<
             Record<UUID, TimeState<NodeTypes[]>>
         >({});
+
+        const [tourRun, setTourRun] = useState<boolean>(shouldShowTour());
+        const tourHelpers = useRef<StoreHelpers>();
+
+        const setTourHelpers = (storeHelpers: StoreHelpers) => {
+            tourHelpers.current = storeHelpers;
+        };
 
         const {
             state,
@@ -179,7 +183,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             deckRef.current.initialize({ plugins: [Overview] }).then(reveal => {
                 deckRef.current?.on('slidechanged', (e: any) =>
-                    setCurrentSlideId(Number(e.currentSlide.id))
+                    setCurrentSlideId(Number(e.currentSlide.id)),
                 );
             });
 
@@ -223,11 +227,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 (
                     event: Event & {
                         slideId: number;
-                    }
+                    },
                 ) => moveSlideUp(event.slideId),
                 {
                     signal: controller.signal,
-                }
+                },
             );
 
             deckRef.current?.on(
@@ -236,7 +240,20 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                     moveSlideDown(event.slideId),
                 {
                     signal: controller.signal,
-                }
+                },
+            );
+
+            deckRef.current?.on(
+                'overview:menu:open',
+                () => {
+                    const stepIndex = tourHelpers.current?.info().index;
+                    if (stepIndex === 4 || stepIndex === 7) {
+                        tourHelpers.current?.next();
+                    }
+                },
+                {
+                    signal: controller.signal,
+                },
             );
 
             deckRef.current?.on(
@@ -245,11 +262,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                     event: Event & {
                         slideId: number;
                         uuid: UUID;
-                    }
+                    },
                 ) => removeSlide(event.slideId, event.uuid),
                 {
                     signal: controller.signal,
-                }
+                },
             );
 
             deckRef.current?.on(
@@ -257,16 +274,30 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 (
                     event: Event & {
                         uuid: UUID;
-                    }
+                    },
                 ) => restoreSlide(event.uuid),
                 {
                     signal: controller.signal,
-                }
+                },
+            );
+
+            deckRef.current?.on(
+                'overview:deleted-slides:open',
+                (
+                    event: Event,
+                ) => tourHelpers.current?.next(),
+                {
+                    signal: controller.signal,
+                },
             );
             return () => {
                 controller.abort();
             };
         }, [state, deletedSlides]);
+
+        function shouldShowTour() {
+            return !localStorage.getItem('mtb-presentation-tour-complete') || localStorage.getItem('mtb-presentation-tour-complete') === 'false';
+        }
 
         function updateOverviewAfterTimeout(timeout = 2000) {
             const updateEvent = {
@@ -279,7 +310,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             // it would be better to have some kind of loaded event form these components.
             setTimeout(
                 () => deckRef.current?.dispatchEvent(updateEvent),
-                timeout
+                timeout,
             );
         }
 
@@ -287,7 +318,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             const patientId = patientViewPageStore.getSafePatientId();
 
             const response = await fetch(
-                `${fhirsparkURL()}/presentation/${patientId}`
+                `${fhirsparkURL()}/presentation/${patientId}`,
             );
             if (response.status === 200) {
                 const presentation = await response.json();
@@ -303,7 +334,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 for (const clipboardItem of clipboardItems) {
                     for (const type of clipboardItem.types) {
                         const asImage = clipboardItem.types.find(type =>
-                            type.startsWith('image/')
+                            type.startsWith('image/'),
                         );
                         if (asImage) {
                             const blob = await clipboardItem.getType(asImage);
@@ -312,7 +343,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         }
 
                         const asHTML = clipboardItem.types.find(
-                            type => type === 'text/html'
+                            type => type === 'text/html',
                         );
                         if (asHTML) {
                             const blob = await clipboardItem.getType(asHTML);
@@ -321,7 +352,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         }
 
                         const asText = clipboardItem.types.find(
-                            type => type === 'text/plain'
+                            type => type === 'text/plain',
                         );
                         if (asText) {
                             const blob = await clipboardItem.getType(asText);
@@ -351,7 +382,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         contentType: blob.type,
                         data,
                     }),
-                }
+                },
             );
 
             const responseData = await response.json();
@@ -366,7 +397,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 reader.onloadend = () => {
                     if (reader.result && typeof reader.result === 'string') {
                         resolve(
-                            reader.result.replace(/oata:.+\/.+base64,/, '')
+                            reader.result.replace(/oata:.+\/.+base64,/, ''),
                         );
                     } else {
                         reject();
@@ -390,7 +421,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             const selectedNode = selectedNodes[0];
             const present = state.get(selectedNode.slideId)?.present;
             const presentOfSelectedNode = present?.find(
-                node => node.id === selectedNode.nodeId
+                node => node.id === selectedNode.nodeId,
             );
 
             if (presentOfSelectedNode) {
@@ -425,7 +456,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             try {
                 const blob = await fetch(value).then(response =>
-                    response.blob()
+                    response.blob(),
                 );
                 const clipboardItem = new ClipboardItem({ 'image/png': blob });
                 await navigator.clipboard.write([clipboardItem]);
@@ -454,13 +485,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             const present = state.get(selectedNode.slideId)?.present;
             if (present) {
                 const presentWithoutSelected = present.filter(
-                    node => node.id !== selectedNode.nodeId
+                    node => node.id !== selectedNode.nodeId,
                 );
                 set(selectedNode.slideId, presentWithoutSelected);
                 onSelectedChanged(
                     selectedNode.slideId,
                     selectedNode.nodeId,
-                    false
+                    false,
                 );
             }
         }
@@ -468,7 +499,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
                 const fullscreenElement = document.querySelector(
-                    '.presentation'
+                    '.presentation',
                 );
 
                 fullscreenElement!.requestFullscreen();
@@ -478,10 +509,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         function findClinicalAttributeOrEmptyString(
-            attributeId: string
+            attributeId: string,
         ): string {
             const attribute = clinicalData.find(
-                cd => cd.clinicalAttributeId === attributeId
+                cd => cd.clinicalAttributeId === attributeId,
             );
             return attribute ? attribute.value : '';
         }
@@ -512,6 +543,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             insert(slideId, []);
             setActiveSlide(slideId - 1);
+
+            if (tourRun) {
+                tourHelpers.current?.next();
+            }
         }
 
         function removeSlide(slideId: number, uuid: UUID) {
@@ -525,6 +560,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             });
             remove(slideId);
             deckRef.current?.prev();
+            if (tourRun) {
+                tourHelpers.current?.next();
+            }
         }
 
         function restoreSlide(uuid: UUID) {
@@ -538,10 +576,14 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             setDeletedSlides(
                 Object.fromEntries(
                     Object.entries(deletedSlides).filter(
-                        ([oUUID, _]) => oUUID !== uuid
-                    )
-                )
+                        ([oUUID, _]) => oUUID !== uuid,
+                    ),
+                ),
             );
+
+            if (tourRun) {
+                tourHelpers.current?.next();
+            }
         }
 
         function moveSlideUp(slideId: number) {
@@ -566,6 +608,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             setHistory(slideId, nextSlide);
             setActiveSlide(slideId);
             updateOverviewAfterTimeout(0);
+            if (tourRun) {
+                tourHelpers.current?.next();
+            }
         }
 
         function setActiveSlide(slideNumber: number) {
@@ -577,16 +622,19 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         function createTitle() {
             const id = crypto.randomUUID();
             const value = `<p style="text-align: center;"><span style="font-size: 42px; font-weight: bold;">${findClinicalAttributeOrEmptyString(
-                'PATIENT_DISPLAY_NAME'
+                'PATIENT_DISPLAY_NAME',
             )}</span></p><p style="text-align: center;"><span style="font-size: 42px">${findClinicalAttributeOrEmptyString(
-                'AGE'
+                'AGE',
             )} years old</span></p>`;
 
             const component = Dynamic('text', {
-                selectedChanged: () => {},
-                stateChanged: value => {},
+                selectedChanged: () => {
+                },
+                stateChanged: value => {
+                },
                 initialValue: value,
-                draggableChanged: draggable => {},
+                draggableChanged: draggable => {
+                },
             });
             const container = document.createElement('div');
             container.classList.add('reveal', 'temp');
@@ -597,7 +645,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             setTimeout(() => {
                 const rendered = document.querySelector(
-                    '.temp.reveal .presentation__node--text'
+                    '.temp.reveal .presentation__node--text',
                 );
                 const { width, height } = rendered?.getBoundingClientRect() ?? {
                     width: 0,
@@ -633,6 +681,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const present = state.get(getCurrentSlideId())?.present ?? [];
             set(getCurrentSlideId(), [...present, node]);
+            if (tourRun) {
+                tourHelpers.current?.next();
+            }
         }
 
         function createImage(location: string) {
@@ -693,22 +744,22 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         function mapClinicalData(): PresentationClinicalData {
             const name = findClinicalAttributeOrEmptyString(
-                'PATIENT_DISPLAY_NAME'
+                'PATIENT_DISPLAY_NAME',
             );
             const age = findClinicalAttributeOrEmptyString('AGE');
             const dfsStatus = findClinicalAttributeOrEmptyString('DFS_STATUS');
             const ecogStatus = findClinicalAttributeOrEmptyString(
-                'ECOG _STATUS'
+                'ECOG _STATUS',
             );
             const gender = findClinicalAttributeOrEmptyString('GENDER');
             const karnofskyPerformanceScore = findClinicalAttributeOrEmptyString(
-                'KARNOFSKY_PERFORMANCE_SCORE'
+                'KARNOFSKY_PERFORMANCE_SCORE',
             );
             const kasId = findClinicalAttributeOrEmptyString('KAS_ID');
             const osMonths = findClinicalAttributeOrEmptyString('OS_MONTHS');
             const osStatus = findClinicalAttributeOrEmptyString('OS_STATUS');
             const sampleCount = findClinicalAttributeOrEmptyString(
-                'SAMPLE_COUNT'
+                'SAMPLE_COUNT',
             );
             const cancerType = findClinicalAttributeOrEmptyString('TEST');
 
@@ -781,7 +832,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         function onSelectedChanged(
             slideId: number,
             id: string,
-            selected: boolean
+            selected: boolean,
         ) {
             if (selected) {
                 setSelectedNodes(current => [
@@ -792,7 +843,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 setSelectedNodes(current => {
                     return current.filter(
                         ({ slideId: currentSlideId, nodeId: currentNodeId }) =>
-                            currentNodeId !== id
+                            currentNodeId !== id,
                     );
                 });
             }
@@ -850,7 +901,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             slideId: number,
             id: string,
             left?: number,
-            top?: number
+            top?: number,
         ) {
             const present = state.get(slideId)?.present;
 
@@ -908,7 +959,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                     body: JSON.stringify({
                         slides: presentation,
                     }),
-                }
+                },
             );
 
             if (response.status === 200) {
@@ -933,7 +984,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 `${fhirsparkURL()}/presentation/${patientId}`,
                 {
                     method: 'DELETE',
-                }
+                },
             );
 
             if (response.status === 204) {
@@ -941,292 +992,426 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             }
         }
 
+        const steps = [
+            {
+                target: '.toolbar',
+                content: 'This is the toolbar. From here you can add slides and components to the presentation, and undo/redo your changes.',
+                disableBeacon: true,
+            },
+            {
+                target: '.overview-deleted-container',
+                content: 'This is the overview. Here you can find all slides in the presentation, and delete or rearrange them.',
+                placement: 'right',
+                disableBeacon: true,
+            },
+            {
+                target: '[data-tour="add-slide"]',
+                content: 'Let\'s get started by adding a new slide.',
+                spotlightClicks: true,
+                hideFooter: true,
+            },
+            {
+                target: '.overview-deleted-container',
+                content: 'Great! The new slide is now visible in the overview. Next, let\'s try rearranging our slides.',
+                placement: 'right',
+                disableBeacon: true,
+            },
+            {
+                target: '#overview-1',
+                content: 'Right click a slide to open the action menu.',
+                spotlightClicks: true,
+                hideFooter: true,
+            },
+            {
+                target: '.overview-contextmenu__move-down',
+                content: 'Now click Move down.',
+                spotlightClicks: true,
+                hideFooter: true,
+            },
+            {
+                target: '.overview-deleted-container',
+                content: 'Great! Let\'s try and delete a slide.',
+                placement: 'right',
+            },
+            {
+                target: '#overview-2',
+                content: 'To delete a slide, open the action menu and press delete.',
+                spotlightClicks: true,
+                hideFooter: true,
+            },
+            {
+                target: '.overview-contextmenu__delete',
+                content: 'Now, click on delete.',
+                spotlightClicks: true,
+                hideFooter: true,
+            },
+            {
+                target: '.overview-deleted-container',
+                content: 'Good job! Let\'s restore our title slide again.',
+                placement: 'right',
+            },
+            {
+                target: '.deleted-items__button',
+                content: 'Click on Deleted Items, to view all deleted slides',
+                spotlightClicks: true,
+                hideFooter: true,
+            },
+            {
+                target: '.deleted-items__item',
+                content: 'Now, click on the slide to restore it.',
+                spotlightClicks: true,
+                hideFooter: true,
+            },
+            {
+                target: '.presentation',
+                content: 'Very good! Now let\'s fill our slide with some content.',
+            },
+            {
+                target: '[data-tour="add-text"]',
+                content: 'Press this button to add a text field.',
+                spotlightClicks: true,
+                hideFooter: true,
+            },
+            {
+                target: '.presentation > .presentation__node--text',
+                content: 'You can double-click the text field to edit it.',
+            },
+            {
+                target: '[data-tour="add-mutation-table"]',
+                content: 'You can also add a table with mutation data …',
+            },
+            {
+                target: '[data-tour="add-timeline"]',
+                content: '… and the timeline of the patient\'s history.',
+            },
+            {
+                target: '.presentation',
+                content: 'To insert images copy & paste them via keyboard shortcuts or right click on the slide and select paste.',
+            },
+            {
+                target: '[data-tour="help"]',
+                content: 'For more information move your mouse over the question mark.',
+                spotlightClicks: true,
+            },
+        ] satisfies Array<Step>;
+
+        function handleJoyrideCallback(callback: CallBackProps) {
+            const { type, status, action, step } = callback;
+            // @ts-ignore
+            if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+                setTourRun(false);
+                localStorage.setItem('mtb-presentation-tour-complete', 'true');
+            }
+        }
+
         return (
-            <div className="overview-presentation-container">
-                <div className="overview-deleted-container">
-                    <div className="reveal-overview"></div>
-                    <div className="overview-deleted-items">
-                        <div
-                            className="deleted-items__button"
-                            hidden={Object.keys(deletedSlides).length < 1}
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
+            <>
+                <Joyride
+                    steps={steps}
+                    continuous
+                    run={tourRun}
+                    disableOverlayClose={true}
+                    callback={handleJoyrideCallback}
+                    getHelpers={setTourHelpers}
+                    showSkipButton={true}
+                    styles={{
+                        options: {
+                            primaryColor: '#3786c2',
+                            zIndex: 300,
+                        },
+                    }}
+                    locale={{
+                        last: 'Finish tour',
+                        skip: 'Skip tour'
+                    }}
+                />
+                <div className="overview-presentation-container">
+                    <div className="overview-deleted-container">
+                        <div className="reveal-overview"></div>
+                        <div className="overview-deleted-items">
+                            <div
+                                className="deleted-items__button"
+                                hidden={Object.keys(deletedSlides).length < 1}
                             >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                                />
-                            </svg>
-                            Deleted Slides ({Object.keys(deletedSlides).length})
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                                    />
+                                </svg>
+                                Deleted Slides ({Object.keys(deletedSlides).length})
+                            </div>
+                            <div
+                                className="deleted-items__item-container"
+                                hidden
+                            ></div>
                         </div>
-                        <div
-                            className="deleted-items__item-container"
-                            hidden
-                        ></div>
                     </div>
-                </div>
-                <div className="presentation-container">
-                    <div className="toolbar">
-                        <div className="toolbar__row-container">
-                            <Item onClick={onAddSlideClick}>Add Slide</Item>
-                            <Item onClick={savePresentation}>
-                                Save Presentation
-                            </Item>
-                            <Item onClick={deletePresentation}>
-                                Delete Presentation
-                            </Item>
-                            <Tooltip>
-                                <TooltipTrigger className="toolbar__menu-item--hug-right">
-                                    <Item
-                                        className="toolbar__menu-item--hug-right"
-                                        onClick={onUndoClick}
-                                        disabled={!canUndo(getCurrentSlideId())}
-                                    >
-                                        <UndoIcon></UndoIcon>
-                                    </Item>
-                                </TooltipTrigger>
-                                <TooltipContent className="Tooltip">
-                                    Undo
-                                </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <Item
-                                        onClick={onRedoClick}
-                                        disabled={!canRedo(getCurrentSlideId())}
-                                    >
-                                        <RedoIcon></RedoIcon>
-                                    </Item>
-                                </TooltipTrigger>
-                                <TooltipContent className="Tooltip">
-                                    Redo
-                                </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <Item onClick={toggleFullscreen}>
-                                        <ToggleFullscreenIcon></ToggleFullscreenIcon>
-                                    </Item>
-                                </TooltipTrigger>
-                                <TooltipContent className="Tooltip">
-                                    Enable fullscreen
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
-                        <div className="toolbar__row-container">
-                            <div className="toolbar__editor-menu">
+                    <div className="presentation-container">
+                        <div className="toolbar">
+                            <div className="toolbar__row-container">
+                                <Item onClick={onAddSlideClick} tourClass="add-slide">Add Slide</Item>
+                                <Item onClick={savePresentation}>
+                                    Save Presentation
+                                </Item>
+                                <Item onClick={deletePresentation}>
+                                    Delete Presentation
+                                </Item>
                                 <Tooltip>
-                                    <TooltipTrigger>
-                                        <Item onClick={() => createText()}>
-                                            <CreateTextIcon></CreateTextIcon>
+                                    <TooltipTrigger className="toolbar__menu-item--hug-right">
+                                        <Item
+                                            className="toolbar__menu-item--hug-right"
+                                            onClick={onUndoClick}
+                                            disabled={!canUndo(getCurrentSlideId())}
+                                        >
+                                            <UndoIcon></UndoIcon>
                                         </Item>
                                     </TooltipTrigger>
                                     <TooltipContent className="Tooltip">
-                                        Add text
+                                        Undo
                                     </TooltipContent>
                                 </Tooltip>
                                 <Tooltip>
                                     <TooltipTrigger>
                                         <Item
-                                            onClick={() => addMutationTable()}
+                                            onClick={onRedoClick}
+                                            disabled={!canRedo(getCurrentSlideId())}
                                         >
-                                            <AddMutationTableIcon></AddMutationTableIcon>
+                                            <RedoIcon></RedoIcon>
                                         </Item>
                                     </TooltipTrigger>
                                     <TooltipContent className="Tooltip">
-                                        Add mutation table
+                                        Redo
                                     </TooltipContent>
                                 </Tooltip>
                                 <Tooltip>
                                     <TooltipTrigger>
-                                        <Item onClick={() => addTimeline()}>
-                                            <TimelineIcon></TimelineIcon>
+                                        <Item onClick={toggleFullscreen}>
+                                            <ToggleFullscreenIcon></ToggleFullscreenIcon>
                                         </Item>
                                     </TooltipTrigger>
                                     <TooltipContent className="Tooltip">
-                                        Add timeline
+                                        Enable fullscreen
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-                            <div className="toolbar__alignment toolbar__menu-item--space"></div>
-                            <Tooltip>
-                                <TooltipTrigger className="toolbar__menu-item--hug-right">
-                                    <Item className="toolbar__menu-item--hug-right">
-                                        ?
-                                    </Item>
-                                    <TooltipContent className="Tooltip">
-                                        Adding images is currently available via
-                                        copy (<kbd>Ctrl</kbd>+<kbd>c</kbd>) and
-                                        paste (<kbd>Ctrl</kbd>+<kbd>v</kbd>).
-                                        <br />
-                                        To limit the direction to one axis when
-                                        moving an element, hold <kbd>Shift</kbd>
-                                        .
-                                    </TooltipContent>
-                                </TooltipTrigger>
-                            </Tooltip>
-                        </div>
-                    </div>
-                    <div className="presentation">
-                        <Menu ref={deckDivRef}>
-                            <MenuItem label="Paste" onClick={handlePaste} />
-                        </Menu>
-                        <div className="reveal" ref={deckDivRef}>
-                            <div className="slides">
-                                {Array.from(state.entries()).map(
-                                    ([slideId, timeState]) => (
-                                        <section
-                                            id={`${slideId}`}
-                                            key={slideId}
-                                        >
-                                            <DndContext
-                                                sensors={sensors}
-                                                modifiers={[
-                                                    restrictToAxis(shiftDown),
-                                                ]}
-                                                onDragEnd={onDragEnd}
+                            <div className="toolbar__row-container">
+                                <div className="toolbar__editor-menu">
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Item tourClass="add-text" onClick={() => createText()}>
+                                                <CreateTextIcon></CreateTextIcon>
+                                            </Item>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="Tooltip">
+                                            Add text
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Item
+                                                tourClass="add-mutation-table"
+                                                onClick={() => addMutationTable()}
                                             >
-                                                {timeState.present &&
-                                                    timeState.present.map(
-                                                        node =>
-                                                            React.createElement(
-                                                                Draggable,
-                                                                {
-                                                                    slideId,
-                                                                    id: node.id,
-                                                                    top:
+                                                <AddMutationTableIcon></AddMutationTableIcon>
+                                            </Item>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="Tooltip">
+                                            Add mutation table
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Item tourClass="add-timeline" onClick={() => addTimeline()}>
+                                                <TimelineIcon></TimelineIcon>
+                                            </Item>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="Tooltip">
+                                            Add timeline
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <div className="toolbar__alignment toolbar__menu-item--space"></div>
+                                <Tooltip>
+                                    <TooltipTrigger className="toolbar__menu-item--hug-right">
+                                        <Item tourClass="help" className="toolbar__menu-item--hug-right">
+                                            ?
+                                        </Item>
+                                        <TooltipContent className="Tooltip">
+                                            Adding images is currently available via
+                                            copy (<kbd>Ctrl</kbd>+<kbd>c</kbd>) and
+                                            paste (<kbd>Ctrl</kbd>+<kbd>v</kbd>).
+                                            <br />
+                                            To limit the direction to one axis when
+                                            moving an element, hold <kbd>Shift</kbd>
+                                            .
+                                        </TooltipContent>
+                                    </TooltipTrigger>
+                                </Tooltip>
+                            </div>
+                        </div>
+                        <div className="presentation">
+                            <Menu ref={deckDivRef}>
+                                <MenuItem label="Paste" onClick={handlePaste} />
+                            </Menu>
+                            <div className="reveal" ref={deckDivRef}>
+                                <div className="slides">
+                                    {Array.from(state.entries()).map(
+                                        ([slideId, timeState]) => (
+                                            <section
+                                                id={`${slideId}`}
+                                                key={slideId}
+                                            >
+                                                <DndContext
+                                                    sensors={sensors}
+                                                    modifiers={[
+                                                        restrictToAxis(shiftDown),
+                                                    ]}
+                                                    onDragEnd={onDragEnd}
+                                                >
+                                                    {timeState.present &&
+                                                        timeState.present.map(
+                                                            node =>
+                                                                React.createElement(
+                                                                    Draggable,
+                                                                    {
+                                                                        slideId,
+                                                                        id: node.id,
+                                                                        top:
                                                                         node
                                                                             .position
                                                                             .top,
-                                                                    left:
+                                                                        left:
                                                                         node
                                                                             .position
                                                                             .left,
-                                                                    width:
-                                                                        node.type ===
-                                                                        'image'
-                                                                            ? node
-                                                                                  .position
-                                                                                  .width ||
-                                                                              200
-                                                                            : null,
-                                                                    scale: [
-                                                                        'mutationTable',
-                                                                        'timeline',
-                                                                    ].includes(
-                                                                        node.type
-                                                                    )
-                                                                        ? node
-                                                                              .position
-                                                                              .scale ||
-                                                                          1
-                                                                        : null,
-                                                                    resizable:
-                                                                        node.type ===
-                                                                        'image',
-                                                                    key:
-                                                                        node.id,
-                                                                    selectedChanged: (
-                                                                        selected: boolean
-                                                                    ) =>
-                                                                        onSelectedChanged(
-                                                                            slideId,
-                                                                            node.id,
-                                                                            selected
-                                                                        ),
-                                                                    widthChanged: (
-                                                                        width: number
-                                                                    ) =>
-                                                                        onWidthChanged(
-                                                                            slideId,
-                                                                            node.id,
-                                                                            width
-                                                                        ),
-                                                                    scaleChanged: (
-                                                                        scale: number
-                                                                    ) =>
-                                                                        onScaleChanged(
-                                                                            slideId,
-                                                                            node.id,
-                                                                            scale
-                                                                        ),
-                                                                    positionChanged: (
-                                                                        left?: number,
-                                                                        top?: number
-                                                                    ) =>
-                                                                        onPositionChanged(
-                                                                            slideId,
-                                                                            node.id,
-                                                                            left,
-                                                                            top
-                                                                        ),
-                                                                    component: {
-                                                                        type:
+                                                                        width:
+                                                                            node.type ===
+                                                                            'image'
+                                                                                ? node
+                                                                                    .position
+                                                                                    .width ||
+                                                                                200
+                                                                                : null,
+                                                                        scale: [
+                                                                            'mutationTable',
+                                                                            'timeline',
+                                                                        ].includes(
                                                                             node.type,
-                                                                        props: {
-                                                                            ...(node.type ===
-                                                                                'mutationTable' && {
-                                                                                patientViewPageStore,
-                                                                                dataStore,
-                                                                                sampleManager,
-                                                                                ...mutationTableProps,
-                                                                                columnVisibility: {
-                                                                                    Exon: true,
-                                                                                    'Allele Freq': true,
-                                                                                    HGVSc: true,
-                                                                                    HGVSg: true,
-                                                                                    ClinVar: false,
-                                                                                    MS: false,
-                                                                                    COSMIC: false,
-                                                                                    gnomAD: false,
-                                                                                    dbSNP: false,
-                                                                                },
-                                                                            }),
-                                                                            ...(node.type ===
-                                                                                'timeline' && {
-                                                                                patientViewPageStore,
-                                                                                dataStore,
+                                                                        )
+                                                                            ? node
+                                                                                .position
+                                                                                .scale ||
+                                                                            1
+                                                                            : null,
+                                                                        resizable:
+                                                                            node.type ===
+                                                                            'image',
+                                                                        key:
+                                                                        node.id,
+                                                                        selectedChanged: (
+                                                                            selected: boolean,
+                                                                        ) =>
+                                                                            onSelectedChanged(
+                                                                                slideId,
+                                                                                node.id,
+                                                                                selected,
+                                                                            ),
+                                                                        widthChanged: (
+                                                                            width: number,
+                                                                        ) =>
+                                                                            onWidthChanged(
+                                                                                slideId,
+                                                                                node.id,
                                                                                 width,
-                                                                                sampleManager,
-                                                                            }),
-                                                                            initialValue:
+                                                                            ),
+                                                                        scaleChanged: (
+                                                                            scale: number,
+                                                                        ) =>
+                                                                            onScaleChanged(
+                                                                                slideId,
+                                                                                node.id,
+                                                                                scale,
+                                                                            ),
+                                                                        positionChanged: (
+                                                                            left?: number,
+                                                                            top?: number,
+                                                                        ) =>
+                                                                            onPositionChanged(
+                                                                                slideId,
+                                                                                node.id,
+                                                                                left,
+                                                                                top,
+                                                                            ),
+                                                                        component: {
+                                                                            type:
+                                                                            node.type,
+                                                                            props: {
+                                                                                ...(node.type ===
+                                                                                    'mutationTable' && {
+                                                                                        patientViewPageStore,
+                                                                                        dataStore,
+                                                                                        sampleManager,
+                                                                                        ...mutationTableProps,
+                                                                                        columnVisibility: {
+                                                                                            Exon: true,
+                                                                                            'Allele Freq': true,
+                                                                                            HGVSc: true,
+                                                                                            HGVSg: true,
+                                                                                            ClinVar: false,
+                                                                                            MS: false,
+                                                                                            COSMIC: false,
+                                                                                            gnomAD: false,
+                                                                                            dbSNP: false,
+                                                                                        },
+                                                                                    }),
+                                                                                ...(node.type ===
+                                                                                    'timeline' && {
+                                                                                        patientViewPageStore,
+                                                                                        dataStore,
+                                                                                        width,
+                                                                                        sampleManager,
+                                                                                    }),
+                                                                                initialValue:
                                                                                 node.value,
-                                                                            selectedChanged: (
-                                                                                selected: boolean
-                                                                            ) =>
-                                                                                onSelectedChanged(
-                                                                                    slideId,
-                                                                                    node.id,
-                                                                                    selected
-                                                                                ),
-                                                                            stateChanged: (
-                                                                                value: any
-                                                                            ) =>
-                                                                                onStateChanged(
-                                                                                    slideId,
-                                                                                    node.id,
-                                                                                    value
-                                                                                ),
+                                                                                selectedChanged: (
+                                                                                    selected: boolean,
+                                                                                ) =>
+                                                                                    onSelectedChanged(
+                                                                                        slideId,
+                                                                                        node.id,
+                                                                                        selected,
+                                                                                    ),
+                                                                                stateChanged: (
+                                                                                    value: any,
+                                                                                ) =>
+                                                                                    onStateChanged(
+                                                                                        slideId,
+                                                                                        node.id,
+                                                                                        value,
+                                                                                    ),
+                                                                            },
                                                                         },
                                                                     },
-                                                                }
-                                                            )
-                                                    )}
-                                            </DndContext>
-                                        </section>
-                                    )
-                                )}
+                                                                ),
+                                                        )}
+                                                </DndContext>
+                                            </section>
+                                        ),
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </>
         );
-    }
+    },
 );

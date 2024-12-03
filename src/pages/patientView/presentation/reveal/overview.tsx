@@ -8,7 +8,7 @@ export default () => ({
     init: (reveal: Api) => {
         document
             .querySelector('.deleted-items__button')
-            ?.addEventListener('click', () => toggleDeletedSlides());
+            ?.addEventListener('click', () => toggleDeletedSlides(reveal));
         reveal.on('overview:update', () => updateOverview(reveal));
         reveal.on('slidechanged', () => updateSelectedSlide(reveal));
     },
@@ -102,6 +102,14 @@ const openContextMenu = (reveal: Api, event: PointerEvent, slideId: number) => {
             signal: controller.signal,
         }
     );
+    reveal.dispatchEvent({
+        type: 'overview:menu:open',
+        bubbles: false,
+        data: {
+            slideId,
+        },
+        target: undefined,
+    });
 };
 
 const closeContextMenu = () => {
@@ -123,17 +131,29 @@ const bodyClicked = (event: PointerEvent) => {
     }
 };
 
-const toggleDeletedSlides = () => {
+const toggleDeletedSlides = (reveal: Api) => {
     if (deletedSlidesVisible) {
         deletedSlidesVisible = false;
         document
             .querySelector('.deleted-items__item-container')
             ?.setAttribute('hidden', '');
+        reveal.dispatchEvent({
+            type: 'overview:deleted-slides:close',
+            data: undefined,
+            bubbles: false,
+            target: undefined,
+        });
     } else {
         deletedSlidesVisible = true;
         document
             .querySelector('.deleted-items__item-container')
             ?.removeAttribute('hidden');
+        reveal.dispatchEvent({
+            type: 'overview:deleted-slides:open',
+            data: undefined,
+            bubbles: false,
+            target: undefined,
+        });
     }
 };
 
@@ -143,7 +163,6 @@ const deleteClicked = (reveal: Api, slideId: number) => {
     const uuid = crypto.randomUUID();
 
     addSlideToTrash(reveal, uuid);
-    console.log('delete event:', slideId, uuid);
     reveal.dispatchEvent({
         type: 'overview:action:delete',
         bubbles: false,
