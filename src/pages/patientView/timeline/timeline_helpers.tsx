@@ -1,14 +1,15 @@
 import {
     formatDate,
     getAttributeValue,
+    ITimelineConfig,
+    POINT_COLOR,
     renderStack,
     renderSuperscript,
     TIMELINE_TRACK_HEIGHT,
     TimelineEvent,
+    TimelineLegendItem,
     TimelineTrackSpecification,
     TimelineTrackType,
-    ITimelineConfig,
-    POINT_COLOR,
     useDateFormat,
 } from 'cbioportal-clinical-timeline';
 import {
@@ -25,7 +26,6 @@ import { ISampleMetaDeta } from 'pages/patientView/timeline/TimelineWrapper';
 import { ClinicalEvent } from 'cbioportal-ts-api-client';
 import { getColor } from 'cbioportal-frontend-commons';
 import ReactMarkdown from 'react-markdown';
-import { TimelineLegendItem } from 'cbioportal-clinical-timeline';
 
 const OTHER = 'Other';
 
@@ -110,6 +110,31 @@ export function configureTimelineToxicityColors(baseConfig: ITimelineConfig) {
         'SUBTYPE',
         'TOX_OTHER_SPECIFY',
     ]);
+
+    baseConfig.trackStructures!.push(['MEASUREMENTS', 'TEST']);
+
+    baseConfig.trackEventRenderers?.push({
+        trackTypeMatch: /BMI/i,
+        configureTrack: (cat: TimelineTrackSpecification) => {
+            //     psaTrack.trackType = TimelineTrackType.LINE_CHART;
+            //     psaTrack.getLineChartValue = (e: TimelineEvent) => {}
+            cat.trackType = TimelineTrackType.LINE_CHART;
+            cat.getLineChartValue = (e: TimelineEvent) => {
+                try {
+                    const val = e?.event?.attributes?.find(
+                        e => e.key === 'RESULT'
+                    )?.value;
+                    if (val !== undefined) {
+                        return parseFloat(val);
+                    } else {
+                        return null;
+                    }
+                } catch (ex) {
+                    return null;
+                }
+            };
+        },
+    });
 
     baseConfig.eventColorGetter = function(e: TimelineEvent) {
         const grade = e.event.attributes.find(
