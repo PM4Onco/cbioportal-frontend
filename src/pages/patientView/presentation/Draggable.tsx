@@ -8,8 +8,6 @@ import {
     SelectedChangedFn,
 } from 'pages/patientView/presentation/model/dynamic-component';
 import { Resizable } from 'pages/patientView/presentation/Resizable';
-import ReactDOM from 'react-dom';
-import { AlignmentMenu } from 'pages/patientView/presentation/toolbar/AlignmentMenu';
 import { ResizableScale } from 'pages/patientView/presentation/ResizableScale';
 import { Scale, Width } from 'pages/patientView/presentation/model/node';
 
@@ -28,12 +26,10 @@ interface Props {
     selectedChanged: SelectedChangedFn;
     widthChanged: WidthChangedFn;
     scaleChanged: ScaleChangedFn;
-    positionChanged: PositionChangedFn;
 }
 
 type WidthChangedFn = (width: number) => void;
 type ScaleChangedFn = (scale: number) => void;
-export type PositionChangedFn = (left?: number, top?: number) => void;
 
 interface State {
     selected: boolean;
@@ -52,7 +48,6 @@ export const Draggable = observer(
         selectedChanged,
         widthChanged,
         scaleChanged,
-        positionChanged,
         width,
         scale,
     }: Props) => {
@@ -173,23 +168,11 @@ export const Draggable = observer(
             setState(current => ({ ...current, left }));
         };
 
-        const onPositionChanged = (left?: number, top?: number) => {
-            positionChanged(left, top);
-        };
-
         return (
             <>
-                {state.selected &&
-                    toolbarAlignmentMenu &&
-                    ReactDOM.createPortal(
-                        <AlignmentMenu
-                            positionChanged={onPositionChanged}
-                            selected={containerRef}
-                        ></AlignmentMenu>,
-                        toolbarAlignmentMenu
-                    )}
                 {width !== null ? (
                     <Resizable
+                        id={id}
                         width={
                             typeof state.width === 'number' ? state.width : 200
                         }
@@ -216,6 +199,7 @@ export const Draggable = observer(
                 ) : component.type === 'mutationTable' ||
                   component.type === 'timeline' ? (
                     <ResizableScale
+                        id={id}
                         scale={
                             typeof state.scale === 'number' ? state.scale : 1
                         }
@@ -245,6 +229,7 @@ export const Draggable = observer(
                         style={style}
                         {...listeners}
                         {...attributes}
+                        id={id}
                         className={
                             state.selected && component.type !== 'text'
                                 ? 'presentation__node--selected presentation__node'

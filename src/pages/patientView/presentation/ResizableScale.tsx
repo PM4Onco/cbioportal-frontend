@@ -5,6 +5,7 @@ import { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { DraggableAttributes } from '@dnd-kit/core';
 
 interface Props {
+    id: string;
     scale: number;
     left: number;
     children: any;
@@ -31,6 +32,7 @@ interface State {
 }
 
 export const ResizableScale = ({
+    id,
     scale,
     draggableChanged,
     children,
@@ -126,6 +128,7 @@ export const ResizableScale = ({
         <div
             {...listeners}
             {...attributes}
+            id={id}
             className={className}
             onPointerDown={onPointerDown}
             style={style}
