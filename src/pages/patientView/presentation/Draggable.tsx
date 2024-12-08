@@ -68,9 +68,6 @@ export const Draggable = observer(
             },
         });
         const toolbar = document.querySelector('.toolbar');
-        const toolbarAlignmentMenu = document.querySelector(
-            '.toolbar__alignment'
-        );
 
         useEffect(() => {
             setState(current => ({ ...current, width }));

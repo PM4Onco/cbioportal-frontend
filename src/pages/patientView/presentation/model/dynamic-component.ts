@@ -4,6 +4,7 @@ import { MutationTable } from 'pages/patientView/presentation/components/Mutatio
 import { ImageNode } from 'pages/patientView/presentation/components/ImageNode';
 import { HTMLNode } from 'pages/patientView/presentation/components/HTMLNode';
 import { Timeline } from 'pages/patientView/presentation/components/Timeline';
+import { TherapyRecommendations } from 'pages/patientView/presentation/components/TherapyRecommendations';
 
 export interface DynamicComponentProps<T> {
     initialValue: T;
@@ -22,6 +23,7 @@ export const Components = {
     image: ImageNode,
     html: HTMLNode,
     timeline: Timeline,
+    therapyRecommendations: TherapyRecommendations,
 } as const;
 
 export type ComponentKeys = keyof typeof Components;

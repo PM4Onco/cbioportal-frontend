@@ -50,4 +50,57 @@
         display: flex;
         column-gap: 8px;
     }
+
+    .toolbar__mtb-selector {
+        background: white;
+        z-index: 200;
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+            0 8px 10px -6px rgb(0 0 0 / 0.1);
+        border-radius: 6px;
+        border: 1px solid #ebebeb33;
+        overflow: hidden;
+
+        h2 {
+            color: #333 !important;
+            font-size: 16px;
+            padding: 16px 16px 0;
+        }
+    }
+}
+
+.mtb-selector__container {
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+    padding: 8px 16px;
+
+    &:not(:last-child) {
+        border-bottom: 1px solid rgba(61, 37, 20, 0.08);
+    }
+
+    &:hover {
+        background-color: rgba(61, 37, 20, 0.06);
+        cursor: pointer;
+    }
+
+    .mtb-selector__info {
+        display: flex;
+        column-gap: 8px;
+        align-items: center;
+    }
+
+    .mtb-selector__date {
+        font-weight: bold;
+    }
+
+    .mtb-selector__status {
+        font-size: 12px;
+        text-transform: capitalize;
+        font-weight: bold;
+        border-radius: 4px;
+        padding: 2px 4px;
+        background: #f0fdf4;
+        color: #008236;
+        border: 1px solid #00a63e33;
+    }
 }

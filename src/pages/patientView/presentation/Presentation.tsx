@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { ClinicalData } from 'cbioportal-ts-api-client';
+import {
+    ClinicalData,
+    DiscreteCopyNumberData,
+    Mutation,
+} from 'cbioportal-ts-api-client';
 import 'react-toastify/dist/ReactToastify.css';
 import './style.scss';
 import Reveal from 'reveal.js';
@@ -35,13 +39,11 @@ import { TimelineIcon } from './icons/TimelineIcon';
 import { fhirsparkURL } from 'shared/api/FhirsparkAPI';
 import { minioURL } from 'shared/api/MinIOAPI';
 import { UUID } from 'pages/patientView/presentation/model/uuid';
-import Joyride, {
-    CallBackProps,
-    STATUS,
-    Step,
-    StoreHelpers,
-} from 'react-joyride';
+import Joyride, { CallBackProps, STATUS, StoreHelpers } from 'react-joyride';
 import { AlignmentMenu } from 'pages/patientView/presentation/toolbar/AlignmentMenu';
+import { IMtb } from 'cbioportal-utils';
+import { steps } from 'pages/patientView/presentation/tour/steps';
+import { MtbSelector } from 'pages/patientView/presentation/toolbar/MtbSelector';
 
 export interface PresentationClinicalData {
     name: string;
@@ -59,6 +61,9 @@ export interface PresentationClinicalData {
 
 interface PresentationProps {
     clinicalData: ClinicalData[];
+    mutations: Mutation[];
+    mtbs: IMtb[];
+    cna: DiscreteCopyNumberData[];
     patientViewPageStore: PatientViewPageStore;
     dataStore: any;
     sampleManager: any;
@@ -86,6 +91,9 @@ export type SelectedNode = { slideId: number; nodeId: string };
 export const Presentation: React.FunctionComponent<PresentationProps> = observer(
     ({
         clinicalData,
+        mutations,
+        mtbs,
+        cna,
         patientViewPageStore,
         width,
         dataStore,
@@ -152,6 +160,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         ]);
 
         useHotkeys('backspace', () => onBackspacePressed(), [selectedNodes]);
+
+        useEffect(() => {
+            console.log(mtbs);
+        }, [mtbs]);
 
         useEffect(() => {
             const controller = new AbortController();
@@ -440,13 +452,15 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
                 switch (type) {
                     case 'text':
-                        await copyAsText(presentOfSelectedNode.value);
+                        await copyAsText(presentOfSelectedNode.value as string);
                         break;
                     case 'image':
-                        await copyAsImage(presentOfSelectedNode.value);
+                        await copyAsImage(
+                            presentOfSelectedNode.value as string
+                        );
                         break;
                     case 'html':
-                        await copyAsHTML(presentOfSelectedNode.value);
+                        await copyAsHTML(presentOfSelectedNode.value as string);
                         break;
                 }
             }
@@ -736,6 +750,20 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(getCurrentSlideId(), [...present, node]);
         }
 
+        function addTherapyRecommendations(mtb: IMtb) {
+            const id = crypto.randomUUID();
+
+            const node: Node<string> = {
+                id,
+                position: { left: 20, top: 20, width: null, scale: 1 },
+                type: 'therapyRecommendations',
+                value: mtb.id,
+            };
+
+            const present = state.get(getCurrentSlideId())?.present ?? [];
+            set(getCurrentSlideId(), [...present, node]);
+        }
+
         function createHTML(html: string) {
             const id = crypto.randomUUID();
 
@@ -1000,116 +1028,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             }
         }
 
-        const steps: Array<Step> = [
-            {
-                target: '.toolbar',
-                content:
-                    'This is the toolbar. From here you can add slides and components to the presentation, and undo/redo your changes.',
-                disableBeacon: true,
-            },
-            {
-                target: '.overview-deleted-container',
-                content:
-                    'This is the overview. Here you can find all slides in the presentation, and delete or rearrange them.',
-                placement: 'right',
-                disableBeacon: true,
-            },
-            {
-                target: '[data-tour="add-slide"]',
-                content: "Let's get started by adding a new slide.",
-                spotlightClicks: true,
-                hideFooter: true,
-            },
-            {
-                target: '.overview-deleted-container',
-                content:
-                    "Great! The new slide is now visible in the overview. Next, let's try rearranging our slides.",
-                placement: 'right',
-                disableBeacon: true,
-            },
-            {
-                target: '#overview-1',
-                content: 'Right click a slide to open the action menu.',
-                spotlightClicks: true,
-                hideFooter: true,
-            },
-            {
-                target: '.overview-contextmenu__move-down',
-                content: 'Now click Move down.',
-                spotlightClicks: true,
-                hideFooter: true,
-            },
-            {
-                target: '.overview-deleted-container',
-                content: "Great! Let's try and delete a slide.",
-                placement: 'right',
-            },
-            {
-                target: '#overview-2',
-                content:
-                    'To delete a slide, open the action menu and press delete.',
-                spotlightClicks: true,
-                hideFooter: true,
-            },
-            {
-                target: '.overview-contextmenu__delete',
-                content: 'Now, click on delete.',
-                spotlightClicks: true,
-                hideFooter: true,
-            },
-            {
-                target: '.overview-deleted-container',
-                content: "Good job! Let's restore our title slide again.",
-                placement: 'right',
-            },
-            {
-                target: '.deleted-items__button',
-                content: 'Click on Deleted Items, to view all deleted slides',
-                spotlightClicks: true,
-                hideFooter: true,
-            },
-            {
-                target: '.deleted-items__item',
-                content: 'Now, click on the slide to restore it.',
-                spotlightClicks: true,
-                hideFooter: true,
-            },
-            {
-                target: '.presentation',
-                content:
-                    "Very good! Now let's fill our slide with some content.",
-            },
-            {
-                target: '[data-tour="add-text"]',
-                content: 'Press this button to add a text field.',
-                spotlightClicks: true,
-                hideFooter: true,
-            },
-            {
-                target: '.presentation > .presentation__node--text',
-                content: 'You can double-click the text field to edit it.',
-            },
-            {
-                target: '[data-tour="add-mutation-table"]',
-                content: 'You can also add a table with mutation data …',
-            },
-            {
-                target: '[data-tour="add-timeline"]',
-                content: "… and the timeline of the patient's history.",
-            },
-            {
-                target: '.presentation',
-                content:
-                    'To insert images copy & paste them via keyboard shortcuts or right click on the slide and select paste.',
-            },
-            {
-                target: '[data-tour="help"]',
-                content:
-                    'For more information move your mouse over the question mark.',
-                spotlightClicks: true,
-            },
-        ];
-
         function handleJoyrideCallback(callback: CallBackProps) {
             const { type, status, action, step } = callback;
             // @ts-ignore
@@ -1270,6 +1188,19 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                             Add timeline
                                         </TooltipContent>
                                     </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <MtbSelector
+                                                mtbs={mtbs}
+                                                mtbSelected={
+                                                    addTherapyRecommendations
+                                                }
+                                            />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="Tooltip">
+                                            Add therapy recommendations
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </div>
                                 <div className="toolbar__alignment toolbar__menu-item--space">
                                     {selectedNodes.length > 0 && (
@@ -1422,6 +1353,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                     dataStore,
                                                                                     width,
                                                                                     sampleManager,
+                                                                                }),
+                                                                                ...(node.type ===
+                                                                                    'therapyRecommendations' && {
+                                                                                    mtbs,
+                                                                                    sampleManager,
+                                                                                    mutations,
+                                                                                    cna,
                                                                                 }),
                                                                                 initialValue:
                                                                                     node.value,

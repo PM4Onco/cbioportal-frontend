@@ -18,9 +18,9 @@ type PositionChangedFn = (left?: number, top?: number) => void;
 export const AlignmentMenu = ({ selectedNode, positionChanged }: Props) => {
     function centerHorizontally() {
         const node = document.querySelector(
-            `#${CSS.escape(selectedNode.slideId.toString())} > #${
+            `#${CSS.escape(selectedNode.slideId.toString())} > #${CSS.escape(
                 selectedNode.nodeId
-            }`
+            )}`
         );
         if (!node) return;
         const presentationWidth = 960;
@@ -34,9 +34,9 @@ export const AlignmentMenu = ({ selectedNode, positionChanged }: Props) => {
 
     function centerVertically() {
         const node = document.querySelector(
-            `#${CSS.escape(selectedNode.slideId.toString())} > #${
+            `#${CSS.escape(selectedNode.slideId.toString())} > #${CSS.escape(
                 selectedNode.nodeId
-            }`
+            )}`
         );
         if (!node) return;
         const presentationHeight = 700;

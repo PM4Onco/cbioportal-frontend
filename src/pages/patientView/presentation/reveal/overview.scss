@@ -24,6 +24,7 @@
             transform-origin: top left;
             cursor: pointer;
             user-select: none;
+            overflow: hidden;
 
             & > * {
                 pointer-events: none;

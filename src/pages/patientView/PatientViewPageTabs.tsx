@@ -739,6 +739,11 @@ export function tabs(
                     pageComponent.patientViewPageStore.clinicalDataPatient
                         .result
                 }
+                mutations={
+                    pageComponent.patientViewPageStore.mutationData.result
+                }
+                cna={pageComponent.patientViewPageStore.discreteCNAData.result}
+                mtbs={pageComponent.patientViewPageStore.mtbs.result}
                 patientViewPageStore={pageComponent.patientViewPageStore}
                 dataStore={pageComponent.patientViewMutationDataStore}
                 sampleManager={sampleManager}

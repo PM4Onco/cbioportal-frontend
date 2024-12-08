@@ -100,7 +100,7 @@ enum ColumnWidth {
     EDIT = 60,
 }
 
-class TherapyRecommendationTableComponent extends LazyMobXTable<
+export class TherapyRecommendationTableComponent extends LazyMobXTable<
     ITherapyRecommendation
 > {}
 
