@@ -764,6 +764,25 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(getCurrentSlideId(), [...present, node]);
         }
 
+        function addClinicalData() {
+            const clinicalData = mapClinicalData();
+            createText(`
+                <table>
+                    <tr><th>Name</th><td>${clinicalData.name}</td></tr>
+                    <tr><th>Age</th><td>${clinicalData.age}</td></tr>
+                    <tr><th>Disease Free Status</th><td>${clinicalData.dfsStatus}</td></tr>
+                    <tr><th>ECOG Status</th><td>${clinicalData.ecogStatus}</td></tr>
+                    <tr><th>Gender</th><td>${clinicalData.gender}</td></tr>
+                    <tr><th>Karnofsky Performance Score</th><td>${clinicalData.karnofskyPerformanceScore}</td></tr>
+                    <tr><th>KAS ID</th><td>${clinicalData.kasId}</td></tr>
+                    <tr><th>Overall Survival (Months)</th><td>${clinicalData.osMonths}</td></tr>
+                    <tr><th>Overall Survival Status</th><td>${clinicalData.osStatus}</td></tr>
+                    <tr><th>Sample count</th><td>${clinicalData.sampleCount}</td></tr>
+                    <tr><th>Cancer type</th><td>${clinicalData.cancerType}</td></tr>
+                </table>
+            `);
+        }
+
         function createHTML(html: string) {
             const id = crypto.randomUUID();
 
@@ -1199,6 +1218,21 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                         </TooltipTrigger>
                                         <TooltipContent className="Tooltip">
                                             Add therapy recommendations
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Item
+                                                tourClass="add-clinical-data"
+                                                onClick={() =>
+                                                    addClinicalData()
+                                                }
+                                            >
+                                                <i className="fa fa-user-md"></i>
+                                            </Item>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="Tooltip">
+                                            Add clinical data
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>

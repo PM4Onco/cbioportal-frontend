@@ -6,6 +6,7 @@ import {
 } from 'pages/patientView/presentation/model/dynamic-component';
 import {
     AnyExtension,
+    Editor,
     EditorContent,
     Extensions,
     useEditor,
@@ -23,6 +24,11 @@ import TextAlign from '@tiptap/extension-text-align';
 import BulletList from '@tiptap/extension-bullet-list';
 import ListItem from '@tiptap/extension-list-item';
 import TextStyle from '@tiptap/extension-text-style';
+import Table from '@tiptap/extension-table';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TableRow from '@tiptap/extension-table-row';
+import History from '@tiptap/extension-history';
 
 import ReactDOM from 'react-dom';
 import { EditorMenu } from 'pages/patientView/presentation/toolbar/editor-menu/EditorMenu';
@@ -77,6 +83,13 @@ export const TextNode = ({
         ListItem,
         TextStyle,
         Color,
+        Table.configure({
+            resizable: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
+        History,
         FontSize as AnyExtension,
     ];
 
@@ -119,10 +132,10 @@ export const TextNode = ({
     };
 
     const startEditing = useCallback(() => {
-        if (state.editing) return;
+        if (state.editing || !editor) return;
 
         draggableChanged(false);
-        editor?.setEditable(true);
+        editor.setEditable(true);
         setState(current => ({ ...current, editing: true }));
         focus();
     }, [state]);
@@ -153,9 +166,9 @@ export const TextNode = ({
 
     const stopEditing = () => {
         const textNode = elementRef.current;
-        if (!textNode) return;
+        if (!textNode || !editor) return;
 
-        editor?.setEditable(false);
+        editor.setEditable(false);
         stateChanged(editor?.getHTML());
         draggableChanged(true);
         setState(current => ({ ...current, editing: false }));
