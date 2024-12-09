@@ -205,7 +205,7 @@ export const TextNode = ({
                     toolbarEditorMenu
                 )}
             <div
-                className={`presentation__node presentation__node--text ${
+                className={`presentation__node presentation__node--text  ${
                     state.selected ? 'presentation__node--selected' : ''
                 } ${state.editing ? 'presentation__node--editing' : ''}`}
             >

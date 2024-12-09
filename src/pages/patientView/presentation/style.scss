@@ -87,7 +87,7 @@
     user-select: none;
 }
 
-.presentation .presentation__node table {
+.presentation .presentation__node--text table {
     --gray-1: rgba(61, 37, 20, 0.05);
     --gray-2: rgba(61, 37, 20, 0.08);
     --gray-3: rgba(61, 37, 20, 0.12);
@@ -125,7 +125,8 @@
         font-weight: bold;
         text-align: left;
     }
-    .selectedCell::selection {
+
+    p::selection {
         color: inherit;
     }
 
