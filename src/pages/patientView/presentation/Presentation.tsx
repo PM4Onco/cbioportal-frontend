@@ -1374,7 +1374,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                         'Allele Freq': true,
                                                                                         HGVSc: true,
                                                                                         HGVSg: true,
-                                                                                        ClinVar: false,
+                                                                                        ClinVar: true,
                                                                                         MS: false,
                                                                                         COSMIC: false,
                                                                                         gnomAD: false,
