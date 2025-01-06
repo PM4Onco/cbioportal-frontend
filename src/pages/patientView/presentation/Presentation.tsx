@@ -48,15 +48,14 @@ import { MtbSelector } from 'pages/patientView/presentation/toolbar/MtbSelector'
 export interface PresentationClinicalData {
     name: string;
     age: string;
-    dfsStatus: string;
-    ecogStatus: string;
     gender: string;
-    karnofskyPerformanceScore: string;
-    kasId: string;
+    grade: string;
+    diseaseStatus: string;
+    race: string;
     osMonths: string;
     osStatus: string;
     sampleCount: string;
-    cancerType: string;
+    anamnese: string;
 }
 
 interface PresentationProps {
@@ -770,15 +769,14 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 <table>
                     <tr><th>Name</th><td>${clinicalData.name}</td></tr>
                     <tr><th>Age</th><td>${clinicalData.age}</td></tr>
-                    <tr><th>Disease Free Status</th><td>${clinicalData.dfsStatus}</td></tr>
-                    <tr><th>ECOG Status</th><td>${clinicalData.ecogStatus}</td></tr>
                     <tr><th>Gender</th><td>${clinicalData.gender}</td></tr>
-                    <tr><th>Karnofsky Performance Score</th><td>${clinicalData.karnofskyPerformanceScore}</td></tr>
-                    <tr><th>KAS ID</th><td>${clinicalData.kasId}</td></tr>
+                    <tr><th>Race Category</th><td>${clinicalData.race}</td></tr>
+                    <tr><th>Disease Status</th><td>${clinicalData.diseaseStatus}</td></tr>
+                    <tr><th>Patient Tumor Grade</th><td>${clinicalData.grade}</td></tr>
                     <tr><th>Overall Survival (Months)</th><td>${clinicalData.osMonths}</td></tr>
                     <tr><th>Overall Survival Status</th><td>${clinicalData.osStatus}</td></tr>
                     <tr><th>Sample count</th><td>${clinicalData.sampleCount}</td></tr>
-                    <tr><th>Cancer type</th><td>${clinicalData.cancerType}</td></tr>
+                    <tr><th>Anamnese</th><td>${clinicalData.anamnese}</td></tr>
                 </table>
             `);
         }
@@ -802,34 +800,32 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 'PATIENT_DISPLAY_NAME'
             );
             const age = findClinicalAttributeOrEmptyString('AGE');
-            const dfsStatus = findClinicalAttributeOrEmptyString('DFS_STATUS');
-            const ecogStatus = findClinicalAttributeOrEmptyString(
-                'ECOG _STATUS'
+            const diseaseStatus = findClinicalAttributeOrEmptyString(
+                'DISEASE_STATUS'
             );
-            const gender = findClinicalAttributeOrEmptyString('GENDER');
-            const karnofskyPerformanceScore = findClinicalAttributeOrEmptyString(
-                'KARNOFSKY_PERFORMANCE_SCORE'
-            );
-            const kasId = findClinicalAttributeOrEmptyString('KAS_ID');
+            const gender = findClinicalAttributeOrEmptyString('SEX');
+            const race = findClinicalAttributeOrEmptyString('RACE');
             const osMonths = findClinicalAttributeOrEmptyString('OS_MONTHS');
             const osStatus = findClinicalAttributeOrEmptyString('OS_STATUS');
+            const grade = findClinicalAttributeOrEmptyString('PATIENT_GRADE');
             const sampleCount = findClinicalAttributeOrEmptyString(
                 'SAMPLE_COUNT'
             );
-            const cancerType = findClinicalAttributeOrEmptyString('TEST');
+            const anamnese = findClinicalAttributeOrEmptyString(
+                'PATIENT_ANAMNESE'
+            );
 
             return {
                 name,
                 age,
-                dfsStatus,
-                ecogStatus,
+                race,
+                grade,
+                diseaseStatus,
                 gender,
-                karnofskyPerformanceScore,
-                kasId,
                 osMonths,
                 osStatus,
                 sampleCount,
-                cancerType,
+                anamnese,
             };
         }
 
