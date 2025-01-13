@@ -487,7 +487,7 @@ export const TherapyRecommendations = ({
     ];
 
     return (
-        <div className="presentation__mutation-table">
+        <div className="presentation__therapy-recommendations">
             <TherapyRecommendationTableComponent
                 data={
                     mtbs.find(mtb => mtb.id === initialValue)
