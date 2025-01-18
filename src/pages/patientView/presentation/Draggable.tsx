@@ -9,32 +9,32 @@ import {
 } from 'pages/patientView/presentation/model/dynamic-component';
 import { Resizable } from 'pages/patientView/presentation/Resizable';
 import { ResizableScale } from 'pages/patientView/presentation/ResizableScale';
-import { Scale, Width } from 'pages/patientView/presentation/model/node';
 
 interface Props {
     id: string;
     slideId: number;
     left: number;
     top: number;
-    width: Width;
-    scale: Scale;
-    resizable: boolean;
+    width?: number | null;
+    height?: number | null;
+    scale?: number | null;
     component: {
         type: ComponentKeys;
         props: Omit<DynamicComponentProps<any>, 'draggableChanged'>;
     };
     selectedChanged: SelectedChangedFn;
-    widthChanged: WidthChangedFn;
+    dimensionsChanged: DimensionsChangedFn;
     scaleChanged: ScaleChangedFn;
 }
 
-type WidthChangedFn = (width: number) => void;
+type DimensionsChangedFn = (width: number, height?: number) => void;
 type ScaleChangedFn = (scale: number) => void;
 
 interface State {
     selected: boolean;
-    width: Width;
-    scale: Scale;
+    width?: number | null;
+    height?: number | null;
+    scale?: number | null;
     left: number;
 }
 
@@ -46,15 +46,17 @@ export const Draggable = observer(
         component,
         slideId,
         selectedChanged,
-        widthChanged,
+        dimensionsChanged,
         scaleChanged,
         width,
+        height,
         scale,
     }: Props) => {
         const containerRef = useRef<HTMLDivElement | null>(null);
         const [state, setState] = React.useState<State>({
             selected: false,
             width: width,
+            height: height,
             scale: scale,
             left: 0,
         });
@@ -70,15 +72,11 @@ export const Draggable = observer(
         const toolbar = document.querySelector('.toolbar');
 
         useEffect(() => {
-            setState(current => ({ ...current, width }));
-        }, [width]);
+            setState(current => ({ ...current, width, height }));
+        }, [width, height]);
 
         useEffect(() => {
             const controller = new AbortController();
-
-            document.addEventListener('pointerup', onPointerUp, {
-                signal: controller.signal,
-            });
 
             document.addEventListener('keydown', onKeyDown, {
                 signal: controller.signal,
@@ -98,12 +96,6 @@ export const Draggable = observer(
                 case 'Escape':
                     handleEscapePress();
                     break;
-            }
-        };
-
-        const onPointerUp = () => {
-            if (component.type === 'image') {
-                setDraggable(true);
             }
         };
 
@@ -144,6 +136,7 @@ export const Draggable = observer(
             left: left + state.left,
             top,
             width: state.width ?? 'auto',
+            height: state.height || 'auto',
         };
 
         const setContainerRef = (element: HTMLDivElement) => {
@@ -151,9 +144,9 @@ export const Draggable = observer(
             containerRef.current = element;
         };
 
-        const onWidthChanged = (width: number) => {
-            setState(current => ({ ...current, width }));
-            widthChanged(width);
+        const onDimensionsChanged = (width: number, height?: number) => {
+            setState(current => ({ ...current, width, height }));
+            dimensionsChanged(width, height);
         };
 
         const onScaleChanged = (scale: number) => {
@@ -167,16 +160,13 @@ export const Draggable = observer(
 
         return (
             <>
-                {width !== null ? (
+                {!!state.width ? (
                     <Resizable
                         id={id}
-                        width={
-                            typeof state.width === 'number' ? state.width : 200
-                        }
-                        left={state.left}
+                        width={state.width}
+                        height={state.height}
                         draggableChanged={draggable => setDraggable(draggable)}
-                        widthChanged={onWidthChanged}
-                        leftChanged={onLeftChanged}
+                        dimensionsChanged={onDimensionsChanged}
                         selected={state.selected}
                         forwardedRef={setContainerRef}
                         style={style}

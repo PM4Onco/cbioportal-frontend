@@ -78,11 +78,6 @@
         border-bottom: 1px solid rgba(61, 37, 20, 0.08);
     }
 
-    &:hover {
-        background-color: rgba(61, 37, 20, 0.06);
-        cursor: pointer;
-    }
-
     .mtb-selector__info {
         display: flex;
         column-gap: 8px;
@@ -102,5 +97,37 @@
         background: #f0fdf4;
         color: #008236;
         border: 1px solid #00a63e33;
+    }
+
+    .mtb-selector__recommendation {
+        display: flex;
+        flex-direction: column;
+        row-gap: 8px;
+        margin-left: -16px;
+        margin-right: -16px;
+        padding: 8px 16px;
+
+        &:hover {
+            background-color: rgba(61, 37, 20, 0.06);
+            cursor: pointer;
+        }
+    }
+
+    .recommendation__info {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        column-gap: 4px;
+    }
+
+    .recommendation__prio {
+        font-size: 12px;
+        text-transform: capitalize;
+        font-weight: bold;
+        border-radius: 4px;
+        padding: 2px 4px;
+        background: oklch(0.985 0.002 247.839);
+        color: oklch(0.446 0.03 256.802);
+        border: 1px solid #e4e9f5;
     }
 }

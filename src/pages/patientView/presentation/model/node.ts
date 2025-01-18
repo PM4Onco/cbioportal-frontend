@@ -1,13 +1,11 @@
 import { ComponentKeys } from 'pages/patientView/presentation/model/dynamic-component';
 
-export type Width = number | null;
-export type Scale = number | null;
-
 interface Position {
     left: number;
     top: number;
-    width: Width;
-    scale: Scale;
+    width?: number | null;
+    height?: number | null;
+    scale?: number | null;
 }
 
 export interface Node<T> {

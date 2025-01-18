@@ -188,6 +188,12 @@
     width: 940px;
 }
 
+.presentation__rectangle {
+    border: 2px solid red;
+    width: 100%;
+    height: 100%;
+}
+
 .presentation__node {
     display: flex;
     position: relative;

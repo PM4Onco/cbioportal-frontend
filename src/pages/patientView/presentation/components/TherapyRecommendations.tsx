@@ -489,10 +489,15 @@ export const TherapyRecommendations = ({
     return (
         <div className="presentation__therapy-recommendations">
             <TherapyRecommendationTableComponent
-                data={
-                    mtbs.find(mtb => mtb.id === initialValue)
-                        ?.therapyRecommendations
-                }
+                data={mtbs
+                    .find(mtb =>
+                        mtb.therapyRecommendations
+                            .map(recommendation => recommendation.id)
+                            .includes(initialValue)
+                    )
+                    ?.therapyRecommendations.filter(
+                        recommendation => recommendation.id === initialValue
+                    )}
                 columns={columns}
                 showFilter={false}
                 showCopyDownload={false}

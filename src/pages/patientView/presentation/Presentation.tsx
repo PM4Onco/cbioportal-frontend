@@ -41,9 +41,10 @@ import { minioURL } from 'shared/api/MinIOAPI';
 import { UUID } from 'pages/patientView/presentation/model/uuid';
 import Joyride, { CallBackProps, STATUS, StoreHelpers } from 'react-joyride';
 import { AlignmentMenu } from 'pages/patientView/presentation/toolbar/AlignmentMenu';
-import { IMtb } from 'cbioportal-utils';
+import { IMtb, ITherapyRecommendation } from 'cbioportal-utils';
 import { steps } from 'pages/patientView/presentation/tour/steps';
 import { MtbSelector } from 'pages/patientView/presentation/toolbar/MtbSelector';
+import { RectangleIcon } from 'pages/patientView/presentation/icons/RectangleIcon';
 
 export interface PresentationClinicalData {
     name: string;
@@ -207,7 +208,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 );
             });
 
-            // createTitle();
             loadPresentation()
                 .then((slides: Slides) => {
                     clear(slides);
@@ -680,7 +680,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
                 const node: Node<string> = {
                     id,
-                    position: { left, top, width: null, scale: 1 },
+                    position: { left, top },
                     type: 'text',
                     value: value,
                 };
@@ -695,7 +695,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 20, top: 20, width: null, scale: 1 },
+                position: { left: 20, top: 20 },
                 type: 'text',
                 value: value ?? 'Neuer Textbaustein',
             };
@@ -712,7 +712,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<string> = {
                 id,
-                position: { left: 20, top: 20, width: 200, scale: 1 },
+                position: { left: 20, top: 20, width: 200 },
                 type: 'image',
                 value: location,
             };
@@ -726,7 +726,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<null> = {
                 id,
-                position: { left: 20, top: 20, width: null, scale: 1 },
+                position: { left: 20, top: 20, scale: 1 },
                 type: 'mutationTable',
                 value: null,
             };
@@ -740,7 +740,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const node: Node<null> = {
                 id,
-                position: { left: 20, top: 20, width: null, scale: 1 },
+                position: { left: 20, top: 20, scale: 1 },
                 type: 'timeline',
                 value: null,
             };
@@ -749,14 +749,16 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(getCurrentSlideId(), [...present, node]);
         }
 
-        function addTherapyRecommendations(mtb: IMtb) {
+        function addTherapyRecommendations(
+            recommendation: ITherapyRecommendation
+        ) {
             const id = crypto.randomUUID();
 
             const node: Node<string> = {
                 id,
-                position: { left: 20, top: 20, width: null, scale: 1 },
+                position: { left: 20, top: 20 },
                 type: 'therapyRecommendations',
-                value: mtb.id,
+                value: recommendation.id,
             };
 
             const present = state.get(getCurrentSlideId())?.present ?? [];
@@ -781,12 +783,26 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             `);
         }
 
+        function addRectangle() {
+            const id = crypto.randomUUID();
+
+            const node: Node<null> = {
+                id,
+                position: { left: 20, top: 20, width: 100, height: 20 },
+                type: 'rectangle',
+                value: null,
+            };
+
+            const present = state.get(getCurrentSlideId())?.present ?? [];
+            set(getCurrentSlideId(), [...present, node]);
+        }
+
         function createHTML(html: string) {
             const id = crypto.randomUUID();
 
             const node: Node<string> = {
                 id,
-                position: { left: 20, top: 20, width: null, scale: null },
+                position: { left: 20, top: 20 },
                 type: 'html',
                 value: html,
             };
@@ -900,7 +916,12 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             }
         }
 
-        function onWidthChanged(slideId: number, id: string, width: number) {
+        function onDimensionsChanged(
+            slideId: number,
+            id: string,
+            width: number,
+            height?: number
+        ) {
             const present = state.get(slideId)?.present;
 
             if (!present) return;
@@ -910,8 +931,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             let modified = false;
 
             const nextPresent = copiedPresent.map(node => {
-                if (node.id === id && node.position.width !== width) {
+                if (
+                    node.id === id &&
+                    (node.position.width !== width ||
+                        node.position.height !== height)
+                ) {
                     node.position.width = width;
+                    node.position.height = height;
                     modified = true;
                     return node;
                 } else {
@@ -1029,6 +1055,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         async function deletePresentation() {
+            const confirmed = confirm(
+                'Do you really want to delete the presentation?\nThis cannot be undone.'
+            );
+            if (!confirmed) return;
+
             const patientId = patientViewPageStore.getSafePatientId();
 
             const response = await fetch(
@@ -1207,7 +1238,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                         <TooltipTrigger>
                                             <MtbSelector
                                                 mtbs={mtbs}
-                                                mtbSelected={
+                                                recommendationSelected={
                                                     addTherapyRecommendations
                                                 }
                                             />
@@ -1229,6 +1260,19 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                         </TooltipTrigger>
                                         <TooltipContent className="Tooltip">
                                             Add clinical data
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Item
+                                                tourClass="add-rectangle"
+                                                onClick={() => addRectangle()}
+                                            >
+                                                <RectangleIcon></RectangleIcon>
+                                            </Item>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="Tooltip">
+                                            Add highlighting rectangle
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
@@ -1308,27 +1352,17 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                 .position
                                                                                 .left,
                                                                         width:
-                                                                            node.type ===
-                                                                            'image'
-                                                                                ? node
-                                                                                      .position
-                                                                                      .width ||
-                                                                                  200
-                                                                                : null,
-                                                                        scale: [
-                                                                            'mutationTable',
-                                                                            'timeline',
-                                                                        ].includes(
-                                                                            node.type
-                                                                        )
-                                                                            ? node
-                                                                                  .position
-                                                                                  .scale ||
-                                                                              1
-                                                                            : null,
-                                                                        resizable:
-                                                                            node.type ===
-                                                                            'image',
+                                                                            node
+                                                                                .position
+                                                                                .width,
+                                                                        height:
+                                                                            node
+                                                                                .position
+                                                                                .height,
+                                                                        scale:
+                                                                            node
+                                                                                .position
+                                                                                .scale,
                                                                         key:
                                                                             node.id,
                                                                         selectedChanged: (
@@ -1339,13 +1373,15 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                 node.id,
                                                                                 selected
                                                                             ),
-                                                                        widthChanged: (
-                                                                            width: number
+                                                                        dimensionsChanged: (
+                                                                            width: number,
+                                                                            height?: number
                                                                         ) =>
-                                                                            onWidthChanged(
+                                                                            onDimensionsChanged(
                                                                                 slideId,
                                                                                 node.id,
-                                                                                width
+                                                                                width,
+                                                                                height
                                                                             ),
                                                                         scaleChanged: (
                                                                             scale: number

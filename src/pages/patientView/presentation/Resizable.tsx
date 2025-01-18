@@ -7,11 +7,10 @@ import { DraggableAttributes } from '@dnd-kit/core';
 interface Props {
     id: string;
     width: number;
-    left: number;
+    height?: number | null;
     children: any;
     draggableChanged: DraggableChangedFn;
-    widthChanged: (width: number) => void;
-    leftChanged: (left: number) => void;
+    dimensionsChanged: (width: number, height: number | undefined) => void;
     className: string;
     onPointerDown: (event: React.PointerEvent) => void;
     forwardedRef: (element: HTMLDivElement) => void;
@@ -21,23 +20,20 @@ interface Props {
     selected: boolean;
 }
 
-type Direction = 1 | -1;
-
 interface State {
     resizing: boolean;
     pointerDownCoordinates: Coordinates;
     dx: number;
-    direction: Direction;
+    dy: number;
 }
 
 export const Resizable = ({
     id,
     width,
-    left,
+    height,
     draggableChanged,
     children,
-    widthChanged,
-    leftChanged,
+    dimensionsChanged,
     className,
     onPointerDown,
     forwardedRef: ref,
@@ -50,7 +46,7 @@ export const Resizable = ({
         resizing: false,
         pointerDownCoordinates: { x: 0, y: 0 },
         dx: 0,
-        direction: 1,
+        dy: 0,
     });
 
     useEffect(() => {
@@ -72,52 +68,47 @@ export const Resizable = ({
         draggableChanged(false);
     };
 
-    const startResize = (
-        event: any,
-        direction: Pick<State, 'direction'>[keyof Pick<State, 'direction'>]
-    ) => {
+    const startResize = (event: any) => {
         event.persist();
         setState(current => ({
             ...current,
             resizing: true,
             pointerDownCoordinates: { x: event.clientX, y: event.clientY },
-            direction,
         }));
     };
 
     const onPointerMove = (event: PointerEvent) => {
         if (!state.resizing) return;
 
-        const dx =
-            (event.clientX - state.pointerDownCoordinates.x) * state.direction;
-        setState(current => ({ ...current, dx }));
+        const dx = event.clientX - state.pointerDownCoordinates.x;
+        const dy = event.clientY - state.pointerDownCoordinates.y;
+        setState(current => ({ ...current, dx, dy }));
     };
 
     const onPointerUp = (event: PointerEvent) => {
         if (!state.resizing) return;
 
-        widthChanged(width + state.dx);
-
-        if (state.direction === -1) {
-            leftChanged(left - state.dx);
-        }
+        dimensionsChanged(
+            width + state.dx,
+            height ? height + state.dy : undefined
+        );
+        draggableChanged(true);
 
         setState(current => ({
             ...current,
             resizing: false,
             dx: 0,
+            dy: 0,
         }));
     };
 
     const style = {
         position: styleProps.position,
-        transform: `translate3d(${styleProps.transformX -
-            (state.direction === -1 ? state.dx : 0)}px, ${
-            styleProps.transformY
-        }px, 0)`,
+        transform: `translate3d(${styleProps.transformX}px, ${styleProps.transformY}px, 0)`,
         left: styleProps.left,
         top: styleProps.top,
         width: styleProps.width + state.dx,
+        height: styleProps.height + state.dy,
     };
 
     return (
@@ -137,7 +128,7 @@ export const Resizable = ({
                         className="node__anchor-point"
                         data-direction="se"
                         onMouseEnter={beforeResize}
-                        onPointerDown={event => startResize(event, 1)}
+                        onPointerDown={event => startResize(event)}
                     >
                         <svg
                             viewBox="0 0 18 18"
