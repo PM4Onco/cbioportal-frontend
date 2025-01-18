@@ -101,6 +101,7 @@ export const ResizableScale = ({
         if (!state.resizing) return;
 
         scaleChanged(scale - state.ds);
+        draggableChanged(true);
 
         setState(current => ({
             ...current,
