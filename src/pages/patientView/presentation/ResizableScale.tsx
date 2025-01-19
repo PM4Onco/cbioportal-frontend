@@ -1,5 +1,5 @@
 import { DraggableChangedFn } from 'pages/patientView/presentation/model/dynamic-component';
-import React, { useEffect, useRef } from 'react';
+import React, { MouseEventHandler, useEffect, useRef } from 'react';
 import { Coordinates } from '@dnd-kit/utilities';
 import { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { DraggableAttributes } from '@dnd-kit/core';
@@ -14,6 +14,7 @@ interface Props {
     leftChanged: (left: number) => void;
     className: string;
     onPointerDown: (event: React.PointerEvent) => void;
+    onDoubleClick: MouseEventHandler<HTMLDivElement>;
     forwardedRef: (element: HTMLDivElement) => void;
     style: Record<string, any>;
     listeners: SyntheticListenerMap | undefined;
@@ -39,6 +40,7 @@ export const ResizableScale = ({
     scaleChanged,
     className,
     onPointerDown,
+    onDoubleClick,
     forwardedRef,
     style: styleProps,
     listeners,
@@ -71,6 +73,12 @@ export const ResizableScale = ({
 
     const beforeResize = () => {
         draggableChanged(false);
+    };
+
+    const mouseLeftResizeHandle = () => {
+        if (state.resizing) return;
+
+        draggableChanged(true);
     };
 
     const startResize = (
@@ -132,6 +140,7 @@ export const ResizableScale = ({
             id={id}
             className={className}
             onPointerDown={onPointerDown}
+            onDoubleClick={onDoubleClick}
             style={style}
             ref={setRef}
         >
@@ -141,7 +150,8 @@ export const ResizableScale = ({
                     <div
                         className="node__anchor-point"
                         data-direction="se"
-                        onMouseEnter={beforeResize}
+                        onPointerEnter={beforeResize}
+                        onPointerLeave={mouseLeftResizeHandle}
                         onPointerDown={event => startResize(event, 1)}
                     >
                         <svg

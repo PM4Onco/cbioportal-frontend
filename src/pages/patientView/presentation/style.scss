@@ -51,11 +51,12 @@
 
 .reveal-viewport:fullscreen {
     background-color: white;
+    pointer-events: none;
 
     .presentation__node--selected,
+    .presentation__node--selected:focus,
     .presentation__node--editing {
-        outline: none;
-        // TODO: hide outline when in presentation mode
+        outline: none !important;
     }
 }
 
@@ -169,6 +170,16 @@
 .presentation__node--editing {
     outline: 1px solid black;
     user-select: auto;
+}
+
+.presentation__node--draggable .presentation__mutation-table,
+.presentation__node--draggable .presentation__timeline {
+    pointer-events: none;
+    user-select: none;
+}
+
+.presentation .presentation__node--selected.presentation__node--not-draggable {
+    outline: 1px solid black !important;
 }
 
 .presentation .presentation__node--editing:focus,

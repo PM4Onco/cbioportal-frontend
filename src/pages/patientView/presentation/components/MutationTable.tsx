@@ -1,5 +1,5 @@
 import MutationTableWrapper from 'pages/patientView/mutation/MutationTableWrapper';
-import React, { RefObject, useEffect } from 'react';
+import React, { RefObject, useEffect, useRef } from 'react';
 import {
     DraggableChangedFn,
     SelectedChangedFn,

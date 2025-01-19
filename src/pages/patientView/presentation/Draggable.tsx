@@ -158,6 +158,10 @@ export const Draggable = observer(
             setState(current => ({ ...current, left }));
         };
 
+        const disableDragging = () => {
+            setDraggable(false);
+        };
+
         return (
             <>
                 {!!state.width ? (
@@ -199,10 +203,15 @@ export const Draggable = observer(
                         style={style}
                         listeners={listeners}
                         attributes={attributes}
-                        className={
+                        className={`${
                             state.selected ? 'presentation__node--selected' : ''
-                        }
+                        } ${
+                            draggable
+                                ? 'presentation__node--draggable'
+                                : 'presentation__node--not-draggable'
+                        }`}
                         onPointerDown={onPointerDown}
+                        onDoubleClick={() => disableDragging()}
                     >
                         {Dynamic(component.type, {
                             ...component.props,

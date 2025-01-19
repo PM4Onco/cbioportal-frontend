@@ -45,6 +45,8 @@ import { IMtb, ITherapyRecommendation } from 'cbioportal-utils';
 import { steps } from 'pages/patientView/presentation/tour/steps';
 import { MtbSelector } from 'pages/patientView/presentation/toolbar/MtbSelector';
 import { RectangleIcon } from 'pages/patientView/presentation/icons/RectangleIcon';
+import { IColumnVisibilityDef } from 'shared/components/columnVisibilityControls/ColumnVisibilityControls';
+import { toggleColumnVisibility } from 'cbioportal-frontend-commons';
 
 export interface PresentationClinicalData {
     name: string;
@@ -115,6 +117,20 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         const [tourRun, setTourRun] = useState<boolean>(shouldShowTour());
         const tourHelpers = useRef<StoreHelpers>();
+
+        const [columnVisibility, setColumnVisibility] = useState<{
+            [columnId: string]: boolean;
+        }>({
+            Exon: true,
+            'Allele Freq': true,
+            HGVSc: true,
+            HGVSg: true,
+            ClinVar: true,
+            MS: false,
+            COSMIC: false,
+            gnomAD: false,
+            dbSNP: false,
+        });
 
         const setTourHelpers = (storeHelpers: StoreHelpers) => {
             tourHelpers.current = storeHelpers;
@@ -1083,6 +1099,19 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             }
         }
 
+        function onMutationTableColumnVisibilityToggled(
+            columnId: string,
+            columnVisibility?: IColumnVisibilityDef[]
+        ) {
+            setColumnVisibility(
+                toggleColumnVisibility(
+                    this.mutationTableColumnVisibility,
+                    columnId,
+                    columnVisibility
+                )
+            );
+        }
+
         return (
             <>
                 <Joyride
@@ -1401,16 +1430,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                     dataStore,
                                                                                     sampleManager,
                                                                                     ...mutationTableProps,
-                                                                                    columnVisibility: {
-                                                                                        Exon: true,
-                                                                                        'Allele Freq': true,
-                                                                                        HGVSc: true,
-                                                                                        HGVSg: true,
-                                                                                        ClinVar: true,
-                                                                                        MS: false,
-                                                                                        COSMIC: false,
-                                                                                        gnomAD: false,
-                                                                                        dbSNP: false,
+                                                                                    columnVisibility: columnVisibility,
+                                                                                    columnVisibilityProps: {
+                                                                                        onColumnToggled: onMutationTableColumnVisibilityToggled,
                                                                                     },
                                                                                 }),
                                                                                 ...(node.type ===

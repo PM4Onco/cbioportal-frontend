@@ -68,6 +68,12 @@ export const Resizable = ({
         draggableChanged(false);
     };
 
+    const mouseLeftResizeHandle = () => {
+        if (state.resizing) return;
+
+        draggableChanged(true);
+    };
+
     const startResize = (event: any) => {
         event.persist();
         setState(current => ({
@@ -127,7 +133,8 @@ export const Resizable = ({
                     <div
                         className="node__anchor-point"
                         data-direction="se"
-                        onMouseEnter={beforeResize}
+                        onPointerEnter={beforeResize}
+                        onPointerLeave={mouseLeftResizeHandle}
                         onPointerDown={event => startResize(event)}
                     >
                         <svg

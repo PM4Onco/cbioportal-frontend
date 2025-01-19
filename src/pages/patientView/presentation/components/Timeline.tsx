@@ -26,7 +26,7 @@ export const Timeline = ({
     patientViewPageStore,
 }: Props) => {
     return (
-        <div className="presentation__mutation-table">
+        <div className="presentation__timeline">
             <TimelineWrapper
                 dataStore={dataStore}
                 caseMetaData={{
