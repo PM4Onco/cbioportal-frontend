@@ -1,7 +1,6 @@
 .editor__menu-container {
     display: flex;
     column-gap: 8px;
-    margin-left: auto;
 
     .editor__font-size-container {
         display: flex;
@@ -26,7 +25,7 @@
         input {
             border: none;
             background: transparent;
-            width: 50px;
+            width: 30px;
             text-align: right;
 
             &:focus {

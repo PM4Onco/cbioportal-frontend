@@ -173,6 +173,7 @@
 }
 
 .presentation__node--draggable .presentation__mutation-table,
+.presentation__node--draggable .presentation__fusion-table,
 .presentation__node--draggable .presentation__timeline {
     pointer-events: none;
     user-select: none;
@@ -191,6 +192,12 @@
     width: min-content;
     background: white;
     font-size: 16px;
+}
+
+.presentation__fusion-table {
+    width: max-content;
+    font-size: 16px;
+    background: white;
 }
 
 .presentation__therapy-recommendations {

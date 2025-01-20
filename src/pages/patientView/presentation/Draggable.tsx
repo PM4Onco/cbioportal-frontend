@@ -187,8 +187,9 @@ export const Draggable = observer(
                                 setDraggable(draggable),
                         })}
                     </Resizable>
-                ) : component.type === 'mutationTable' ||
-                  component.type === 'timeline' ? (
+                ) : ['mutationTable', 'timeline', 'fusionTable'].includes(
+                      component.type
+                  ) ? (
                     <ResizableScale
                         id={id}
                         scale={

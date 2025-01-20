@@ -5,21 +5,13 @@ import {
     DiscreteCopyNumberData,
     Mutation,
 } from 'cbioportal-ts-api-client';
-import 'react-toastify/dist/ReactToastify.css';
-import './style.scss';
 import Reveal from 'reveal.js';
 import Overview from './reveal/overview';
-import 'reveal.js/dist/reveal.css';
-import 'reveal.js/dist/theme/white.css';
 import {
     Slides,
     TimeState,
     useHistoryState,
 } from 'shared/lib/hooks/use-history-state';
-import { CreateTextIcon } from './icons/CreateTextIcon';
-import { ToggleFullscreenIcon } from 'pages/patientView/presentation/icons/ToggleFullscreenIcon';
-import { UndoIcon } from 'pages/patientView/presentation/icons/UndoIcon';
-import { RedoIcon } from 'pages/patientView/presentation/icons/RedoIcon';
 import { deepCopy } from 'pages/patientView/presentation/utils/utils';
 import { Node } from './model/node';
 import { DndContext, DragEndEvent, useSensor, useSensors } from '@dnd-kit/core';
@@ -27,26 +19,27 @@ import { PointerSensor } from 'pages/patientView/presentation/PointerSensor';
 import { Draggable } from 'pages/patientView/presentation/Draggable';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Menu, MenuItem } from 'pages/patientView/presentation/ContextMenu';
-import { Dynamic } from 'pages/patientView/presentation/model/dynamic-component';
+import {
+    ComponentKeys,
+    Dynamic,
+} from 'pages/patientView/presentation/model/dynamic-component';
 import ReactDOM from 'react-dom';
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
-import { Item } from 'pages/patientView/presentation/toolbar/Item';
-import { Tooltip, TooltipContent, TooltipTrigger } from './Tooltip';
 import { restrictToAxis } from 'pages/patientView/presentation/restrictToAxis';
-import { AddMutationTableIcon } from './icons/AddMutationTableIcon';
 import { toast } from 'react-toastify';
-import { TimelineIcon } from './icons/TimelineIcon';
 import { fhirsparkURL } from 'shared/api/FhirsparkAPI';
 import { minioURL } from 'shared/api/MinIOAPI';
 import { UUID } from 'pages/patientView/presentation/model/uuid';
 import Joyride, { CallBackProps, STATUS, StoreHelpers } from 'react-joyride';
-import { AlignmentMenu } from 'pages/patientView/presentation/toolbar/AlignmentMenu';
 import { IMtb, ITherapyRecommendation } from 'cbioportal-utils';
 import { steps } from 'pages/patientView/presentation/tour/steps';
-import { MtbSelector } from 'pages/patientView/presentation/toolbar/MtbSelector';
-import { RectangleIcon } from 'pages/patientView/presentation/icons/RectangleIcon';
 import { IColumnVisibilityDef } from 'shared/components/columnVisibilityControls/ColumnVisibilityControls';
 import { toggleColumnVisibility } from 'cbioportal-frontend-commons';
+import { Toolbar } from 'pages/patientView/presentation/toolbar/Toolbar';
+import 'react-toastify/dist/ReactToastify.css';
+import './style.scss';
+import 'reveal.js/dist/reveal.css';
+import 'reveal.js/dist/theme/white.css';
 
 export interface PresentationClinicalData {
     name: string;
@@ -176,10 +169,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         ]);
 
         useHotkeys('backspace', () => onBackspacePressed(), [selectedNodes]);
-
-        useEffect(() => {
-            console.log(mtbs);
-        }, [mtbs]);
 
         useEffect(() => {
             const controller = new AbortController();
@@ -591,7 +580,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         function removeSlide(slideId: number, uuid: UUID) {
             const historyState = state.get(slideId);
-            console.log(deletedSlides);
             if (!historyState) return;
 
             setDeletedSlides({
@@ -737,27 +725,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             set(getCurrentSlideId(), [...present, node]);
         }
 
-        function addMutationTable() {
+        function addScalableComponent(type: ComponentKeys) {
             const id = crypto.randomUUID();
 
             const node: Node<null> = {
                 id,
                 position: { left: 20, top: 20, scale: 1 },
-                type: 'mutationTable',
-                value: null,
-            };
-
-            const present = state.get(getCurrentSlideId())?.present ?? [];
-            set(getCurrentSlideId(), [...present, node]);
-        }
-
-        function addTimeline() {
-            const id = crypto.randomUUID();
-
-            const node: Node<null> = {
-                id,
-                position: { left: 20, top: 20, scale: 1 },
-                type: 'timeline',
+                type: type,
                 value: null,
             };
 
@@ -1164,184 +1138,35 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                         </div>
                     </div>
                     <div className="presentation-container">
-                        <div className="toolbar">
-                            <div className="toolbar__row-container">
-                                <Item
-                                    onClick={onAddSlideClick}
-                                    tourClass="add-slide"
-                                >
-                                    Add Slide
-                                </Item>
-                                <Item onClick={savePresentation}>
-                                    Save Presentation
-                                </Item>
-                                <Item onClick={deletePresentation}>
-                                    Delete Presentation
-                                </Item>
-                                <Tooltip>
-                                    <TooltipTrigger className="toolbar__menu-item--hug-right">
-                                        <Item
-                                            className="toolbar__menu-item--hug-right"
-                                            onClick={onUndoClick}
-                                            disabled={
-                                                !canUndo(getCurrentSlideId())
-                                            }
-                                        >
-                                            <UndoIcon></UndoIcon>
-                                        </Item>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="Tooltip">
-                                        Undo
-                                    </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                    <TooltipTrigger>
-                                        <Item
-                                            onClick={onRedoClick}
-                                            disabled={
-                                                !canRedo(getCurrentSlideId())
-                                            }
-                                        >
-                                            <RedoIcon></RedoIcon>
-                                        </Item>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="Tooltip">
-                                        Redo
-                                    </TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                    <TooltipTrigger>
-                                        <Item onClick={toggleFullscreen}>
-                                            <ToggleFullscreenIcon></ToggleFullscreenIcon>
-                                        </Item>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="Tooltip">
-                                        Enable fullscreen
-                                    </TooltipContent>
-                                </Tooltip>
-                            </div>
-                            <div className="toolbar__row-container">
-                                <div className="toolbar__editor-menu">
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Item
-                                                tourClass="add-text"
-                                                onClick={() => createText()}
-                                            >
-                                                <CreateTextIcon></CreateTextIcon>
-                                            </Item>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="Tooltip">
-                                            Add text
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Item
-                                                tourClass="add-mutation-table"
-                                                onClick={() =>
-                                                    addMutationTable()
-                                                }
-                                            >
-                                                <AddMutationTableIcon></AddMutationTableIcon>
-                                            </Item>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="Tooltip">
-                                            Add mutation table
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Item
-                                                tourClass="add-timeline"
-                                                onClick={() => addTimeline()}
-                                            >
-                                                <TimelineIcon></TimelineIcon>
-                                            </Item>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="Tooltip">
-                                            Add timeline
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <MtbSelector
-                                                mtbs={mtbs}
-                                                recommendationSelected={
-                                                    addTherapyRecommendations
-                                                }
-                                            />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="Tooltip">
-                                            Add therapy recommendations
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Item
-                                                tourClass="add-clinical-data"
-                                                onClick={() =>
-                                                    addClinicalData()
-                                                }
-                                            >
-                                                <i className="fa fa-user-md"></i>
-                                            </Item>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="Tooltip">
-                                            Add clinical data
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Item
-                                                tourClass="add-rectangle"
-                                                onClick={() => addRectangle()}
-                                            >
-                                                <RectangleIcon></RectangleIcon>
-                                            </Item>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="Tooltip">
-                                            Add highlighting rectangle
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
-                                <div className="toolbar__alignment toolbar__menu-item--space">
-                                    {selectedNodes.length > 0 && (
-                                        <AlignmentMenu
-                                            positionChanged={(left, top) =>
-                                                onPositionChanged(
-                                                    selectedNodes[0].slideId,
-                                                    selectedNodes[0].nodeId,
-                                                    left,
-                                                    top
-                                                )
-                                            }
-                                            selectedNode={selectedNodes[0]}
-                                        ></AlignmentMenu>
-                                    )}
-                                </div>
-                                <Tooltip>
-                                    <TooltipTrigger className="toolbar__menu-item--hug-right">
-                                        <Item
-                                            tourClass="help"
-                                            className="toolbar__menu-item--hug-right"
-                                        >
-                                            ?
-                                        </Item>
-                                        <TooltipContent className="Tooltip">
-                                            Adding images is currently available
-                                            via copy (<kbd>Ctrl</kbd>+
-                                            <kbd>c</kbd>) and paste (
-                                            <kbd>Ctrl</kbd>+<kbd>v</kbd>).
-                                            <br />
-                                            To limit the direction to one axis
-                                            when moving an element, hold{' '}
-                                            <kbd>Shift</kbd>.
-                                        </TooltipContent>
-                                    </TooltipTrigger>
-                                </Tooltip>
-                            </div>
-                        </div>
+                        <Toolbar
+                            mtbs={mtbs}
+                            selectedNode={selectedNodes[0]}
+                            canRedo={canRedo(getCurrentSlideId())}
+                            canUndo={canUndo(getCurrentSlideId())}
+                            showAlignmentMenu={selectedNodes.length > 0}
+                            addSlideClick={onAddSlideClick}
+                            savePresentationClick={savePresentation}
+                            deletePresentationClick={deletePresentation}
+                            redoClick={onRedoClick}
+                            undoClick={onUndoClick}
+                            toggleFullscreenClick={toggleFullscreen}
+                            createTextClick={() => createText()}
+                            addMutationTableClick={() =>
+                                addScalableComponent('mutationTable')
+                            }
+                            addTimelineClick={() =>
+                                addScalableComponent('timeline')
+                            }
+                            addFusionTableClick={() =>
+                                addScalableComponent('fusionTable')
+                            }
+                            addTherapyRecommendationClick={
+                                addTherapyRecommendations
+                            }
+                            addClinicalDataClick={() => addClinicalData()}
+                            addRectangleClick={addRectangle}
+                            selectedNodePositionChange={onPositionChanged}
+                        />
                         <div className="presentation">
                             <Menu ref={deckDivRef}>
                                 <MenuItem label="Paste" onClick={handlePaste} />
@@ -1434,6 +1259,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                     columnVisibilityProps: {
                                                                                         onColumnToggled: onMutationTableColumnVisibilityToggled,
                                                                                     },
+                                                                                }),
+                                                                                ...(node.type ===
+                                                                                    'fusionTable' && {
+                                                                                    patientViewPageStore,
+                                                                                    dataStore,
+                                                                                    sampleManager,
+                                                                                    ...mutationTableProps,
                                                                                 }),
                                                                                 ...(node.type ===
                                                                                     'timeline' && {
