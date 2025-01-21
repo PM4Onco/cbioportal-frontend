@@ -51,7 +51,12 @@ export interface PresentationClinicalData {
     osMonths: string;
     osStatus: string;
     sampleCount: string;
-    anamnese: string;
+    uicc: string;
+    tumorCellContent: string;
+    appliedMethods: string;
+    tmb: string;
+    giScore: string;
+    hrdAnalyse: string;
 }
 
 interface PresentationProps {
@@ -765,10 +770,17 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                     <tr><th>Race Category</th><td>${clinicalData.race}</td></tr>
                     <tr><th>Disease Status</th><td>${clinicalData.diseaseStatus}</td></tr>
                     <tr><th>Patient Tumor Grade</th><td>${clinicalData.grade}</td></tr>
+                    <tr><th>UICC Stadium</th><td>${clinicalData.uicc}</td></tr>
                     <tr><th>Overall Survival (Months)</th><td>${clinicalData.osMonths}</td></tr>
                     <tr><th>Overall Survival Status</th><td>${clinicalData.osStatus}</td></tr>
                     <tr><th>Sample count</th><td>${clinicalData.sampleCount}</td></tr>
-                    <tr><th>Anamnese</th><td>${clinicalData.anamnese}</td></tr>
+                </table>
+                <h2 style="font-weight: 800">Molekulargenetische Paneldiagnostik</h2>
+                <table>
+                    <tr><th>Tumorzellgehalt</th><td>${clinicalData.tumorCellContent}</td></tr>
+                    <tr><th>Angewandte Methoden</th><td>${clinicalData.appliedMethods}</td></tr>
+                    <tr><th>GI-Score</th><td>${clinicalData.giScore}</td></tr>
+                    <tr><th>HRD-Analyse</th><td>${clinicalData.hrdAnalyse}</td></tr>
                 </table>
             `);
         }
@@ -817,8 +829,17 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             const sampleCount = findClinicalAttributeOrEmptyString(
                 'SAMPLE_COUNT'
             );
-            const anamnese = findClinicalAttributeOrEmptyString(
-                'PATIENT_ANAMNESE'
+            const uicc = findClinicalAttributeOrEmptyString('UICC_STADIUM');
+            const tumorCellContent = findClinicalAttributeOrEmptyString(
+                'TUMOR_CELL_CONTENT'
+            );
+            const appliedMethods = findClinicalAttributeOrEmptyString(
+                'APPLIED_METHODS'
+            );
+            const tmb = findClinicalAttributeOrEmptyString('TMB');
+            const giScore = findClinicalAttributeOrEmptyString('GI_SCORE');
+            const hrdAnalyse = findClinicalAttributeOrEmptyString(
+                'HRD_ANALYSE'
             );
 
             return {
@@ -831,7 +852,12 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 osMonths,
                 osStatus,
                 sampleCount,
-                anamnese,
+                uicc,
+                tumorCellContent,
+                appliedMethods,
+                tmb,
+                giScore,
+                hrdAnalyse,
             };
         }
 
@@ -1249,6 +1275,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                             type:
                                                                                 node.type,
                                                                             props: {
+                                                                                ...(node.type ===
+                                                                                    'text' && {
+                                                                                    clinicalData,
+                                                                                }),
                                                                                 ...(node.type ===
                                                                                     'mutationTable' && {
                                                                                     patientViewPageStore,

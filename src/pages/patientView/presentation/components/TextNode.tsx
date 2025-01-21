@@ -39,7 +39,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from 'pages/patientView/presentation/Tooltip';
-import { VerticalCenterIcon } from 'pages/patientView/presentation/icons/VerticalCenterIcon';
+import { ClinicalDataReplacer } from 'pages/patientView/presentation/editor/clinicalDataReplacer';
+import { ClinicalData } from 'cbioportal-ts-api-client';
 
 interface State {
     down: boolean;
@@ -53,6 +54,7 @@ interface Props {
     selectedChanged: SelectedChangedFn;
     draggableChanged: DraggableChangedFn;
     initialValue: string;
+    clinicalData: ClinicalData[];
 }
 
 export const TextNode = ({
@@ -60,6 +62,7 @@ export const TextNode = ({
     initialValue,
     draggableChanged,
     selectedChanged,
+    clinicalData,
 }: Props) => {
     const [state, setState] = React.useState<State>({
         down: false,
@@ -102,6 +105,9 @@ export const TextNode = ({
         TableCell,
         History,
         FontSize as AnyExtension,
+        ClinicalDataReplacer.configure({
+            clinicalData,
+        }),
     ];
 
     const editor = useEditor({
