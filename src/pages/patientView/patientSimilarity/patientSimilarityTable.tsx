@@ -158,6 +158,9 @@ export class PatientSimilarityTable extends React.Component<
             selectedMutations: new Array<IGeneticAlteration>(), // used for search
             currentSimilarPatients: this.props.similarPatients,
         };
+    }
+
+    componentDidMount() {
         this.selectPatient(0);
     }
 

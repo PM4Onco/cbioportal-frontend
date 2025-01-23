@@ -887,35 +887,5 @@ export function tabs(
 
     tabs.push(...buildCustomTabs(pageComponent.customTabs));
 
-    // {getServerConfig().custom_tabs &&
-    //     getServerConfig()
-    //         .custom_tabs.filter(
-    //             (tab: any) =>
-    //                 tab.location === 'PATIENT_PAGE'
-    //         )
-    //         .map((tab: any, i: number) => {
-    //             return (
-    //                 <MSKTab
-    //                     key={getPatientViewResourceTabId(
-    //                         'customTab' + i
-    //                     )}
-    //                     id={getPatientViewResourceTabId(
-    //                         'customTab' + i
-    //                     )}
-    //                     unmountOnHide={
-    //                         tab.unmountOnHide ===
-    //                         true
-    //                     }
-    //                     onTabDidMount={div => {
-    //                         this.customTabMountCallback(
-    //                             div,
-    //                             tab
-    //                         );
-    //                     }}
-    //                     linkText={tab.title}
-    //                 ></MSKTab>
-    //             );
-    //         })}
-
     return tabs;
 }

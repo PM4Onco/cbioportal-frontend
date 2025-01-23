@@ -12,7 +12,7 @@ import {
     IPatientViewMutationTableProps,
 } from '../mutation/PatientViewMutationTable';
 import SampleManager from '../SampleManager';
-import { Mutation } from 'cbioportal-ts-api-client';
+import { Mutation, Gene } from 'cbioportal-ts-api-client';
 import AlleleCountColumnFormatter from 'shared/components/mutationTable/column/AlleleCountColumnFormatter';
 import AlleleFreqColumnFormatter from '../mutation/column/AlleleFreqColumnFormatter';
 import TumorColumnFormatter from '../mutation/column/TumorColumnFormatter';
@@ -74,8 +74,10 @@ export enum SimilarMutationColumnType {
     START = 'Start',
     REF = 'Ref',
     ALT = 'Alt',
+    CHGVS = 'HGVSc.',
+    PHGVS = 'HGVSp.',
+    TRANSCRIPT = 'Transcript',
     GENE = 'Gene',
-    ENSEMBL = 'Ensembl Gene ID',
     PATHWAYS = 'Pathways',
 
     // comparison
@@ -83,6 +85,10 @@ export enum SimilarMutationColumnType {
     COMPSTART = 'Start2',
     COMPREF = 'Ref2',
     COMPALT = 'Alt2',
+    COMPCHGVS = 'HGVSc.2',
+    COMPPHGVS = 'HGVSp.2',
+    COMPTRANSCRIPT = 'Transcript2',
+    COMPGENE = 'Gene2',
     COMPPATHWAYS = 'Pathways2',
 }
 
@@ -186,6 +192,20 @@ export class PatientSimilarityMutationTable extends React.Component<
         return null;
     }
 
+    protected getGeneDataString(
+        similarMutation: SimilarMutation,
+        mutations: string,
+        key: string
+    ): string | null {
+        const data = this.getMutationData(similarMutation, mutations);
+        if (data.length > 0) {
+            const gene = data[0].gene as Gene;
+            if (gene === undefined) return null;
+            return gene[key as keyof Gene] as string;
+        }
+        return null;
+    }
+
     protected getNamespaceDataString(
         similarMutation: SimilarMutation,
         mutations: string,
@@ -194,17 +214,14 @@ export class PatientSimilarityMutationTable extends React.Component<
     ): string | null {
         const data = this.getMutationData(similarMutation, mutations);
         if (data.length > 0) {
-            console.log(data[0]);
             const namespacecolumns = data[0].namespaceColumns as {
                 [key: string]: any;
             };
+            if (namespacecolumns === undefined) return null;
             const temp = namespacecolumns[namespace];
-            if (temp === undefined) {
-                return '';
-            }
+            if (temp === undefined) return null;
             return temp[namespaceKey];
         }
-        console.log('YOYO2');
         return null;
     }
 
@@ -316,6 +333,75 @@ export class PatientSimilarityMutationTable extends React.Component<
             align: 'right',
             group: 'Patient 1',
         };
+        this._columns[SimilarMutationColumnType.CHGVS] = {
+            name: SimilarMutationColumnType.CHGVS,
+            render: (d: SimilarMutation, i: number) => {
+                return (
+                    <div>
+                        {this.getMutationDataString(
+                            d,
+                            'mutations1',
+                            'aminoAcidChange'
+                        )}
+                    </div>
+                );
+            },
+            visible: false,
+            align: 'right',
+            group: 'Patient 1',
+        };
+        this._columns[SimilarMutationColumnType.PHGVS] = {
+            name: SimilarMutationColumnType.PHGVS,
+            render: (d: SimilarMutation, i: number) => {
+                return (
+                    <div>
+                        {this.getMutationDataString(
+                            d,
+                            'mutations1',
+                            'proteinChange'
+                        )}
+                    </div>
+                );
+            },
+            visible: true,
+            align: 'right',
+            group: 'Patient 1',
+        };
+        this._columns[SimilarMutationColumnType.TRANSCRIPT] = {
+            name: SimilarMutationColumnType.TRANSCRIPT,
+            render: (d: SimilarMutation, i: number) => {
+                return (
+                    <div>
+                        {this.getMutationDataString(
+                            d,
+                            'mutations1',
+                            'refseqMrnaId'
+                        )}
+                    </div>
+                );
+            },
+            visible: false,
+            align: 'right',
+            group: 'Patient 1',
+        };
+        this._columns[SimilarMutationColumnType.GENE] = {
+            name: SimilarMutationColumnType.GENE,
+            render: (d: SimilarMutation, i: number) => {
+                //gene -> hugoGeneSymbol
+                return (
+                    <div>
+                        {this.getGeneDataString(
+                            d,
+                            'mutations1',
+                            'hugoGeneSymbol'
+                        )}
+                    </div>
+                );
+            },
+            visible: true,
+            align: 'right',
+            group: 'Patient 1',
+        };
         this._columns[SimilarMutationColumnType.PATHWAYS] = {
             name: SimilarMutationColumnType.PATHWAYS,
             render: (d: SimilarMutation, i: number) => {
@@ -400,6 +486,75 @@ export class PatientSimilarityMutationTable extends React.Component<
             align: 'right',
             group: 'Patient 2',
         };
+        this._columns[SimilarMutationColumnType.COMPCHGVS] = {
+            name: SimilarMutationColumnType.COMPCHGVS,
+            render: (d: SimilarMutation, i: number) => {
+                return (
+                    <div>
+                        {this.getMutationDataString(
+                            d,
+                            'mutations2',
+                            'aminoAcidChange'
+                        )}
+                    </div>
+                );
+            },
+            visible: false,
+            align: 'right',
+            group: 'Patient 2',
+        };
+        this._columns[SimilarMutationColumnType.COMPPHGVS] = {
+            name: SimilarMutationColumnType.COMPPHGVS,
+            render: (d: SimilarMutation, i: number) => {
+                return (
+                    <div>
+                        {this.getMutationDataString(
+                            d,
+                            'mutations2',
+                            'proteinChange'
+                        )}
+                    </div>
+                );
+            },
+            visible: true,
+            align: 'right',
+            group: 'Patient 2',
+        };
+        this._columns[SimilarMutationColumnType.COMPTRANSCRIPT] = {
+            name: SimilarMutationColumnType.COMPTRANSCRIPT,
+            render: (d: SimilarMutation, i: number) => {
+                return (
+                    <div>
+                        {this.getMutationDataString(
+                            d,
+                            'mutations2',
+                            'refseqMrnaId'
+                        )}
+                    </div>
+                );
+            },
+            visible: false,
+            align: 'right',
+            group: 'Patient 2',
+        };
+        this._columns[SimilarMutationColumnType.COMPGENE] = {
+            name: SimilarMutationColumnType.COMPGENE,
+            render: (d: SimilarMutation, i: number) => {
+                //gene -> hugoGeneSymbol
+                return (
+                    <div>
+                        {this.getGeneDataString(
+                            d,
+                            'mutations2',
+                            'hugoGeneSymbol'
+                        )}
+                    </div>
+                );
+            },
+            visible: true,
+            align: 'right',
+            group: 'Patient 2',
+        };
         this._columns[SimilarMutationColumnType.COMPPATHWAYS] = {
             name: SimilarMutationColumnType.COMPPATHWAYS,
             render: (d: SimilarMutation, i: number) => {
@@ -465,17 +620,28 @@ export class PatientSimilarityMutationTable extends React.Component<
         //this._columns[MutationTableColumnType.GENE_PANEL].order = 10,
         //this._columns[MutationTableColumnType.CENTER].order = 15,
 
-        (this._columns[SimilarMutationColumnType.SIMILARITYTAG].order = 5),
-            (this._columns[SimilarMutationColumnType.CHROM].order = 10),
-            (this._columns[SimilarMutationColumnType.START].order = 15),
-            (this._columns[SimilarMutationColumnType.REF].order = 20),
-            (this._columns[SimilarMutationColumnType.ALT].order = 25),
-            (this._columns[SimilarMutationColumnType.PATHWAYS].order = 50),
-            (this._columns[SimilarMutationColumnType.COMPCHROM].order = 100),
-            (this._columns[SimilarMutationColumnType.COMPSTART].order = 105),
-            (this._columns[SimilarMutationColumnType.COMPREF].order = 110),
-            (this._columns[SimilarMutationColumnType.COMPALT].order = 115);
-        this._columns[SimilarMutationColumnType.COMPPATHWAYS].order = 120;
+        // patient 1
+        this._columns[SimilarMutationColumnType.SIMILARITYTAG].order = 5;
+        this._columns[SimilarMutationColumnType.CHROM].order = 10;
+        this._columns[SimilarMutationColumnType.START].order = 15;
+        this._columns[SimilarMutationColumnType.REF].order = 20;
+        this._columns[SimilarMutationColumnType.ALT].order = 25;
+        this._columns[SimilarMutationColumnType.CHGVS].order = 25;
+        this._columns[SimilarMutationColumnType.PHGVS].order = 30;
+        this._columns[SimilarMutationColumnType.TRANSCRIPT].order = 35;
+        this._columns[SimilarMutationColumnType.GENE].order = 40;
+        this._columns[SimilarMutationColumnType.PATHWAYS].order = 50;
+
+        // patient 2
+        this._columns[SimilarMutationColumnType.COMPCHROM].order = 100;
+        this._columns[SimilarMutationColumnType.COMPSTART].order = 105;
+        this._columns[SimilarMutationColumnType.COMPREF].order = 110;
+        this._columns[SimilarMutationColumnType.COMPALT].order = 115;
+        this._columns[SimilarMutationColumnType.COMPCHGVS].order = 120;
+        this._columns[SimilarMutationColumnType.COMPPHGVS].order = 125;
+        this._columns[SimilarMutationColumnType.COMPTRANSCRIPT].order = 130;
+        this._columns[SimilarMutationColumnType.COMPGENE].order = 135;
+        this._columns[SimilarMutationColumnType.COMPPATHWAYS].order = 150;
 
         //this._columns[MutationTableColumnType.CHROMOSOME].order = 20,
         //this._columns[MutationTableColumnType.START_POS].order = 25,

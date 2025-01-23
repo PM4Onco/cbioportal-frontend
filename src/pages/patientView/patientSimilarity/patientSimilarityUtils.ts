@@ -25,17 +25,17 @@ export function getSimilarMutations(
         } as SimilarMutation;
         var equalityScore = 0;
         for (const comparingMutations of mergedMutationData2) {
-            const comareingMutation = comparingMutations[0];
+            const compareingMutation = comparingMutations[0];
 
             // equal variant
             if (
-                referenceMutation.chr === comareingMutation.chr &&
+                referenceMutation.chr === compareingMutation.chr &&
                 referenceMutation.startPosition ===
-                    comareingMutation.startPosition &&
+                    compareingMutation.startPosition &&
                 referenceMutation.referenceAllele ===
-                    comareingMutation.referenceAllele &&
+                    compareingMutation.referenceAllele &&
                 referenceMutation.variantAllele ===
-                    comareingMutation.variantAllele &&
+                    compareingMutation.variantAllele &&
                 equalityScore < 50
             ) {
                 equalityScore = 50;
@@ -48,9 +48,9 @@ export function getSimilarMutations(
             // equal phgvs
             if (
                 referenceMutation.proteinChange ===
-                    comareingMutation.proteinChange &&
+                    compareingMutation.proteinChange &&
                 referenceMutation.gene.entrezGeneId ===
-                    comareingMutation.gene.entrezGeneId &&
+                    compareingMutation.gene.entrezGeneId &&
                 equalityScore < 40
             ) {
                 equalityScore = 40;
@@ -60,16 +60,40 @@ export function getSimilarMutations(
                 continue;
             }
 
-            // equal pathaway
-
             // equal gene
             if (
                 referenceMutation.gene.entrezGeneId ===
-                    comareingMutation.gene.entrezGeneId &&
+                    compareingMutation.gene.entrezGeneId &&
+                equalityScore < 29
+            ) {
+                console.log(compareingMutation);
+                equalityScore = 30;
+                newMutation['similarityTag'] = 'gene';
+                newMutation['similarityScore'] = equalityScore;
+                newMutation['mutations2'] = comparingMutations;
+                continue;
+            }
+
+            // equal pathway
+            const referenceNamespaceColumns = referenceMutation.namespaceColumns as {
+                [key: string]: any;
+            };
+            const compareingNamespaceColumns = compareingMutation.namespaceColumns as {
+                [key: string]: any;
+            };
+            if (
+                compareingNamespaceColumns != undefined &&
+                referenceNamespaceColumns != undefined &&
+                compareingNamespaceColumns['sim'] != undefined &&
+                referenceNamespaceColumns['sim'] != undefined &&
+                compareingNamespaceColumns['sim']['Pathways'] != undefined &&
+                referenceNamespaceColumns['sim']['Pathways'] != undefined &&
+                referenceNamespaceColumns['sim']['Pathways'] ===
+                    compareingNamespaceColumns['sim']['Pathways'] &&
                 equalityScore < 20
             ) {
                 equalityScore = 20;
-                newMutation['similarityTag'] = 'gene';
+                newMutation['similarityTag'] = 'pathway';
                 newMutation['similarityScore'] = equalityScore;
                 newMutation['mutations2'] = comparingMutations;
                 continue;

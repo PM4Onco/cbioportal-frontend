@@ -56,7 +56,7 @@ export class ColumnVisibilityControls extends React.Component<
         return (
             <Dropdown className={this.props.className} id="dropdown-custom-1">
                 <Dropdown.Toggle
-                    {...({ rootCloseEvent: 'click' } as DropdownToggleProps)}
+                    //{...({ rootCloseEvent: 'click' } as DropdownToggleProps)}
                     className="btn-sm"
                 >
                     {this.props.buttonText}
