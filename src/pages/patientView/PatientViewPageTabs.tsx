@@ -746,6 +746,7 @@ export function tabs(
                 mtbs={pageComponent.patientViewPageStore.mtbs.result}
                 patientViewPageStore={pageComponent.patientViewPageStore}
                 dataStore={pageComponent.patientViewMutationDataStore}
+                cnaDataStore={pageComponent.patientViewCnaDataStore}
                 sampleManager={sampleManager}
                 sampleIds={
                     sampleManager

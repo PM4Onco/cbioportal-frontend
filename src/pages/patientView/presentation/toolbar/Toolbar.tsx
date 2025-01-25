@@ -13,6 +13,7 @@ import { AlignmentMenu } from 'pages/patientView/presentation/toolbar/AlignmentM
 import { SelectedNode } from 'pages/patientView/presentation/Presentation';
 import { IMtb, ITherapyRecommendation } from 'cbioportal-utils';
 import { FusionIcon } from 'pages/patientView/presentation/icons/FusionIcon';
+import { CNAIcon } from 'pages/patientView/presentation/icons/CNAIcon';
 
 type VoidFn = () => void;
 
@@ -29,6 +30,7 @@ interface Props {
     addMutationTableClick: VoidFn;
     addTimelineClick: VoidFn;
     addFusionTableClick: VoidFn;
+    addCNATableClick: VoidFn;
     mtbs: IMtb[];
     addTherapyRecommendationClick: (
         recommendation: ITherapyRecommendation
@@ -65,6 +67,7 @@ export const Toolbar = ({
     addTherapyRecommendationClick,
     selectedNode,
     addFusionTableClick,
+    addCNATableClick,
 }: Props) => {
     return (
         <div className="toolbar">
@@ -83,7 +86,7 @@ export const Toolbar = ({
                             onClick={undoClick}
                             disabled={!canUndo}
                         >
-                            <UndoIcon></UndoIcon>
+                            <UndoIcon />
                         </Item>
                     </TooltipTrigger>
                     <TooltipContent className="Tooltip">Undo</TooltipContent>
@@ -91,7 +94,7 @@ export const Toolbar = ({
                 <Tooltip>
                     <TooltipTrigger>
                         <Item onClick={redoClick} disabled={!canRedo}>
-                            <RedoIcon></RedoIcon>
+                            <RedoIcon />
                         </Item>
                     </TooltipTrigger>
                     <TooltipContent className="Tooltip">Redo</TooltipContent>
@@ -99,7 +102,7 @@ export const Toolbar = ({
                 <Tooltip>
                     <TooltipTrigger>
                         <Item onClick={toggleFullscreenClick}>
-                            <ToggleFullscreenIcon></ToggleFullscreenIcon>
+                            <ToggleFullscreenIcon />
                         </Item>
                     </TooltipTrigger>
                     <TooltipContent className="Tooltip">
@@ -111,7 +114,7 @@ export const Toolbar = ({
                 <Tooltip>
                     <TooltipTrigger>
                         <Item tourClass="add-text" onClick={createTextClick}>
-                            <CreateTextIcon></CreateTextIcon>
+                            <CreateTextIcon />
                         </Item>
                     </TooltipTrigger>
                     <TooltipContent className="Tooltip">
@@ -124,7 +127,7 @@ export const Toolbar = ({
                             tourClass="add-mutation-table"
                             onClick={addMutationTableClick}
                         >
-                            <AddMutationTableIcon></AddMutationTableIcon>
+                            <AddMutationTableIcon />
                         </Item>
                     </TooltipTrigger>
                     <TooltipContent className="Tooltip">
@@ -137,7 +140,7 @@ export const Toolbar = ({
                             tourClass="add-timeline"
                             onClick={addTimelineClick}
                         >
-                            <TimelineIcon></TimelineIcon>
+                            <TimelineIcon />
                         </Item>
                     </TooltipTrigger>
                     <TooltipContent className="Tooltip">
@@ -147,14 +150,24 @@ export const Toolbar = ({
                 <Tooltip>
                     <TooltipTrigger>
                         <Item
-                            tourClass="add-rectangle"
+                            tourClass="add-fusion-table"
                             onClick={addFusionTableClick}
                         >
-                            <FusionIcon></FusionIcon>
+                            <FusionIcon />
                         </Item>
                     </TooltipTrigger>
                     <TooltipContent className="Tooltip">
                         Add structural variants/fusion table
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Item tourClass="add-cnas" onClick={addCNATableClick}>
+                            <CNAIcon />
+                        </Item>
+                    </TooltipTrigger>
+                    <TooltipContent className="Tooltip">
+                        Add copy number alterations table
                     </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -189,7 +202,7 @@ export const Toolbar = ({
                             tourClass="add-rectangle"
                             onClick={addRectangleClick}
                         >
-                            <RectangleIcon></RectangleIcon>
+                            <RectangleIcon />
                         </Item>
                     </TooltipTrigger>
                     <TooltipContent className="Tooltip">

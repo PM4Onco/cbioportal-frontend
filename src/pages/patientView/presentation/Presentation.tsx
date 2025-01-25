@@ -40,6 +40,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import './style.scss';
 import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
+import PatientViewMutationsDataStore from 'pages/patientView/mutation/PatientViewMutationsDataStore';
+import PatientViewCnaDataStore from 'pages/patientView/copyNumberAlterations/PatientViewCnaDataStore';
 
 export interface PresentationClinicalData {
     name: string;
@@ -65,7 +67,8 @@ interface PresentationProps {
     mtbs: IMtb[];
     cna: DiscreteCopyNumberData[];
     patientViewPageStore: PatientViewPageStore;
-    dataStore: any;
+    dataStore: PatientViewMutationsDataStore;
+    cnaDataStore: PatientViewCnaDataStore;
     sampleManager: any;
     sampleIds: string[];
     mergeOncoKbIcons: boolean;
@@ -97,6 +100,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         patientViewPageStore,
         width,
         dataStore,
+        cnaDataStore,
         sampleManager,
         ...mutationTableProps
     }: PresentationProps) => {
@@ -1101,13 +1105,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         function onMutationTableColumnVisibilityToggled(
             columnId: string,
-            columnVisibility?: IColumnVisibilityDef[]
+            columnVisibilityDefs?: IColumnVisibilityDef[]
         ) {
             setColumnVisibility(
                 toggleColumnVisibility(
-                    this.mutationTableColumnVisibility,
+                    columnVisibility,
                     columnId,
-                    columnVisibility
+                    columnVisibilityDefs
                 )
             );
         }
@@ -1185,6 +1189,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                             }
                             addFusionTableClick={() =>
                                 addScalableComponent('fusionTable')
+                            }
+                            addCNATableClick={() =>
+                                addScalableComponent('cnaTable')
                             }
                             addTherapyRecommendationClick={
                                 addTherapyRecommendations
@@ -1294,6 +1301,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                     'fusionTable' && {
                                                                                     patientViewPageStore,
                                                                                     dataStore,
+                                                                                    sampleManager,
+                                                                                    ...mutationTableProps,
+                                                                                }),
+                                                                                ...(node.type ===
+                                                                                    'cnaTable' && {
+                                                                                    patientViewPageStore,
+                                                                                    cnaDataStore,
                                                                                     sampleManager,
                                                                                     ...mutationTableProps,
                                                                                 }),

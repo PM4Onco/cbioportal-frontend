@@ -174,6 +174,7 @@
 
 .presentation__node--draggable .presentation__mutation-table,
 .presentation__node--draggable .presentation__fusion-table,
+.presentation__node--draggable .presentation__cna-table,
 .presentation__node--draggable .presentation__timeline {
     pointer-events: none;
     user-select: none;
@@ -194,10 +195,15 @@
     font-size: 16px;
 }
 
-.presentation__fusion-table {
+.presentation__fusion-table,
+.presentation__cna-table {
     width: max-content;
     font-size: 16px;
     background: white;
+}
+
+.presentation__cna-table .instruction-panel {
+    display: none !important;
 }
 
 .presentation__therapy-recommendations {

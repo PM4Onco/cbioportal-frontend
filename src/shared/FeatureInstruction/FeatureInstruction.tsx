@@ -20,7 +20,11 @@ export default function FeatureInstruction(
             onMouseLeave={handleHover}
             className={styles.container}
         >
-            <div ref={divElementRef} style={props.style || {}}>
+            <div
+                ref={divElementRef}
+                style={props.style || {}}
+                className="instruction-panel"
+            >
                 <i className={'fa fa-lightbulb-o'}></i> {props.content}
             </div>
             {props.children}

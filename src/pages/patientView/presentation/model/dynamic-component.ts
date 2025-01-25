@@ -7,6 +7,7 @@ import { Timeline } from 'pages/patientView/presentation/components/Timeline';
 import { TherapyRecommendations } from 'pages/patientView/presentation/components/TherapyRecommendations';
 import { Rectangle } from 'pages/patientView/presentation/components/Rectangle';
 import { FusionTable } from 'pages/patientView/presentation/components/FusionTable';
+import { CNATable } from 'pages/patientView/presentation/components/CNATable';
 
 export interface DynamicComponentProps<T> {
     initialValue: T;
@@ -28,6 +29,7 @@ export const Components = {
     therapyRecommendations: TherapyRecommendations,
     rectangle: Rectangle,
     fusionTable: FusionTable,
+    cnaTable: CNATable,
 } as const;
 
 export type ComponentKeys = keyof typeof Components;
