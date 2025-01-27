@@ -56,6 +56,16 @@ if (
             content: `The <a href="https://cbioportal.mskcc.org/study/summary?id=mskimpact" _target="_blank">MSK-IMPACT cohort</a> now includes additional NLP-derived data elements from the Cancer Data Science Initiative (<a href="https://mskcc.sharepoint.com/sites/pub-CDSI" target="_blank">Read more</a>)`,
             id: '2023_msk_chord_release',
         });
+
+        MESSAGE_DATA.push({
+            dateEnd: 1000000000000000,
+            content: `As MSK clinical systems are transitioning to EPIC, we are
+            trying our best to update the de-identified clinical data in
+            cBioPortal, but please expect some delay (months) . Genomics data
+            will be updated regularly. If you have any questions or concerns
+            regarding these delays, please email <a href="mailto:cdsi@mskcc.org">cdsi@mskcc.org</a>.`,
+            id: '2025_epic_transition_warning',
+        });
     }
 }
 
