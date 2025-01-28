@@ -1518,10 +1518,10 @@ export class StudyViewPageStore
                 promises,
                 async (
                     selectedSampleSet: ComplexKeyMap<Sample>,
-                    sampleTreatments: SampleTreatmentRow[]
+                    sampleTreatments: SampleTreatmentReport
                 ) => {
                     const treatmentKeysMap = _.keyBy(treatmentUniqueKeys);
-                    const desiredTreatments = sampleTreatments.filter(
+                    const desiredTreatments = sampleTreatments.treatments.filter(
                         t =>
                             treatmentUniqueKey(t, isPatientType) in
                             treatmentKeysMap
