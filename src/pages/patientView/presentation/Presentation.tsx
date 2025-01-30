@@ -123,11 +123,12 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         const [columnVisibility, setColumnVisibility] = useState<{
             [columnId: string]: boolean;
         }>({
-            Exon: true,
+            Exon: false,
             'Allele Freq': true,
-            HGVSc: true,
-            HGVSg: true,
-            ClinVar: true,
+            HGVSc: false,
+            HGVSg: false,
+            'Patho Classification': true,
+            ClinVar: false,
             MS: false,
             COSMIC: false,
             gnomAD: false,
