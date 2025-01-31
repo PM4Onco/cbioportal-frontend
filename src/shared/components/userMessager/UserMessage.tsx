@@ -52,12 +52,6 @@ if (
         ['cbioportal.mskcc.org'].includes(getBrowserWindow().location.hostname)
     ) {
         MESSAGE_DATA.push({
-            dateEnd: 100000000000000,
-            content: `The <a href="https://cbioportal.mskcc.org/study/summary?id=mskimpact" _target="_blank">MSK-IMPACT cohort</a> now includes additional NLP-derived data elements from the Cancer Data Science Initiative (<a href="https://mskcc.sharepoint.com/sites/pub-CDSI" target="_blank">Read more</a>)`,
-            id: '2023_msk_chord_release',
-        });
-
-        MESSAGE_DATA.push({
             dateEnd: 1000000000000000,
             content: `During the MSK Epic transition, updates to de-identified
             clinical data in cBioPortal will be delayed several months, but
