@@ -282,7 +282,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 'overview:menu:open',
                 () => {
                     const stepIndex = tourHelpers.current?.info().index;
-                    if (stepIndex === 4 || stepIndex === 7) {
+                    if (
+                        stepIndex === 4 ||
+                        stepIndex === 7 ||
+                        stepIndex === 12
+                    ) {
                         tourHelpers.current?.next();
                     }
                 },
@@ -405,7 +409,7 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
         async function handlePasteAsHTML(blob: Blob) {
             const html = await blob.text();
-            createHTML(html);
+            createText(html);
         }
 
         async function handlePasteAsImage(blob: Blob) {
@@ -634,6 +638,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             setHistory(slideId, previousSlide);
             setActiveSlide(slideId - 2);
             updateOverviewAfterTimeout(0);
+            if (tourRun) {
+                tourHelpers.current?.next();
+            }
         }
 
         function moveSlideDown(slideId: number) {
@@ -716,9 +723,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
 
             const present = state.get(getCurrentSlideId())?.present ?? [];
             set(getCurrentSlideId(), [...present, node]);
-            if (tourRun) {
-                tourHelpers.current?.next();
-            }
         }
 
         function createImage(location: string) {
@@ -798,20 +802,6 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                 position: { left: 20, top: 20, width: 100, height: 20 },
                 type: 'rectangle',
                 value: null,
-            };
-
-            const present = state.get(getCurrentSlideId())?.present ?? [];
-            set(getCurrentSlideId(), [...present, node]);
-        }
-
-        function createHTML(html: string) {
-            const id = crypto.randomUUID();
-
-            const node: Node<string> = {
-                id,
-                position: { left: 20, top: 20 },
-                type: 'html',
-                value: html,
             };
 
             const present = state.get(getCurrentSlideId())?.present ?? [];
@@ -1286,6 +1276,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
                                                                                 ...(node.type ===
                                                                                     'text' && {
                                                                                     clinicalData,
+                                                                                    tourRunning: tourRun,
+                                                                                    tourHelpers:
+                                                                                        tourHelpers.current,
                                                                                 }),
                                                                                 ...(node.type ===
                                                                                     'mutationTable' && {

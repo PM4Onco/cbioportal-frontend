@@ -7,7 +7,7 @@ interface ClinicalData {
 }
 
 const asRegexVariable = (id: string, displayName: string) => {
-    return new RegExp(String.raw`{{${id}}}|{{${displayName}}}$`);
+    return new RegExp(String.raw`{{${id}}}|{{${displayName}}}$`, 'i');
 };
 
 export const ClinicalDataReplacer = Extension.create({
@@ -15,14 +15,16 @@ export const ClinicalDataReplacer = Extension.create({
     addInputRules() {
         const clinicalData: ClinicalData[] = this.options.clinicalData;
 
-        return clinicalData.map(entry =>
-            textInputRule({
-                find: asRegexVariable(
-                    entry.clinicalAttributeId,
-                    entry.clinicalAttribute.displayName
-                ),
-                replace: entry.value,
-            })
+        return (
+            clinicalData?.map(entry =>
+                textInputRule({
+                    find: asRegexVariable(
+                        entry.clinicalAttributeId,
+                        entry.clinicalAttribute.displayName
+                    ),
+                    replace: entry.value,
+                })
+            ) ?? []
         );
     },
 });

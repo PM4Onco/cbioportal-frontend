@@ -41,6 +41,7 @@ import {
 } from 'pages/patientView/presentation/Tooltip';
 import { ClinicalDataReplacer } from 'pages/patientView/presentation/editor/clinicalDataReplacer';
 import { ClinicalData } from 'cbioportal-ts-api-client';
+import { StoreHelpers } from 'react-joyride';
 
 interface State {
     down: boolean;
@@ -55,6 +56,8 @@ interface Props {
     draggableChanged: DraggableChangedFn;
     initialValue: string;
     clinicalData: ClinicalData[];
+    tourRunning: boolean;
+    tourHelpers: StoreHelpers | undefined;
 }
 
 export const TextNode = ({
@@ -63,7 +66,10 @@ export const TextNode = ({
     draggableChanged,
     selectedChanged,
     clinicalData,
+    tourRunning,
+    tourHelpers,
 }: Props) => {
+    const DEFAULT_VALUE = 'Neuer Textbaustein';
     const [state, setState] = React.useState<State>({
         down: false,
         selected: false,
@@ -80,6 +86,8 @@ export const TextNode = ({
     ] = React.useState<HTMLDivElement | null>(null);
     const toolbar = document.querySelector('.toolbar');
     const toolbarEditorMenu = document.querySelector('.toolbar__editor-menu');
+
+    const [onUpdateEnabled, setOnUpdateEnabled] = React.useState(true);
 
     const extensions: Extensions = [
         Document,
@@ -113,6 +121,15 @@ export const TextNode = ({
     const editor = useEditor({
         extensions,
         content: initialValue,
+        onUpdate: ({ editor }) => {
+            if (!onUpdateEnabled) return;
+
+            const text = editor.getText();
+            if (tourRunning && text.includes('Male')) {
+                tourHelpers?.next();
+                setOnUpdateEnabled(false);
+            }
+        },
     });
 
     useEffect(() => {

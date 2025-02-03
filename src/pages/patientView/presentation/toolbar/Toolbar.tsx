@@ -173,6 +173,7 @@ export const Toolbar = ({
                 <Tooltip>
                     <TooltipTrigger>
                         <MtbSelector
+                            tourClass="add-therapy-recommendation"
                             mtbs={mtbs}
                             recommendationSelected={
                                 addTherapyRecommendationClick
