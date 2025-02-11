@@ -356,7 +356,13 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         async function loadPresentation() {
-            const patientId = patientViewPageStore.getSafePatientId();
+            // UUID-based loading for evaluation
+            // const patientId = patientViewPageStore.getSafePatientId();
+
+            const patientId =
+                localStorage.getItem('mtb-presentation-uuid') ??
+                crypto.randomUUID();
+            localStorage.setItem('mtb-presentation-uuid', patientId);
 
             const response = await fetch(
                 `${fhirsparkURL()}/presentation/${patientId}`
@@ -1029,7 +1035,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         async function savePresentation() {
-            const patientId = patientViewPageStore.getSafePatientId();
+            // UUID-based id for evaluation
+            // const patientId = patientViewPageStore.getSafePatientId();
+            const patientId = localStorage.getItem('mtb-presentation-uuid');
+            if (!patientId) throw new Error('No patient id');
+
             let presentation = {};
 
             for (const slide of state) {
