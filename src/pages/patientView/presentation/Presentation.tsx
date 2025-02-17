@@ -42,6 +42,7 @@ import 'reveal.js/dist/reveal.css';
 import 'reveal.js/dist/theme/white.css';
 import PatientViewMutationsDataStore from 'pages/patientView/mutation/PatientViewMutationsDataStore';
 import PatientViewCnaDataStore from 'pages/patientView/copyNumberAlterations/PatientViewCnaDataStore';
+import LoadingIndicator from 'shared/components/loadingIndicator/LoadingIndicator';
 
 export interface PresentationClinicalData {
     name: string;
@@ -178,7 +179,9 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             currentSlideId,
         ]);
 
-        useHotkeys('backspace', () => onBackspacePressed(), [selectedNodes]);
+        useHotkeys('backspace,delete', () => onBackspacePressed(), [
+            selectedNodes,
+        ]);
 
         useEffect(() => {
             const controller = new AbortController();
@@ -419,7 +422,11 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
         }
 
         async function handlePasteAsImage(blob: Blob) {
-            const patientId = patientViewPageStore.getSafePatientId();
+            // UUID-based id for evaluation
+            // const patientId = patientViewPageStore.getSafePatientId();
+            const patientId = localStorage.getItem('mtb-presentation-uuid');
+            if (!patientId) throw new Error('No patient id');
+
             const data = await blobToBase64(blob);
             const response = await fetch(
                 `${fhirsparkURL()}/presentation/${patientId}/image`,
@@ -1081,7 +1088,10 @@ export const Presentation: React.FunctionComponent<PresentationProps> = observer
             );
             if (!confirmed) return;
 
-            const patientId = patientViewPageStore.getSafePatientId();
+            // UUID-based id for evaluation
+            // const patientId = patientViewPageStore.getSafePatientId();
+            const patientId = localStorage.getItem('mtb-presentation-uuid');
+            if (!patientId) throw new Error('No patient id');
 
             const response = await fetch(
                 `${fhirsparkURL()}/presentation/${patientId}`,

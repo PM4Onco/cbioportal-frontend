@@ -11,6 +11,7 @@
         width: 240px !important;
 
         section {
+            counter-increment: slidenumber;
             display: flex !important;
             width: 960px;
             height: 700px;
@@ -40,6 +41,15 @@
 
             .presentation__node--selected {
                 outline: none;
+            }
+
+            &::before {
+                content: counter(slidenumber);
+                position: absolute;
+                bottom: 36px;
+                left: 36px;
+                scale: 3;
+                color: #afafaf;
             }
         }
     }

@@ -112,7 +112,7 @@ export const steps: Array<Step> = [
     {
         target: '.presentation .presentation__node--text',
         content:
-            "Great! The name of a variable is the same as its name in the 'Clinical Data' tab.",
+            "Great! The name of a variable is the same as its name in the 'Clinical Data' tab. Note: It's important that the closing braces ('}}') are entered last. Otherwise the replacement will not work.",
     },
     {
         target: '[data-tour="add-mutation-table"]',

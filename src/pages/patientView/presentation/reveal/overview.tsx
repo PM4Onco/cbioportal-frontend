@@ -294,6 +294,10 @@ const updateSelectedSlide = (reveal: Api) => {
 
     oldSelection.classList.remove('selected');
     newSelection.classList.add('selected');
+
+    if (newSelection && !isElementInViewport(newSelection)) {
+        newSelection.scrollIntoView(false);
+    }
 };
 
 const slideClicked = (reveal: Api, id: number) => {
@@ -302,4 +306,17 @@ const slideClicked = (reveal: Api, id: number) => {
 
 const originalSlideId = (id: string) => {
     return Number(id.replace('overview-', ''));
+};
+
+const isElementInViewport = (el: Element) => {
+    const rect = el.getBoundingClientRect();
+
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <=
+            (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <=
+            (window.innerWidth || document.documentElement.clientWidth)
+    );
 };
