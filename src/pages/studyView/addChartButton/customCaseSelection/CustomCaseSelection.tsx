@@ -32,6 +32,7 @@ export interface ICustomCaseSelectionProps {
     disableGrouping?: boolean;
     getDefaultChartName?: () => string;
     isChartNameValid?: (chartName: string) => boolean;
+    contentNormalizer?: (content: string) => string;
 }
 
 // This is the selection tool that is used to switch between bar and pie charts for categorical and numerical data.
@@ -158,7 +159,9 @@ export default class CustomCaseSelection extends React.Component<
 
     @action.bound
     onChange(newContent: string) {
-        this.validContent = newContent;
+        this.validContent = this.props.contentNormalizer
+            ? this.props.contentNormalizer(newContent)
+            : newContent;
         this.validateContent = true;
     }
 
