@@ -24,6 +24,7 @@ import {
     wrapText,
 } from 'cbioportal-frontend-commons';
 import { key } from 'localforage';
+import { numLeadingDecimalZeros } from 'pages/patientView/timeline/VAFChartUtils';
 
 /* Interfaces for data format */
 
@@ -32,6 +33,7 @@ interface Datum {
     x: number | string | Date;
     y: number | null;
     y0?: number;
+    labelName?: string; // used only for tooltip, will be dynamically filled with content
 }
 
 // structure of input data object: identifier, x/y points
@@ -59,6 +61,7 @@ interface LineScatterPlotProps {
     secondYTickFormat?: string[];
     secondYRange?: [number, number];
     standardRange?: Range;
+    showTooltip?: boolean;
 }
 
 /* Pre-defined constants*/
@@ -83,6 +86,7 @@ const TICK_FONTSIZE = TEXT_FONTSIZE;
 const AXISLABEL_FONTSIZE = TICK_FONTSIZE + 1;
 const TITLE_FONTSIZE = TICK_FONTSIZE + 2;
 const LEGEND_FONTSIZE = AXISLABEL_FONTSIZE;
+const LABEL_FONTSIZE = TEXT_FONTSIZE;
 
 // stroke width
 const LINE_STROKE_WIDTH = STROKE_WIDTH / 2;
@@ -218,37 +222,74 @@ const mergeArrays = (
     return result;
 };
 
-// functional hook to display standard range in plot
+// function to display standard range in plot
+const createRangeData = (dataSet: DataSet, standardRange: Range): DataSet => {
+    const { minX, maxX } = getXDomain(dataSet);
 
-const useStandardRangeData = (
-    dataSet: DataSet,
-    standardRange: Range
-): DataSet => {
-    return useMemo(() => {
-        const { minX, maxX } = getXDomain(dataSet);
+    if (minX === null || maxX === null) return {};
 
-        if (minX === null || maxX === null) return {};
+    // if name given in standardRange, use this, otherwise a default name
+    const name = standardRange.name ? standardRange.name : 'Standard Range';
 
-        // if name given in standardRange, use this, otherwise a default name
-        const name = standardRange.name ? standardRange.name : 'Standard Range';
-        // create DataSet of two elements = four value pairs
-        const result: DataSet = {
-            [name]: [
-                {
-                    x: minX,
-                    y: standardRange.range[1],
-                    y0: standardRange.range[0],
-                },
-                {
-                    x: maxX,
-                    y: standardRange.range[1],
-                    y0: standardRange.range[0],
-                },
-            ],
-        };
+    // create DataSet of two elements = four value pairs
+    const result: DataSet = {
+        [name]: [
+            {
+                x: minX,
+                y: standardRange.range[1],
+                y0: standardRange.range[0],
+            },
+            {
+                x: maxX,
+                y: standardRange.range[1],
+                y0: standardRange.range[0],
+            },
+        ],
+    };
+    return result;
+};
 
+// normalize data
+const normalizeDataSet = (
+    dataSet: Datum[],
+    range: [number, number]
+): Datum[] => {
+    const [minY, maxY] = range;
+
+    // If normalization not possible (max is 0 or max equals min), return original data.
+    if (maxY === 0 || maxY === minY) {
+        return dataSet;
+    }
+
+    // Normalize the y values
+    return dataSet.map(datum => ({
+        ...datum,
+        y:
+            typeof datum.y === 'number'
+                ? (datum.y - minY) / (maxY - minY) // normalization
+                : null,
+    }));
+};
+
+const transformNormalizedNumberToOriginal = (
+    y: number | null,
+    range: [number, number] | null
+): number | null => {
+    if (y === null) {
+        return null;
+    }
+    if (range === null) {
+        return y;
+    }
+    const [minY, maxY] = range;
+    const result = y * (maxY - minY) + minY;
+
+    // to prevent some numerical issues with VAS score
+    if (result >= 1) {
+        return Math.round(result);
+    } else {
         return result;
-    }, [dataSet, standardRange]);
+    }
 };
 
 /* Plot logic */
@@ -266,47 +307,45 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     secondYTickFormat,
     secondYRange,
     standardRange,
+    showTooltip = true,
 }) => {
     // useState hook to show and hide specific datasets
     const [hiddenKeys, setHiddenKeys] = useState<string[]>(['Average']); // datasetes named "Average" are initially not shown
 
     // TODO: assure yRange has same format as yTickFormat
 
-    // Hook to memoize processed data, applying normalization if a second Y axis is present.
+    // Hook to memoize processed data, applying normalization if a second Y axis is present + fill label (needed for tooltip)
     const useProcessedData = (
         data: DataSet,
         yRange: [number, number],
         secondYRange?: [number, number]
     ): DataSet => {
         return useMemo(() => {
+            const keys = Object.keys(data);
+
+            /* fill label property of data entries */
+            for (let key of keys) {
+                data[key].forEach((datum: Datum) => {
+                    datum.labelName = key;
+                });
+            }
+
+            // add dummy data as first and last element (used for standardRange)
+            if (standardRange) {
+                const dummyDatumBefore: Datum = { x: '!', y: null };
+                const dummyDatumAfter: Datum = { x: '~', y: null };
+                for (let key of keys) {
+                    data[key].unshift(dummyDatumBefore);
+                    data[key].push(dummyDatumAfter);
+                }
+            }
+            /* normalization */
             // If no second axis, return original data (no normalization needed here)
             if (!secondYRange) {
                 return data;
             }
-            const keys = Object.keys(data);
+
             const newData: DataSet = { ...data };
-
-            // A standard normalization to [0, 1] would typically use (y - minY) / (maxY - minY).
-            const normalizeDataSet = (
-                dataSet: Datum[],
-                range: [number, number]
-            ): Datum[] => {
-                const [minY, maxY] = range;
-
-                // If normalization not possible (max is 0 or max equals min), return original data.
-                if (maxY === 0 || maxY === minY) {
-                    return dataSet;
-                }
-
-                // Normalize the y values
-                return dataSet.map(datum => ({
-                    ...datum,
-                    y:
-                        typeof datum.y === 'number'
-                            ? (datum.y - minY) / (maxY - minY)
-                            : null,
-                }));
-            };
 
             // Normalize the first dataset if it exists
             if (keys.length > 0) {
@@ -356,6 +395,19 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         },
     ];
 
+    /*  const toggleStrokeWidth = (strokeWidth: number, color: string) => {
+        if (strokeWidth === STROKE_WIDTH + 1) {
+          return null;
+        } else {
+          return {
+            style: {
+              strokeWidth: STROKE_WIDTH + 1,
+              stroke: color,
+            },
+          };
+        }
+      }; */
+
     // calculate tick values given the range of the data and the number of ticks
     const tickValues = (range: [number, number], ticks: number): number[] => {
         // if second y axis present, normalize tick values, otherwise keep original range
@@ -381,7 +433,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     }[] = [];
 
     if (standardRange) {
-        standardRangeData = useStandardRangeData(data, standardRange);
+        standardRangeData = createRangeData(data, standardRange);
         standardRangeDataProcessed = useProcessedData(
             standardRangeData,
             yRange,
@@ -398,18 +450,36 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         mergedDataForLegend = mergeArrays(datasets, standardRangeDataMapped, 1);
     }
 
+    const displayTooltip = (datum: Datum, index: number): string => {
+        if (secondYRange) {
+            if (index === 0) {
+                const originalY = transformNormalizedNumberToOriginal(
+                    datum.y,
+                    yRange
+                );
+                return `${datum.labelName}: ${originalY}`;
+            }
+            if (index === 1) {
+                const originalY2 = transformNormalizedNumberToOriginal(
+                    datum.y,
+                    secondYRange
+                );
+                return `${datum.labelName}: ${originalY2}`;
+            }
+            // default: should not be reached
+            return `${datum.labelName}: ${datum.y}`;
+        } else {
+            return `${datum.labelName}: ${datum.y}`;
+        }
+    };
+
     // rendering
     return (
-        <div
-            className="container"
-            style={{ display: 'flex', alignItems: 'flex-start' }}
-        >
+        <div>
             <VictoryChart
                 width={width}
                 height={height}
-                /* containerComponent={
-                    <VictoryVoronoiContainer />
-                  } */
+                containerComponent={<VictoryVoronoiContainer />}
                 //theme={CBIOPORTAL_VICTORY_THEME}
                 theme={VictoryTheme.clean}
                 padding={{
@@ -522,50 +592,19 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                     }}
                 />
 
+                {/* Label for standard Range MUST USE NORMALZED RANGE*/}
+                {/* {standardRange && 
+                    <VictoryLabel
+                        //textAnchor="inherit"
+                        style={{ fontSize: LABEL_FONTSIZE, opacity: 0.9 }}
+                        x={standardRange.name ? 0.7 * width - standardRange.name.length * 4 : 0.7 * width - 40}
+                        y={(yTickFormat.length + 1)/yTickFormat.length * standardRange.range[0] * height + 1}
+                        text={standardRange.name}
+                    />      
+                } */}
+
                 {/* Plots */}
 
-                {datasets.map(({ key, points, color, childName }) => {
-                    const scatterPoints = points.filter(
-                        p => p.y !== null && p.y !== undefined
-                    ); // filters out points with null or undefined y-value
-                    return (
-                        <VictoryGroup>
-                            {/*data={scatterPoints}*/}
-                            <VictoryLine
-                                name={childName}
-                                data={points}
-                                style={{
-                                    data: {
-                                        stroke: color,
-                                        strokeWidth: LINE_STROKE_WIDTH,
-                                        visibility: hiddenKeys.includes(key)
-                                            ? 'hidden'
-                                            : 'visible',
-                                    },
-                                }}
-                                interpolation="linear"
-                                //dataComponent={<LineSegment />}
-                            />
-                            <VictoryScatter
-                                name={childName}
-                                data={points}
-                                size={SCATTER_POINT_SIZE} // size={( { active }: { active: any }) => active ? 2 * SCATTER_POINT_SIZE: SCATTER_POINT_SIZE}
-                                symbol={'circle'}
-                                style={{
-                                    data: {
-                                        fill: color,
-                                        visibility: hiddenKeys.includes(key)
-                                            ? 'hidden'
-                                            : 'visible',
-                                    },
-                                }}
-                                //labels={({ datum }: { datum: Datum}) => `(${datum.x}, ${datum.y})`}
-                                //labelComponent={<VictoryTooltip />}
-                                //dataComponent={<Point />}
-                            />
-                        </VictoryGroup>
-                    );
-                })}
                 {standardRange &&
                     standardRangeDataMapped.map(
                         ({ key, points, color, childName }) => {
@@ -587,6 +626,92 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                         }
                     )}
 
+                {datasets.map(({ key, points, color, childName }, i) => {
+                    const scatterPoints = points.filter(
+                        p => p.y !== null && p.y !== undefined
+                    ); // filters out points with null or undefined y-value
+                    return (
+                        <VictoryGroup>
+                            {/*data={scatterPoints}*/}
+                            <VictoryLine
+                                name={childName}
+                                data={points}
+                                style={{
+                                    data: {
+                                        stroke: color,
+                                        strokeWidth: LINE_STROKE_WIDTH,
+                                        visibility: hiddenKeys.includes(key)
+                                            ? 'hidden'
+                                            : 'visible',
+                                    },
+                                }}
+                                interpolation="linear"
+                                //dataComponent={<LineSegment />}
+                                /* events={!hiddenKeys.includes(key) ? [
+                                    {
+                                      target: "data",
+                                      eventHandlers: {
+                                        onClick: () => {
+                                          return [
+                                            {
+                                              eventKey: "all",
+                                              mutation: (props: any) =>
+                                                toggleStrokeWidth(
+                                                  props.style
+                                                    ?.strokeWidth, color
+                                                ),
+                                            },
+                                          ];
+                                        },
+                                      },
+                                    },
+                                  ] : null} */
+                            />
+                            <VictoryScatter
+                                name={childName}
+                                data={points}
+                                size={SCATTER_POINT_SIZE} // size={( { active }: { active: any }) => active ? 2 * SCATTER_POINT_SIZE: SCATTER_POINT_SIZE}
+                                symbol={'circle'}
+                                style={{
+                                    data: {
+                                        fill: color,
+                                        visibility: hiddenKeys.includes(key)
+                                            ? 'hidden'
+                                            : 'visible',
+                                    },
+                                }}
+                                labels={
+                                    !hiddenKeys.includes(key) && showTooltip
+                                        ? (d: Datum) => displayTooltip(d, i)
+                                        : null
+                                }
+                                labelComponent={
+                                    <VictoryTooltip
+                                        dy={-7}
+                                        cornerRadius={5}
+                                        flyoutPadding={{
+                                            top: 4,
+                                            bottom: 4,
+                                            left: 6,
+                                            right: 6,
+                                        }}
+                                        flyoutStyle={{
+                                            fill: 'white',
+                                            stroke: 'gray',
+                                        }}
+                                        pointerWidth={5}
+                                        style={{
+                                            fontSize: LABEL_FONTSIZE,
+                                            fill: '#333',
+                                        }}
+                                    />
+                                }
+                                //dataComponent={<Point />}
+                            />
+                        </VictoryGroup>
+                    );
+                })}
+
                 {/* Legend */}
                 <VictoryLegend
                     title={secondYRange ? null : 'Legend'}
@@ -604,7 +729,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                           ? 'lightgray'
                                           : color,
                                       type:
-                                          key == 'Standard Range'
+                                          key === 'Standard Range'
                                               ? 'square'
                                               : 'minus',
                                       opacity:

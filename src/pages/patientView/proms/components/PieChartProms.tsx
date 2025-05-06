@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     VictoryChart,
     VictoryLine,
@@ -38,44 +38,42 @@ const colors = ['#dc3545', 'lightgray'];
 
 // base layout constants
 const TEXT_FONTSIZE = 8;
-const LABEL_FONTSIZE = 3 * TEXT_FONTSIZE;
+const LABEL_FONTSIZE = 20;
 
 /* Plot logic */
 
 const PieChart: React.FC<PieChartProps> = ({
     data,
-    sideLength = 300,
+    sideLength = 280,
     dataRange,
 }) => {
     // viewBox path
     const viewBoxPath = '0 0 ' + sideLength + ' ' + sideLength;
 
-    // Hook to memoize data, create array for pie chart data
-    const useProcessedData = (
+    // create array of length 2 (two parts of pie chart)
+    const processData = (
         data: DataPair,
         range: [number, number]
     ): DataPair[] => {
-        return useMemo(() => {
-            let newData: DataPair[] = [];
+        let newData: DataPair[] = [];
 
-            newData[0] = data;
-            newData[1] = { x: '', y: range[1] - data.y };
+        newData[0] = data;
+        newData[1] = { x: '', y: range[1] - data.y };
 
-            return newData;
-        }, [data, range]);
+        return newData;
     };
 
-    const processedData = useProcessedData(data, dataRange);
+    const processedData = processData(data, dataRange);
 
     // rendering
     return (
         <div
-            className="container"
+        /* className="container"
             style={{
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-            }}
+            }} */
         >
             <svg viewBox={viewBoxPath} width={sideLength} height={sideLength}>
                 {/* Pie Chart */}
@@ -108,7 +106,7 @@ const PieChart: React.FC<PieChartProps> = ({
                     textAnchor="middle"
                     style={{ fontSize: LABEL_FONTSIZE }}
                     x={sideLength / 2}
-                    y={sideLength - 2 * LABEL_FONTSIZE}
+                    y={sideLength - 3 * LABEL_FONTSIZE}
                     text={data.x}
                 />
             </svg>

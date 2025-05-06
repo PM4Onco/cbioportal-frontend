@@ -12,6 +12,7 @@ import PatientViewCnaDataStore from 'pages/patientView/copyNumberAlterations/Pat
 
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
 import PatientViewMutationsDataStore from '../mutation/PatientViewMutationsDataStore';
+import { Grid, Row, Col } from 'react-bootstrap';
 
 interface PROMsProps {
     patientViewPageStore: PatientViewPageStore;
@@ -59,55 +60,55 @@ const VAS_VALUES_ALPHA = [
 /* Sample data sets */
 const sampleData5Dimensions: DataSet = {
     Mobility: [
-        { x: formatDate(new Date(2023, 0, 1)), y: 1 },
-        { x: formatDate(new Date(2023, 1, 1)), y: 2 },
-        { x: formatDate(new Date(2023, 2, 1)), y: 1 },
-        { x: formatDate(new Date(2023, 3, 1)), y: 4 },
+        { x: formatDate(new Date(2025, 0, 1)), y: 1 },
+        { x: formatDate(new Date(2025, 1, 1)), y: 2 },
+        { x: formatDate(new Date(2025, 2, 1)), y: 1 },
+        { x: formatDate(new Date(2025, 3, 1)), y: 4 },
     ],
     'Self-Care': [
-        { x: formatDate(new Date(2023, 0, 1)), y: 3 },
-        { x: formatDate(new Date(2023, 1, 1)), y: 5 },
-        { x: formatDate(new Date(2023, 2, 1)), y: 4 },
-        { x: formatDate(new Date(2023, 3, 1)), y: 2 },
+        { x: formatDate(new Date(2025, 0, 1)), y: 3 },
+        { x: formatDate(new Date(2025, 1, 1)), y: 5 },
+        { x: formatDate(new Date(2025, 2, 1)), y: 4 },
+        { x: formatDate(new Date(2025, 3, 1)), y: 2 },
     ],
     'Usual activities': [
-        { x: formatDate(new Date(2023, 0, 1)), y: 1 },
-        { x: formatDate(new Date(2023, 1, 1)), y: 1 },
-        { x: formatDate(new Date(2023, 2, 1)), y: 2 },
-        { x: formatDate(new Date(2023, 3, 1)), y: 2 },
+        { x: formatDate(new Date(2025, 0, 1)), y: 1 },
+        { x: formatDate(new Date(2025, 1, 1)), y: 1 },
+        { x: formatDate(new Date(2025, 2, 1)), y: 2 },
+        { x: formatDate(new Date(2025, 3, 1)), y: 2 },
     ],
     'Pain/Discomfort': [
-        { x: formatDate(new Date(2023, 0, 1)), y: 5 },
-        { x: formatDate(new Date(2023, 1, 1)), y: 3 },
-        { x: formatDate(new Date(2023, 2, 1)), y: 1 },
-        { x: formatDate(new Date(2023, 3, 1)), y: 3 },
+        { x: formatDate(new Date(2025, 0, 1)), y: 5 },
+        { x: formatDate(new Date(2025, 1, 1)), y: 3 },
+        { x: formatDate(new Date(2025, 2, 1)), y: 1 },
+        { x: formatDate(new Date(2025, 3, 1)), y: 3 },
     ],
     'Anxiety/Dipression': [
-        { x: formatDate(new Date(2023, 0, 1)), y: 2 },
-        { x: formatDate(new Date(2023, 1, 1)), y: 2 },
-        { x: formatDate(new Date(2023, 2, 1)), y: 2 },
-        { x: formatDate(new Date(2023, 3, 1)), y: 1 },
+        { x: formatDate(new Date(2025, 0, 1)), y: 2 },
+        { x: formatDate(new Date(2025, 1, 1)), y: 2 },
+        { x: formatDate(new Date(2025, 2, 1)), y: 2 },
+        { x: formatDate(new Date(2025, 3, 1)), y: 1 },
     ],
     Average: [
-        { x: formatDate(new Date(2023, 0, 1)), y: 2.3 },
-        { x: formatDate(new Date(2023, 1, 1)), y: 3.5 },
-        { x: formatDate(new Date(2023, 2, 1)), y: 1.7 },
-        { x: formatDate(new Date(2023, 3, 1)), y: 2.8 },
+        { x: formatDate(new Date(2025, 0, 1)), y: 2.3 },
+        { x: formatDate(new Date(2025, 1, 1)), y: 3.5 },
+        { x: formatDate(new Date(2025, 2, 1)), y: 1.7 },
+        { x: formatDate(new Date(2025, 3, 1)), y: 2.8 },
     ],
 };
 
 const sampleDataEqVas: DataSet = {
     EQ: [
-        { x: formatDate(new Date(2023, 0, 1)), y: 0.6 },
-        { x: formatDate(new Date(2023, 1, 1)), y: 0.55 },
-        { x: formatDate(new Date(2023, 2, 1)), y: 0.33 },
-        { x: formatDate(new Date(2023, 3, 1)), y: 1.0 },
+        { x: formatDate(new Date(2025, 0, 1)), y: 0.6 },
+        { x: formatDate(new Date(2025, 1, 1)), y: 0.55 },
+        { x: formatDate(new Date(2025, 2, 1)), y: 0.33 },
+        { x: formatDate(new Date(2025, 3, 1)), y: 1.0 },
     ],
     VAS: [
-        { x: formatDate(new Date(2023, 0, 1)), y: 30 },
-        { x: formatDate(new Date(2023, 1, 1)), y: 45 },
-        { x: formatDate(new Date(2023, 2, 1)), y: 73 },
-        { x: formatDate(new Date(2023, 3, 1)), y: 55 },
+        { x: formatDate(new Date(2025, 0, 1)), y: 30 },
+        { x: formatDate(new Date(2025, 1, 1)), y: 45 },
+        { x: formatDate(new Date(2025, 2, 1)), y: 73 },
+        { x: formatDate(new Date(2025, 3, 1)), y: 55 },
     ],
 };
 
@@ -139,54 +140,61 @@ const Proms = ({
         <div>
             <h2>Patient-Reported Outcome Measures</h2>
 
-            {/* Container einbauen */}
-
-            <div
-                className="container"
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-around',
-                    alignItems: 'center',
-                }}
-            >
-                {/* Pie Chart */}
-                <PieChart data={pieData} dataRange={EQ_RANGE} />
-                <PieChart data={pieData2} dataRange={VAS_RANGE} />
+            <div className="container">
+                <Grid>
+                    <Row>
+                        <Col md={2}>
+                            <PieChart data={pieData} dataRange={EQ_RANGE} />
+                        </Col>
+                        <Col md={2}>
+                            <PieChart data={pieData2} dataRange={VAS_RANGE} />
+                        </Col>
+                        <Col md={8} smHidden={true}></Col>
+                    </Row>
+                </Grid>
             </div>
 
-            {/* EQ vs VAS */}
-            <LineScatterPlot
-                data={sampleDataEqVas}
-                // width={800}
-                // height={400}
-                title="Scores"
-                xLabel="Date"
-                yLabel="EQ Index"
-                yTickFormat={EQ_VALUES_ALPHA}
-                yRange={EQ_RANGE}
-                secondYLabel="EQ VAS"
-                secondYTickFormat={VAS_VALUES_ALPHA}
-                secondYRange={VAS_RANGE}
-                standardRange={standardRange}
-            />
+            <div className="container">
+                {/* EQ vs VAS */}
+                <LineScatterPlot
+                    data={sampleDataEqVas}
+                    // width={800}
+                    // height={400}
+                    title="Scores"
+                    xLabel="Date"
+                    yLabel="EQ Index"
+                    yTickFormat={EQ_VALUES_ALPHA}
+                    yRange={EQ_RANGE}
+                    secondYLabel="EQ VAS"
+                    secondYTickFormat={VAS_VALUES_ALPHA}
+                    secondYRange={VAS_RANGE}
+                    standardRange={standardRange}
+                    showTooltip={true}
+                />
+            </div>
 
-            {/* 5 Dimensions */}
-            <LineScatterPlot
-                data={processedData}
-                // width={800}
-                // height={400}
-                title="Health State Detail"
-                xLabel="Date"
-                yLabel={'Problems'}
-                yTickFormat={VALUES_ALPHA}
-                yRange={VALUES_RANGE}
-            />
+            <div className="container">
+                {/* 5 Dimensions */}
+                <LineScatterPlot
+                    data={processedData}
+                    // width={800}
+                    // height={400}
+                    title="Health State Detail"
+                    xLabel="Date"
+                    yLabel={'Problems'}
+                    yTickFormat={VALUES_ALPHA}
+                    yRange={VALUES_RANGE}
+                    showTooltip={true}
+                />
+            </div>
 
-            <Timeline
-                patientViewPageStore={patientViewPageStore}
-                sampleManager={sampleManager}
-                dataStore={dataStore}
-            />
+            <div className="container">
+                <Timeline
+                    patientViewPageStore={patientViewPageStore}
+                    sampleManager={sampleManager}
+                    dataStore={dataStore}
+                />
+            </div>
         </div>
     );
 };
