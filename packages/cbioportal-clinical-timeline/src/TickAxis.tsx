@@ -4,6 +4,8 @@ import { TimelineStore } from './TimelineStore';
 import { observer } from 'mobx-react';
 import _ from 'lodash';
 
+import { useDateFormat } from './lib/DateFormatContext';
+
 interface ITickAxisProps {
     store: TimelineStore;
     width: number;
@@ -71,7 +73,14 @@ const TickAxis: React.FunctionComponent<ITickAxisProps> = observer(function({
                 />
                 {store.ticks.map((tick: TimelineTick, index: number) => {
                     let content: JSX.Element | null = null;
-
+                    // Use Context for date format and day of diagnosis
+                    const {
+                        useAbsoluteDateFormat,
+                        startDate,
+                    } = useDateFormat();
+                    const startDateTimeline = startDate
+                        ? new Date(startDate)
+                        : null;
                     let startPoint;
                     if (tick === store.firstTick) {
                         startPoint = tick.end - store.tickInterval + 1; //tick.end - normalTickWidth - 1;
@@ -108,6 +117,33 @@ const TickAxis: React.FunctionComponent<ITickAxisProps> = observer(function({
 
                         if (count > 0) {
                             majorLabel = `${count}${unit}`;
+                        }
+
+                        // show Major Labels as absolute dates
+                        if (
+                            useAbsoluteDateFormat &&
+                            startDateTimeline !== null
+                        ) {
+                            majorLabel =
+                                count === 0
+                                    ? startDateTimeline.getDate() +
+                                      '/' +
+                                      (
+                                          startDateTimeline.getMonth() + 1
+                                      ).toString() +
+                                      '/' +
+                                      (
+                                          startDateTimeline.getFullYear() +
+                                          count
+                                      ).toString()
+                                    : (
+                                          startDateTimeline.getMonth() + 1
+                                      ).toString() +
+                                      '/' +
+                                      (
+                                          startDateTimeline.getFullYear() +
+                                          count
+                                      ).toString();
                         }
 
                         content = (
@@ -172,6 +208,35 @@ const TickAxis: React.FunctionComponent<ITickAxisProps> = observer(function({
                                             count === 0
                                                 ? `${minorCount}m`
                                                 : `${majorLabel} ${minorCount}m`;
+                                    }
+
+                                    if (
+                                        useAbsoluteDateFormat &&
+                                        startDateTimeline !== null
+                                    ) {
+                                        let countForAbsoluteDate = count;
+                                        const minorCountAbs = i;
+                                        const month =
+                                            (startDateTimeline.getMonth() +
+                                                1 +
+                                                minorCountAbs) %
+                                            12;
+                                        const monthValue =
+                                            month === 0 ? 12 : month;
+                                        const startDateMonth =
+                                            startDateTimeline.getMonth() + 1;
+
+                                        if (monthValue < startDateMonth) {
+                                            countForAbsoluteDate = count + 1;
+                                        }
+
+                                        minorLabel =
+                                            monthValue +
+                                            '/' +
+                                            (
+                                                startDateTimeline.getFullYear() +
+                                                countForAbsoluteDate
+                                            ).toString();
                                     }
                                 }
 
