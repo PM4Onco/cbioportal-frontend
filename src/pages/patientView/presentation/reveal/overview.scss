@@ -1,0 +1,198 @@
+.reveal-overview {
+    display: flex;
+    height: 100%;
+    overflow-y: scroll !important;
+    padding-right: 20px;
+
+    .slides {
+        transform: unset !important;
+        display: flex;
+        flex-direction: column;
+        width: 240px !important;
+
+        section {
+            counter-increment: slidenumber;
+            display: flex !important;
+            width: 960px;
+            height: 700px;
+            position: relative;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+                0 4px 6px -4px rgb(0 0 0 / 0.1);
+            border: 6px solid rgba(61, 37, 20, 0.05);
+            border-radius: 20px;
+            flex-shrink: 0;
+            transform: scale(0.25);
+            transform-origin: top left;
+            cursor: pointer;
+            user-select: none;
+            overflow: hidden;
+
+            & > * {
+                pointer-events: none;
+            }
+
+            &:not(:first-child) {
+                margin-top: -500px;
+            }
+
+            &.selected {
+                border: 6px solid #3786c2;
+            }
+
+            .presentation__node--selected {
+                outline: none;
+            }
+
+            &::before {
+                content: counter(slidenumber);
+                position: absolute;
+                bottom: 36px;
+                left: 36px;
+                scale: 3;
+                color: #afafaf;
+            }
+        }
+    }
+}
+
+.overview-deleted-items {
+    width: 240px;
+    position: relative;
+
+    .deleted-items__button {
+        cursor: pointer;
+    }
+
+    .deleted-items__item-container {
+        display: flex;
+        flex-direction: column-reverse;
+        position: absolute;
+        overflow-y: scroll;
+        bottom: 120%;
+        height: 400px;
+        z-index: 100;
+    }
+
+    .deleted-items__item-container[hidden] {
+        display: none;
+    }
+
+    .deleted-items__item {
+        position: relative;
+        width: 240px;
+        height: 175px;
+
+        &:not(:first-child) {
+            margin-bottom: 12px;
+        }
+
+        &:hover .deleted-items__overlay {
+            display: flex;
+            cursor: pointer;
+        }
+
+        .deleted-items__overlay {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+            border-radius: 6px;
+            color: white;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+
+            svg {
+                width: 24px;
+                height: 24px;
+                margin-right: 8px;
+            }
+        }
+    }
+
+    section {
+        display: flex !important;
+        width: 960px;
+        height: 700px;
+        position: relative;
+        background-color: white;
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+            0 4px 6px -4px rgb(0 0 0 / 0.1);
+        border: 6px solid red;
+        border-radius: 20px;
+        flex-shrink: 0;
+        transform: scale(0.25);
+        transform-origin: top left;
+        cursor: pointer;
+        user-select: none;
+    }
+}
+
+.overview-contextmenu {
+    position: absolute;
+    background: white;
+    border: 1px solid rgba(61, 37, 20, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+        0 4px 6px -4px rgb(0 0 0 / 0.1);
+    padding: 1rem;
+    width: 200px;
+    z-index: 200;
+
+    h2 {
+        font-size: 14px;
+        font-weight: bold;
+        color: #333333 !important;
+    }
+
+    ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .overview-contextmenu__action-group {
+        border-bottom: 1px solid rgba(61, 37, 20, 0.1);
+        padding-bottom: 0.25rem;
+        margin-bottom: 0.25rem;
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+
+        &:last-of-type {
+            border-bottom: 0;
+            margin-bottom: -0.5rem;
+            padding-bottom: 0;
+        }
+    }
+
+    .overview-contextmenu__delete[disabled] {
+        opacity: 0.5;
+
+        &:hover {
+            background: transparent;
+            cursor: not-allowed;
+        }
+    }
+
+    li {
+        display: flex;
+        align-items: center;
+        column-gap: 6px;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        border-radius: 5px;
+
+        &:hover {
+            background: rgba(61, 37, 20, 0.12);
+        }
+
+        svg {
+            height: 20px;
+            width: 20px;
+            margin-top: -1px;
+        }
+    }
+}

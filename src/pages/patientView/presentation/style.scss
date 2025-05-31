@@ -1,0 +1,329 @@
+.toolbar {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    row-gap: 14px;
+    width: 960px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.toolbar__row-container {
+    display: flex;
+    width: 100%;
+    column-gap: 14px;
+}
+
+.toolbar__editor-menu {
+    display: flex;
+    width: 100%;
+    column-gap: 8px;
+}
+
+.overview-presentation-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    justify-content: center;
+}
+
+.overview-deleted-container {
+    display: flex;
+    flex-direction: column;
+    height: max(calc(100vh - 175px - 40px), 785px);
+}
+
+.deleted-items__button {
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(61, 37, 20, 0.15);
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+
+    svg {
+        height: 24px;
+        width: 24px;
+        margin-right: 8px;
+    }
+}
+
+.reveal-viewport:fullscreen {
+    background-color: white;
+    pointer-events: none;
+
+    .presentation__node--selected,
+    .presentation__node--selected:focus,
+    .presentation__node--editing {
+        outline: none !important;
+    }
+}
+
+.presentation {
+    margin: 14px auto 0;
+}
+
+.presentation__toolbar-item {
+    height: 24px;
+    width: 24px;
+}
+
+.disabled {
+    opacity: 0.4;
+}
+
+.presentation {
+    position: relative;
+    width: 960px;
+    height: 700px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.presentation__node--text {
+    text-align: left;
+    font-size: 16px;
+    user-select: none;
+}
+
+.presentation .presentation__node--text table {
+    --gray-1: rgba(61, 37, 20, 0.05);
+    --gray-2: rgba(61, 37, 20, 0.08);
+    --gray-3: rgba(61, 37, 20, 0.12);
+    border-collapse: collapse;
+    margin: 0;
+    overflow: hidden;
+    table-layout: fixed;
+    width: 900px;
+    background: white;
+
+    tr:last-child td {
+        border: 1px solid var(--gray-3);
+    }
+
+    p {
+        margin-top: 0;
+    }
+
+    td,
+    th {
+        border: 1px solid var(--gray-3);
+        box-sizing: border-box;
+        min-width: 1em;
+        padding: 6px 8px;
+        position: relative;
+        vertical-align: top;
+
+        > * {
+            margin-bottom: 0;
+        }
+    }
+
+    th {
+        background-color: var(--gray-1);
+        font-weight: bold;
+        text-align: left;
+    }
+
+    p::selection {
+        color: inherit;
+    }
+
+    .selectedCell:after {
+        background: var(--gray-2);
+        content: '';
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        pointer-events: none;
+        position: absolute;
+        z-index: 2;
+    }
+
+    .column-resize-handle {
+        background-color: #3786c2;
+        bottom: -2px;
+        pointer-events: none;
+        position: absolute;
+        right: -2px;
+        top: 0;
+        width: 4px;
+    }
+}
+
+.presentation__node--html {
+    font-size: 16px;
+}
+
+.presentation__node--selected {
+    outline: 1px dotted black;
+}
+
+.presentation .presentation__node--selected:focus,
+.presentation .presentation__node--selected:active {
+    outline: 1px dotted black !important;
+}
+
+.presentation__node--editing {
+    outline: 1px solid black;
+    user-select: auto;
+}
+
+.presentation__node--draggable .presentation__mutation-table,
+.presentation__node--draggable .presentation__fusion-table,
+.presentation__node--draggable .presentation__cna-table,
+.presentation__node--draggable .presentation__timeline {
+    pointer-events: none;
+    user-select: none;
+}
+
+.presentation .presentation__node--selected.presentation__node--not-draggable {
+    outline: 1px solid black !important;
+}
+
+.presentation .presentation__node--editing:focus,
+.presentation .presentation__node--editing:active {
+    outline: 1px solid black !important;
+}
+
+.presentation__mutation-table {
+    width: min-content;
+    background: white;
+    font-size: 16px;
+}
+
+.presentation__fusion-table,
+.presentation__cna-table {
+    width: max-content;
+    font-size: 16px;
+    background: white;
+}
+
+.presentation__cna-table .instruction-panel {
+    display: none !important;
+}
+
+.presentation__therapy-recommendations {
+    background: white;
+    font-size: 16px;
+    width: 940px;
+}
+
+.presentation__rectangle {
+    border: 2px solid red;
+    width: 100%;
+    height: 100%;
+}
+
+.presentation__node {
+    display: flex;
+    position: relative;
+}
+
+.presentation__node .node__image {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    user-select: none;
+    pointer-events: none;
+}
+
+$anchor-point-size: 1.5rem;
+
+.node__anchor-point {
+    position: absolute;
+    display: flex;
+    padding: 0.3rem;
+    width: $anchor-point-size;
+    height: $anchor-point-size;
+    background: white;
+    border: 1px solid #3786c2;
+    border-radius: 100%;
+    user-select: none;
+}
+
+.node__anchor-point[data-direction='nw'] {
+    top: 0;
+    left: 0;
+    margin-top: $anchor-point-size / -2;
+    margin-left: $anchor-point-size / -2;
+    cursor: nw-resize;
+}
+
+.node__anchor-point[data-direction='ne'] {
+    top: 0;
+    right: 0;
+    margin-top: $anchor-point-size / -2;
+    margin-right: $anchor-point-size / -2;
+    cursor: ne-resize;
+}
+
+.node__anchor-point[data-direction='se'] {
+    bottom: 0;
+    right: 0;
+    margin-bottom: $anchor-point-size / -2;
+    margin-right: $anchor-point-size / -2;
+    cursor: nwse-resize;
+}
+
+.node__anchor-point[data-direction='sw'] {
+    bottom: 0;
+    left: 0;
+    margin-bottom: $anchor-point-size / -2;
+    margin-left: $anchor-point-size / -2;
+    cursor: sw-resize;
+}
+
+.ContextMenu {
+    outline: 0;
+    background: white;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 4px;
+    border-radius: 8px;
+    z-index: 1000;
+}
+
+.MenuItem {
+    width: 100%;
+    display: block;
+}
+
+.MenuItem {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    background: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    text-align: left;
+    line-height: 1.5;
+    margin: 0;
+    outline: 0;
+}
+
+.MenuItem.open {
+    background: #ddd;
+}
+
+.MenuItem:focus,
+.MenuItem:not([disabled]):active {
+    background: royalblue;
+    color: white;
+}
+
+.Tooltip {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 0.5rem;
+    z-index: 99;
+}

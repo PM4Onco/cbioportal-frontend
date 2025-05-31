@@ -147,6 +147,7 @@ function levelIcons(props: IOncoKbProps, handleFeedbackOpen: () => void) {
                     OncoKbCardDataType.PX,
                 ].map(dataType => (
                     <AnnotationIcon
+                        key={dataType}
                         type={dataType}
                         tooltipOverlay={tooltipContent(
                             dataType,

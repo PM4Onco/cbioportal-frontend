@@ -576,7 +576,7 @@ export default class StructuralVariantTableWrapper extends React.Component<
             this.props.store.structuralVariantProfile,
             this.props.store.groupedStructuralVariantData,
             this.props.store.genePanelDataByMolecularProfileIdAndSampleId,
-            this.columns,
+            // this.columns,
         ],
         render: () => {
             if (!this.props.store.structuralVariantProfile.result) {

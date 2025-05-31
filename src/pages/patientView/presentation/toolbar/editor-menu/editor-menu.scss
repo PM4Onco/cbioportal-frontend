@@ -1,0 +1,58 @@
+.editor__menu-container {
+    display: flex;
+    column-gap: 8px;
+
+    .editor__font-size-container {
+        display: flex;
+        align-items: center;
+        background: rgba(61, 37, 20, 0.08);
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        overflow: hidden;
+
+        button {
+            background: transparent;
+            border: none;
+            padding: 0 0.2rem;
+            line-height: 0;
+            height: 100%;
+
+            &:hover {
+                background-color: rgba(61, 37, 20, 0.12);
+            }
+        }
+
+        input {
+            border: none;
+            background: transparent;
+            width: 30px;
+            text-align: right;
+
+            &:focus {
+                outline: none;
+            }
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Firefox */
+        input[type='number'] {
+            -moz-appearance: textfield;
+        }
+
+        svg {
+            width: 16px;
+            height: 16px;
+        }
+    }
+
+    .editor__color {
+        border: none;
+        background: rgba(61, 37, 20, 0.08);
+        border-radius: 0.5rem;
+    }
+}

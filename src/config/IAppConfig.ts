@@ -180,6 +180,7 @@ export interface IServerConfig {
     skin_patient_view_custom_sample_type_colors_json: string;
     comparison_categorical_na_values: string;
     fhirspark?: IFhirsparkConfig;
+    minio?: IMinioConfig;
     cancerdrugsUrl?: string;
     cancerdrugsJsonUrl?: string;
     oncoprint_clinical_tracks_config_json: string;
@@ -198,4 +199,9 @@ export interface IServerConfig {
 export interface IFhirsparkConfig {
     host: string | null;
     port: string | null;
+}
+
+export interface IMinioConfig {
+    host: string;
+    port: string;
 }
