@@ -92,8 +92,6 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
     const promData = data.filter(
         (event: ClinicalEvent) => event.eventType === QUESTIONNAIRE_NAME
     );
-    console.log('promData:');
-    console.log(promData);
 
     let datasetKeys: string[] = [];
     let dimensionDataset: DataSet = {};
@@ -112,7 +110,6 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
             }
         });
     });
-    console.log('datasetKeys:', datasetKeys); //ok
 
     const datasetKeysForPlots = datasetKeys.filter((key: string) =>
         PROM_KEYS.includes(key)
@@ -122,14 +119,12 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
     if (AVERAGE_KEY !== undefined) {
         datasetKeysForPlots.push(AVERAGE_KEY);
     }
-    console.log('datasetKeysForPlots:', datasetKeysForPlots);
 
     // Write out keys for the dimension plot
     let keysForDimensionPlot = datasetKeysForPlots.filter((key: string) => {
         const dimensionKeys = PROM_KEYS.slice(0, PROM_KEYS.length - 2);
         return dimensionKeys.includes(key);
     });
-    console.log('keysForDimensionPlot:', keysForDimensionPlot);
 
     // Write out keys for the EQ VAS plot
     let keysForEQVASPlot = datasetKeysForPlots.filter((key: string) => {
@@ -140,27 +135,21 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
         return eqVasKeys.includes(key);
     });
 
-    console.log('keysForEQVASPlot:', keysForEQVASPlot);
-
     // Sort promData according to start date in ascending order
     promData.sort(compareClinicalEvents);
-    console.log('promData sorted:', promData);
 
     promData.forEach((event: ClinicalEvent) => {
         let valuesForAverageCalculation: number[] = [];
         datasetKeysForPlots.forEach((key: string) => {
             let value = event.attributes.find((item: any) => item.key === key)
                 ?.value;
-            //console.log("value: ", value)
 
             let date = event.attributes.find(
                 (item: any) => item.key === DATE_KEY
             )?.value;
-            //console.log("date: ", date)
 
             // Check if date is not found or maldefined
             if (!isAttributeDateValueWellDefined(date)) {
-                console.log('date not found or maldefined', date);
                 return;
             } else {
                 // format date
@@ -174,7 +163,6 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
                     date = new Date(Date.UTC(year, month, day))
                         .toISOString()
                         .split('T')[0];
-                    console.log('date:', date);
                 }
             }
 
@@ -187,13 +175,11 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
                 return;
             }
             if (keysForEQVASPlot.includes(key)) {
-                console.log('EQ VAS key:', key);
                 if (value !== undefined) {
                     value = Number.parseFloat(value).toFixed(3);
                 }
                 addElementToDataset(eqVASDataset, key, [date, Number(value)]);
             } else if (keysForDimensionPlot.includes(key)) {
-                console.log('Dimension key:', key);
                 // Push values to an array of which the average will be calculated
                 if (AVERAGE_KEY !== undefined) {
                     if (key !== AVERAGE_KEY) {
@@ -202,10 +188,6 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
                     // Calculate average
                     else {
                         // Try to compute average dynamically
-                        console.log(
-                            'valuesForAverageCalculation:',
-                            valuesForAverageCalculation
-                        );
                         value = calculateAverage(
                             valuesForAverageCalculation
                         )?.toString();
@@ -279,9 +261,6 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
             ]);
         });
     }
-    console.log('dimensionDataset:', dimensionDataset);
-    console.log('eqVasDataset in processData:', eqVASDataset);
-    console.log('currentScoreDataset:', currentScoreDataset);
 
     return [eqVASDataset, dimensionDataset, currentScoreDataset];
 };
@@ -313,8 +292,6 @@ const Proms = ({
     dataStore,
 }: PROMsProps) => {
     const data = patientViewPageStore.clinicalEvents.result;
-    console.log('data:');
-    console.log(data);
 
     // Processed data
     const processedDataSets = useProcessedData(data);
@@ -330,21 +307,14 @@ const Proms = ({
         scoreKeys,
         promKeysTransformed
     );
-    console.log('sortedScoreKeys:', sortedScoreKeys);
     const sortedDimensionKeys = sortArrayBasedOnComparator(
         dimensionKeys,
         promKeysTransformed
     );
-    console.log('sortedDimensionKeys:', sortedDimensionKeys);
     const sortedCurrentScoreKeys = sortArrayBasedOnComparator(
         currentScoreKeys,
         promKeysTransformed
     );
-    console.log('sortedScoreKeys:', sortedCurrentScoreKeys);
-    console.log('processedDataSets:');
-    console.log(processedDataSets[0]);
-    console.log(processedDataSets[1]);
-    console.log(processedDataSets[2]);
 
     // Create the dataset used in the chart components
     const eqVASDataset: DataSet = {};
@@ -358,11 +328,6 @@ const Proms = ({
             processedDataSets[1][sortedDimensionKeys[i]];
     }
     const currentScoreDataset: DataSet = processedDataSets[2];
-
-    console.log('Transformed and sorted data sets:');
-    console.log(eqVASDataset);
-    console.log(dimensionDataset);
-    console.log(currentScoreDataset);
 
     // Get the dates of the latest scores
     const currentScoreDates = currentScoreDataset[

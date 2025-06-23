@@ -209,7 +209,6 @@ const useProcessedData = (
             maxLength = data[key].length;
         }
     }
-    console.log('maxLength:', maxLength);
 
     // add dummy data as first and last element (used for standardRange)
     for (let key of keys) {
@@ -303,10 +302,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
 
     // chart data
     const processedData = useProcessedData(data, yRange, secondYRange);
-    console.log('processedData for LineScatterPlot:', processedData);
-
     const augmentedData = createCommonXAxisForDataSet(processedData);
-    console.log('augmentedData for LineScatterPlot:', augmentedData);
 
     // Transform augmentedData: input is object, output will be array
     const datasets = Object.entries(augmentedData).map(([key, points], i) => ({
@@ -331,8 +327,6 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
      * @param data array, the data to be displayed
      */
     const updateZoomDomain = (data: any[]) => {
-        console.log('In updateZoomDomain; data.length', data.length);
-        console.log(data);
         if (!data || data.length === 0) return;
 
         // determine the length of the input data
@@ -403,7 +397,6 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 }
             }
         }
-        console.log('allX:', allX);
 
         // Remove duplicates
         const uniqueX = Array.from(new Set(allX));
@@ -412,12 +405,10 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         const sortedX = uniqueX.sort((a, b) => {
             return new Date(a).getTime() - new Date(b).getTime(); // for dates saved as strings
         });
-        console.log('sortedX:', sortedX);
 
         // Remove first and last element (dummy elements)
         sortedX.shift();
         sortedX.pop();
-        console.log('sortedX without first and last:', sortedX);
 
         return sortedX;
     };
@@ -528,12 +519,10 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
 
     if (standardRange) {
         standardRangeData = createRangeData(data, standardRange);
-        console.log('standardRangeData:', standardRangeData); //OK
         standardRangeDataProcessed = useProcessedStandardRangeData(
             standardRangeData,
             yRange
         );
-        console.log('standardRangeDataProcessed:', standardRangeDataProcessed);
         standardRangeDataMapped = Object.entries(
             standardRangeDataProcessed
         ).map(([key, points], i) => ({

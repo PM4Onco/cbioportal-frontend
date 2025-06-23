@@ -250,12 +250,6 @@ describe('PieChart', () => {
             //console.log(defaultColorScaleValue)
             result = [thresholdColorScaleValue, defaultColorScaleValue];
         }
-        //const piePropsStringified = JSON5.stringify(pie.getAttribute('data-props'));
-        //console.log(piePropsStringified)
-        //const pieProps = JSON5.parse(pie.getAttribute('data-props')!);
-        //const pieProps = jsonrepair(pie.getAttribute('data-props')!)
-
-        //console.log("pieProps", pieProps)
 
         const expectedColorScale = [
             Constants.thresholdColorScale[2],
