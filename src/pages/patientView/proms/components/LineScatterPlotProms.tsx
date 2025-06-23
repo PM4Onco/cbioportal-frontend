@@ -16,6 +16,7 @@ import {
     VictoryLabel,
     VictoryArea,
     VictoryZoomContainer,
+    VictoryTheme,
 } from 'victory';
 import { DefaultTooltip } from 'cbioportal-frontend-commons';
 import CBIOPORTAL_VICTORY_THEME_PROM from '../utils/cBioPortalThemePROM';
@@ -642,6 +643,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                         ({ key, points, color, childName }) => {
                             return (
                                 <VictoryArea
+                                    key={key}
                                     name={childName}
                                     data={points}
                                     style={{
@@ -666,7 +668,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                         p => p.y !== null && p.y !== undefined
                     ); // filters out points with null or undefined y value
                     return (
-                        <VictoryGroup data={scatterPoints}>
+                        <VictoryGroup key={key} data={scatterPoints}>
                             <VictoryLine
                                 name={childName}
                                 data={points}

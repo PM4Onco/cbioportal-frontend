@@ -35,7 +35,19 @@ export const transformString = (input: string): string => {
     }
 
     // Define special characters that trigger capitalization
-    const specialChars = ['_', '/', '-', ':', '@', '#', '$', '%', '&', '*'];
+    const specialChars = [
+        '_',
+        '/',
+        '-',
+        ':',
+        '@',
+        '#',
+        '$',
+        '%',
+        '&',
+        '*',
+        ' ',
+    ];
 
     // Helper function to capitalize first letter
     const capitalizeFirst = (str: string) => {
