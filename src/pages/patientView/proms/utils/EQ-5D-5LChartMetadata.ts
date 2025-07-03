@@ -23,6 +23,7 @@ export const DATE_KEY = 'DATE_ISO';
 export const INDEX_KEY = 'INDEX';
 export const VAS_KEY = 'VAS';
 export const STANDARD_RANGE_KEY = 'STANDARD_RANGE';
+export const REFERENCE_VALUE_KEY = 'STUDY_AVERAGE_INDEX';
 
 // Dimensions
 export const VALUES_ALPHA = ['No', 'Slight', 'Moderate', 'Severe', 'Extreme'];
@@ -46,10 +47,15 @@ export const VAS_VALUES_ALPHA = [
     '100 (best health)',
 ];
 
-// Standard Range & Thresholds
-export const STANDARD_RANGE: [number, number] = [Infinity, Infinity];
-export const THRESHOLDS_EQ: number[] = [];
-export const THRESHOLDS_VAS: number[] = [];
+// Standard Range, Thresholds & reference line
+export const STANDARD_RANGE: [number, number] = [Infinity, Infinity]; // e.g., [0.4, 0.76]
+export const THRESHOLDS_EQ: number[] = []; // e.g., [0.25, 0.5, 0.75], specify between 1 and 4 numbers
+export const THRESHOLDS_VAS: number[] = []; // e.g., [30, 60], specify between 1 and 4 numbers
+// for line scatter plot
+export const SHOW_STANDARD_RANGE = false;
+export const SHOW_REFERENCE_LINE = false;
+// for pie plot, EQ and VAS thresholds
+export const SHOW_THRESHOLDS = false;
 
 // Texts
 export const CHART_TITLES = [
@@ -84,7 +90,8 @@ export const SCORES_INFO: string = `<p><strong>EQ-5D-5L Index and VAS Score Over
 <li><strong>Left axis:</strong> EQ-5D-5L Index values (range: 0 to 1.0) </li>
 <li><strong>Right axis:</strong> VAS scores (range: 0 to 100) </li>
 <li><strong>Highlighted Values:</strong> Negative Index scores are drawn at the 0 level but visually emphasized as<br /> they indicate health states considered worse than death</li>
-<li><strong>Reference Ranges:</strong> If defined, standard population ranges can be displayed for comparison</li>
+<li><strong>Reference Line:</strong> If defined, a reference value calculated from all patients in the current study cohort will be displayed</li>
+<li><strong>Reference Range:</strong> If defined, a population-based reference range can be displayed for broader comparison</li>
 </ul>
 </p>
 <p><strong>How to Use the Chart:</strong>

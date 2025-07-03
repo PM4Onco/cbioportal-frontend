@@ -43,7 +43,6 @@ import { doClinicalEventsHavePromData } from './proms/utils/PromChartHelperFunct
 import { QUESTIONNAIRE_NAME as QUESTIONNAIRE_NAME_EQ_5D_5L } from './proms/utils/EQ-5D-5LChartMetadata';
 import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
 import { Else, If } from 'react-if';
-import { ClinicalEvent } from 'cbioportal-ts-api-client';
 
 export enum PatientViewPageTabs {
     Summary = 'summary',
@@ -881,6 +880,10 @@ export function tabs(
                     patientViewPageStore={pageComponent.patientViewPageStore}
                     sampleManager={sampleManager}
                     dataStore={pageComponent.patientViewMutationDataStore}
+                    allClinicalEventsInStudy={
+                        pageComponent.patientViewPageStore.allClinicalEvents
+                            .result
+                    }
                 />
             </MSKTab>
         );

@@ -37,6 +37,9 @@ import {
     SCORES_INFO,
     HEALTH_DETAILS_INFO,
     CURRENT_SCORES_INFO,
+    SHOW_REFERENCE_LINE,
+    SHOW_STANDARD_RANGE,
+    SHOW_THRESHOLDS,
 } from './utils/EQ-5D-5LChartMetadata';
 import PieChart from './components/PieChartProms';
 import FontAwesome from 'react-fontawesome';
@@ -53,6 +56,7 @@ interface PROMsProps {
     patientViewPageStore: PatientViewPageStore;
     sampleManager: any;
     dataStore: PatientViewMutationsDataStore;
+    allClinicalEventsInStudy: ClinicalEvent[];
 }
 
 // Defines the layout and content of tooltip for the info icons
@@ -290,6 +294,7 @@ const Proms = ({
     patientViewPageStore,
     sampleManager,
     dataStore,
+    allClinicalEventsInStudy = [],
 }: PROMsProps) => {
     const data = patientViewPageStore.clinicalEvents.result;
 
@@ -373,6 +378,30 @@ const Proms = ({
             ? STANDARD_RANGE
             : undefined;
 
+    // Calculate reference value displayed on EQ VAS chart
+    const allPromData = allClinicalEventsInStudy.filter(
+        (event: ClinicalEvent) => event.eventType === QUESTIONNAIRE_NAME
+    );
+    let arrayOfAllEQs: number[] = [];
+    allPromData.forEach((event: ClinicalEvent) => {
+        event.attributes.forEach((item: any) => {
+            if (
+                item.key === INDEX_KEY &&
+                item.value &&
+                !isNaN(Number(item.value))
+            ) {
+                arrayOfAllEQs.push(Number(item.value));
+            }
+        });
+    });
+    let studyAverageEQ = calculateAverage(arrayOfAllEQs);
+    const studyAverageEQRounded = studyAverageEQ
+        ? parseFloat(studyAverageEQ.toFixed(3))
+        : undefined;
+    // Sort threshold arrays
+    THRESHOLDS_EQ.sort((a, b) => a - b);
+    THRESHOLDS_VAS.sort((a, b) => a - b);
+
     // Rendering
     return (
         <div className="proms">
@@ -450,6 +479,7 @@ const Proms = ({
                                                         ? THRESHOLDS_EQ
                                                         : THRESHOLDS_VAS
                                                 }
+                                                showThresholds={SHOW_THRESHOLDS}
                                             />
                                             {sortedCurrentScoreKeys.length ===
                                                 2 &&
@@ -478,6 +508,7 @@ const Proms = ({
                                             }
                                             dataRange={VAS_RANGE}
                                             thresholds={THRESHOLDS_VAS}
+                                            showThresholds={SHOW_THRESHOLDS}
                                         />
                                     )}
                             </div>
@@ -522,6 +553,13 @@ const Proms = ({
                                         secondYRange={VAS_RANGE}
                                         standardRange={standardRange}
                                         showTooltip={true}
+                                        showReferenceLine={SHOW_REFERENCE_LINE}
+                                        showStandardRange={SHOW_STANDARD_RANGE}
+                                        studyReferenceValue={
+                                            studyAverageEQRounded
+                                                ? studyAverageEQRounded
+                                                : undefined
+                                        }
                                     />
                                 )}
                             {!eqVASDataset ||

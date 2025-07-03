@@ -25,6 +25,7 @@ import {
     INDEX_KEY,
     VAS_KEY,
     STANDARD_RANGE_KEY,
+    REFERENCE_VALUE_KEY,
     QUESTIONNAIRE_NAME,
 } from '../utils/EQ-5D-5LChartMetadata';
 import * as Constants from '../utils/PromChartConstants';
@@ -32,9 +33,8 @@ import '../styles.scss';
 import {
     Datum,
     DataSet,
-    mergeArrays,
-    createRangeData,
     normalizeDataSet,
+    getNormalizedValue,
     getOriginalY,
     transformString,
     createCommonXAxisForDataSet,
@@ -54,8 +54,11 @@ interface LineScatterPlotProps {
     secondYTickFormat?: string[];
     secondYRange?: [number, number];
     standardRange?: [number, number];
+    showStandardRange?: boolean;
     showTooltip?: boolean;
     invertYAxis?: boolean;
+    showReferenceLine?: boolean;
+    studyReferenceValue?: number;
 }
 
 /**
@@ -133,6 +136,9 @@ const getLegendSymbol = (key: string): string => {
     }
     if (key === STANDARD_RANGE_KEY) {
         return Constants.standardRangeLayoutValues.symbol;
+    }
+    if (key === REFERENCE_VALUE_KEY) {
+        return Constants.referenceValueLayoutValues.symbol;
     } else {
         return 'minus';
     }
@@ -241,39 +247,6 @@ const useProcessedData = (
     return newData;
 };
 
-/**
- * Pre-processes a DataSet which was generated of a given range
- * @param rangeData DataSet containing data points with the range data
- * @param yRange tuple representing the minimum and maximum possible y value
- * @returns processed rangeData
- */
-const useProcessedStandardRangeData = (
-    rangeData: DataSet,
-    yRange: [number, number]
-): DataSet => {
-    const keys = Object.keys(rangeData);
-
-    // fill label property of data entries
-    for (let key of keys) {
-        rangeData[key].forEach((datum: Datum) => {
-            datum.labelName = key;
-        });
-    }
-
-    const newRangeData: DataSet = { ...rangeData };
-
-    // Normalize dataset if a range is given
-    if (yRange) {
-        if (keys.length === 1) {
-            newRangeData[keys[0]] = normalizeDataSet(
-                rangeData[keys[0]],
-                yRange
-            );
-        }
-    }
-    return newRangeData;
-};
-
 const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     data,
     width = 580,
@@ -287,9 +260,16 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     secondYTickFormat,
     secondYRange,
     standardRange,
+    showStandardRange = false,
     showTooltip = true,
     invertYAxis = false,
+    showReferenceLine = false,
+    studyReferenceValue,
 }) => {
+    // sort range arrays in ascending order
+    yRange.sort((a, b) => a - b);
+    secondYRange && secondYRange.sort((a, b) => a - b);
+    standardRange && standardRange.sort((a, b) => a - b);
     // useState hook to show and hide specific datasets
     const [hiddenKeys, setHiddenKeys] = useState<string[]>([AVERAGE_KEY]); // datasetes named "Average" are initially not shown
     const [zoomDomain, setZoomDomain] = useState<[number, number]>();
@@ -360,9 +340,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
             target: ['data', 'labels'],
             eventHandlers: {
                 onClick: (_: any, props: any) => {
-                    const dataset = standardRange
-                        ? mergedDataForLegend[props.index]
-                        : datasets[props.index];
+                    const dataset = mergedDataForLegend[props.index];
                     toggleKey(dataset.key);
                     return [];
                 },
@@ -501,10 +479,14 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         }, 10);
     };
 
-    // Helpers for showing standard range
-    let standardRangeData: DataSet;
-    let standardRangeDataProcessed: DataSet;
-    let standardRangeDataMapped: {
+    // Helpers for displaying reference value
+    let referenceValue: number | undefined = undefined;
+    let referenceValueNormalized: number | undefined = undefined;
+    let dummyDateForReferenceLine = Constants.DUMMY_DATE_IN_THE_PAST;
+    let referenceValueLabelLeft = true;
+    let referenceValueData: Datum[] = [];
+    let referenceValueDataSet: DataSet = {};
+    let referenceValueDataSetMapped: {
         key: string;
         points: Datum[];
         color: string;
@@ -517,21 +499,137 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         childName: string;
     }[] = [];
 
-    if (standardRange) {
-        standardRangeData = createRangeData(data, standardRange);
-        standardRangeDataProcessed = useProcessedStandardRangeData(
-            standardRangeData,
-            yRange
+    if (studyReferenceValue && showReferenceLine) {
+        referenceValue = studyReferenceValue;
+        // normalize referenceValueif necessary
+        // check heuristically to which range it belongs
+        if (
+            secondYRange &&
+            referenceValue >= yRange[0] &&
+            referenceValue <= yRange[1]
+        ) {
+            referenceValueNormalized = getNormalizedValue(
+                referenceValue,
+                yRange[1],
+                yRange[0]
+            );
+        } else if (
+            secondYRange &&
+            secondYRange[0] <= referenceValue &&
+            secondYRange[1] >= referenceValue
+        ) {
+            referenceValueNormalized = getNormalizedValue(
+                referenceValue,
+                secondYRange[1],
+                secondYRange[0]
+            );
+            dummyDateForReferenceLine = Constants.DUMMY_DAT_IN_THE_FUTURE;
+            referenceValueLabelLeft = false;
+        } else {
+            // normalization not needed
+            referenceValueNormalized = referenceValue;
+        }
+        referenceValueData = [
+            {
+                x: Constants.DUMMY_DATE_IN_THE_PAST,
+                y: referenceValueNormalized,
+            },
+            {
+                x: Constants.DUMMY_DAT_IN_THE_FUTURE,
+                y: referenceValueNormalized,
+            },
+        ];
+        referenceValueDataSet = {
+            [REFERENCE_VALUE_KEY]: referenceValueData,
+        };
+        referenceValueDataSetMapped = Object.entries(referenceValueDataSet).map(
+            ([key, points], i) => ({
+                key,
+                points,
+                color: Constants.referenceValueLayoutValues.color,
+                childName: `studyRefValue-${i}`,
+            })
         );
-        standardRangeDataMapped = Object.entries(
-            standardRangeDataProcessed
-        ).map(([key, points], i) => ({
-            key,
-            points,
-            color: getColor(key, i),
-            childName: `range-${i}`,
-        }));
-        mergedDataForLegend = mergeArrays(datasets, standardRangeDataMapped, 2);
+
+        mergedDataForLegend = datasets.concat(referenceValueDataSetMapped);
+    }
+
+    // Helpers for displaying standard range
+    let standardRangeData: Datum[] = [];
+    let rangeNormalized: [number, number];
+    let standardRangeDataSet: DataSet = {};
+    let standardRangeDataMapped: {
+        key: string;
+        points: Datum[];
+        color: string;
+        childName: string;
+    }[] = [];
+
+    if (showStandardRange && standardRange) {
+        // Normalisiere standardRange if necessary
+        // check heuristically to which range it belongs
+        if (
+            secondYRange &&
+            standardRange[0] >= yRange[0] &&
+            standardRange[1] <= yRange[1]
+        ) {
+            rangeNormalized = [
+                getNormalizedValue(standardRange[0], yRange[1], yRange[0]),
+                getNormalizedValue(standardRange[1], yRange[1], yRange[0]),
+            ];
+        } else if (
+            secondYRange &&
+            secondYRange[0] <= standardRange[0] &&
+            secondYRange[1] >= standardRange[1]
+        ) {
+            rangeNormalized = [
+                getNormalizedValue(
+                    standardRange[0],
+                    secondYRange[1],
+                    secondYRange[0]
+                ),
+                getNormalizedValue(
+                    standardRange[1],
+                    secondYRange[1],
+                    secondYRange[0]
+                ),
+            ];
+        } else {
+            // normalization not needed
+            rangeNormalized = standardRange;
+        }
+        standardRangeData = [
+            {
+                x: Constants.DUMMY_DATE_IN_THE_PAST,
+                y: rangeNormalized[1],
+                y0: rangeNormalized[0],
+            },
+            {
+                x: Constants.DUMMY_DAT_IN_THE_FUTURE,
+                y: rangeNormalized[1],
+                y0: rangeNormalized[0],
+            },
+        ];
+        standardRangeDataSet = {
+            [STANDARD_RANGE_KEY]: standardRangeData,
+        };
+        standardRangeDataMapped = Object.entries(standardRangeDataSet).map(
+            ([key, points], i) => ({
+                key,
+                points,
+                color: getColor(key, i),
+                childName: `range-${i}`,
+            })
+        );
+        mergedDataForLegend =
+            mergedDataForLegend.length > 0
+                ? mergedDataForLegend.concat(standardRangeDataMapped)
+                : datasets.concat(standardRangeDataMapped);
+    }
+
+    // Handle case where neither a reference value nor standard range are specified
+    if (mergedDataForLegend.length === 0) {
+        mergedDataForLegend = datasets;
     }
 
     // Rendering
@@ -627,7 +725,8 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
 
                 {/* Plots */}
 
-                {standardRange &&
+                {showStandardRange &&
+                    standardRange &&
                     standardRangeDataMapped.map(
                         ({ key, points, color, childName }) => {
                             return (
@@ -647,6 +746,57 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                                 : 'visible',
                                         },
                                     }}
+                                />
+                            );
+                        }
+                    )}
+
+                {/* Reference line */}
+                {showReferenceLine &&
+                    referenceValue &&
+                    referenceValueData &&
+                    referenceValueDataSetMapped.map(
+                        ({ key, points, color, childName }) => {
+                            return (
+                                <VictoryLine
+                                    key={key}
+                                    name={childName}
+                                    data={points}
+                                    style={{
+                                        data: {
+                                            stroke: color,
+                                            strokeWidth:
+                                                Constants.REFERENCELINE_STROKE_WIDTH,
+                                            strokeDasharray: '5,5',
+                                            visibility: hiddenKeys.includes(key)
+                                                ? 'hidden'
+                                                : 'visible',
+                                        },
+                                        labels: {
+                                            fill: color,
+                                            fontSize:
+                                                Constants.REFERENCELABEL_FONTSIZE,
+                                            visibility: hiddenKeys.includes(key)
+                                                ? 'hidden'
+                                                : 'visible',
+                                        },
+                                    }}
+                                    labels={(datum: any) => {
+                                        return datum.x ===
+                                            dummyDateForReferenceLine
+                                            ? `${referenceValue}`
+                                            : '';
+                                    }}
+                                    labelComponent={
+                                        <VictoryLabel
+                                            dy={6}
+                                            dx={
+                                                referenceValueLabelLeft
+                                                    ? 10
+                                                    : -12
+                                            }
+                                        />
+                                    }
                                 />
                             );
                         }
@@ -714,51 +864,36 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                     orientation={secondYRange ? 'horizontal' : 'vertical'}
                     y={secondYRange ? 16 : height / 6 + 2}
                     x={secondYRange ? width / 5 + 15 : (5 / 6) * width}
-                    gutter={20} // only for horizontal alignment
+                    gutter={18} // only for horizontal alignment
                     name="legend"
                     data={
-                        standardRange
-                            ? mergedDataForLegend.map(({ key, color }, i) => ({
-                                  name: transformString(key),
-                                  symbol: {
-                                      fill: hiddenKeys.includes(key)
-                                          ? 'lightgray'
-                                          : color,
-                                      type: getLegendSymbol(key),
-                                      opacity:
-                                          key === STANDARD_RANGE_KEY
-                                              ? Constants
-                                                    .standardRangeLayoutValues
-                                                    .symbolOpacity
-                                              : 1.0,
-                                  },
-                                  labels: {
-                                      fill: hiddenKeys.includes(key)
-                                          ? 'lightgray'
-                                          : color,
-                                      opacity:
-                                          key === STANDARD_RANGE_KEY &&
-                                          !hiddenKeys.includes(key)
-                                              ? Constants
-                                                    .standardRangeLayoutValues
-                                                    .labelOpacity
-                                              : 1.0,
-                                  },
-                              }))
-                            : datasets.map(({ key, color }, i) => ({
-                                  name: transformString(key),
-                                  symbol: {
-                                      fill: hiddenKeys.includes(key)
-                                          ? 'lightgray'
-                                          : color,
-                                      type: getLegendSymbol(key),
-                                  },
-                                  labels: {
-                                      fill: hiddenKeys.includes(key)
-                                          ? 'lightgray'
-                                          : color,
-                                  },
-                              }))
+                        //
+                        //   ?
+                        mergedDataForLegend.map(({ key, color }, i) => ({
+                            name: transformString(key),
+                            symbol: {
+                                fill: hiddenKeys.includes(key)
+                                    ? 'lightgray'
+                                    : color,
+                                type: getLegendSymbol(key),
+                                opacity:
+                                    key === STANDARD_RANGE_KEY
+                                        ? Constants.standardRangeLayoutValues
+                                              .symbolOpacity
+                                        : 1.0,
+                            },
+                            labels: {
+                                fill: hiddenKeys.includes(key)
+                                    ? 'lightgray'
+                                    : color,
+                                opacity:
+                                    key === STANDARD_RANGE_KEY &&
+                                    !hiddenKeys.includes(key)
+                                        ? Constants.standardRangeLayoutValues
+                                              .labelOpacity
+                                        : 1.0,
+                            },
+                        }))
                     }
                     events={legendEvents}
                 />

@@ -14,6 +14,7 @@ interface PieChartProps {
     height?: number;
     dataRange: [number, number];
     thresholds?: number[];
+    showThresholds?: boolean;
 }
 
 /**
@@ -89,12 +90,13 @@ const PieChart: React.FC<PieChartProps> = ({
     height = 150,
     dataRange,
     thresholds,
+    showThresholds = false,
 }) => {
     const viewBoxPath = '0 0 ' + width + ' ' + height;
     const processedData = processData(data, dataRange);
     let thresholdColorScale = Constants.thresholdColorScale;
 
-    if (thresholds) {
+    if (showThresholds && thresholds) {
         switch (thresholds.length) {
             case 1:
                 thresholdColorScale = [
@@ -138,7 +140,7 @@ const PieChart: React.FC<PieChartProps> = ({
                     data={processedData}
                     colorScale={getColors(
                         data.y !== null ? data.y : NaN,
-                        thresholds,
+                        showThresholds ? thresholds : undefined,
                         thresholdColorScale,
                         Constants.defaultPieColors
                     )}

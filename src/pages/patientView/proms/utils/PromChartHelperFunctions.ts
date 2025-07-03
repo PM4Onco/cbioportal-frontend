@@ -161,7 +161,11 @@ const getXDomain = (
  * @param minY minimum value y can be
  * @returns normalized value of y
  */
-const getNormalizedValue = (y: number, maxY: number, minY: number): number => {
+export const getNormalizedValue = (
+    y: number,
+    maxY: number,
+    minY: number
+): number => {
     if (y < 0) {
         return 0;
     }
@@ -304,13 +308,13 @@ export const calculateAverage = (numbers: number[]): number | undefined => {
     return sum / numbers.length;
 };
 
-// If array is not a subset of comparator, elements that do not occur in comparator will be placed at the end
 /**
  * Custom sort function for arrays based on element order in a comparator array, which ideally is a superset
  * of the array. If the array is not a subset of the comparator, elements that do not occur
  * in comparator will be placed at the end.
  * @param array array to be sorted
- * @param comparator reference array, which determines the sort order
+ * @param comparator reference array, which determines the sort order;
+ * If array is not a subset of comparator, elements that do not occur in comparator will be placed at the end.
  * @returns sorted array
  */
 export const sortArrayBasedOnComparator = (
@@ -355,6 +359,10 @@ export const isAttributeNumberValueWellDefined = (
 export const isAttributeDateValueWellDefined = (
     value: string | undefined
 ): boolean => {
+    // remove whitespace at the start and end of string
+    if (value) {
+        value = value.trim();
+    }
     return (
         value !== undefined &&
         value !== null &&
@@ -445,7 +453,15 @@ export const splitString = (text: string, separator: string): string[] => {
  * @param isoDate string representing an ISO date
  * @returns string representing the date as DD/MM/YYYY
  */
-export const convertISOToDDMMYYYY = (isoDate: string) => {
+export const convertISOToDDMMYYYY = (inputDate: string) => {
+    // Process input and assure it has valid ISO format
+    inputDate = inputDate.trim();
+    const isoDateAsDate = new Date(inputDate);
+    if (!(isoDateAsDate instanceof Date && !isNaN(isoDateAsDate.getTime()))) {
+        throw new Error('Invalid date');
+    }
+    const isoDate = isoDateAsDate.toISOString().split('T')[0];
+
     // Check if the input matches the ISO format (YYYY-MM-dd)
     const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!isoRegex.test(isoDate)) {

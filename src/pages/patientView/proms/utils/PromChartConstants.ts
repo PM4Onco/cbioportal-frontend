@@ -53,6 +53,11 @@ export const standardRangeLayoutValues = {
     labelOpacity: 0.9,
 };
 
+export const referenceValueLayoutValues = {
+    color: '#455a64',
+    symbol: 'minus',
+};
+
 // base layout constants
 export const STROKE_WIDTH = 1;
 export const TEXT_FONTSIZE = 8;
@@ -89,6 +94,10 @@ export const POLYGON =
 
 // offsets
 export const XLABEL_YOFFSET = 9;
+
+// reference line
+export const REFERENCELINE_STROKE_WIDTH = LINE_STROKE_WIDTH;
+export const REFERENCELABEL_FONTSIZE = TICKLABEL_FONTSIZE;
 
 // date constants
 export const DUMMY_DATE_IN_THE_PAST = '1800-01-01';
