@@ -38,6 +38,7 @@ import FeatureInstruction from 'shared/FeatureInstruction/FeatureInstruction';
 import { HelpWidget } from 'shared/components/HelpWidget/HelpWidget';
 import FollowUpTable from './therapyRecommendation/FollowUpTable';
 import MutationTableWrapper from './mutation/MutationTableWrapper';
+import Proms from './proms/Proms';
 import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
 import { Else, If } from 'react-if';
 
@@ -55,6 +56,7 @@ export enum PatientViewPageTabs {
     Mtb = 'mtb',
     FollowUp = 'followUp',
     ClinicalTrialsGov = 'clinicaltrialsGov',
+    Proms = 'proms',
 }
 
 export const PatientViewResourceTabPrefix = 'openResource_';
@@ -858,6 +860,21 @@ export function tabs(
                 />
             </MSKTab>
         );
+
+    tabs.push(
+        <MSKTab
+            key={45}
+            id={PatientViewPageTabs.Proms}
+            linkText="PROMs"
+            unmountOnHide={false}
+        >
+            <Proms
+                patientViewPageStore={pageComponent.patientViewPageStore}
+                sampleManager={sampleManager}
+                dataStore={pageComponent.patientViewMutationDataStore}
+            />
+        </MSKTab>
+    );
 
     // tabs.push(
     //     <MSKTab
