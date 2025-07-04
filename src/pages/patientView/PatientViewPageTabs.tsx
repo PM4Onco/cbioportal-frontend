@@ -41,6 +41,7 @@ import MutationTableWrapper from './mutation/MutationTableWrapper';
 import Proms from './proms/Proms';
 import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
 import { Else, If } from 'react-if';
+import { ClinicalEvent } from 'cbioportal-ts-api-client';
 
 export enum PatientViewPageTabs {
     Summary = 'summary',
@@ -861,20 +862,26 @@ export function tabs(
             </MSKTab>
         );
 
-    tabs.push(
-        <MSKTab
-            key={45}
-            id={PatientViewPageTabs.Proms}
-            linkText="PROMs"
-            unmountOnHide={false}
-        >
-            <Proms
-                patientViewPageStore={pageComponent.patientViewPageStore}
-                sampleManager={sampleManager}
-                dataStore={pageComponent.patientViewMutationDataStore}
-            />
-        </MSKTab>
-    );
+    pageComponent.patientViewPageStore.clinicalEvents.isComplete &&
+        pageComponent.patientViewPageStore.clinicalEvents.result.length > 0 &&
+        haveClinicalEventsPromData(
+            pageComponent.patientViewPageStore.clinicalEvents.result,
+            ['EQ-5D-5L']
+        ) &&
+        tabs.push(
+            <MSKTab
+                key={45}
+                id={PatientViewPageTabs.Proms}
+                linkText="PROMs"
+                unmountOnHide={false}
+            >
+                <Proms
+                    patientViewPageStore={pageComponent.patientViewPageStore}
+                    sampleManager={sampleManager}
+                    dataStore={pageComponent.patientViewMutationDataStore}
+                />
+            </MSKTab>
+        );
 
     // tabs.push(
     //     <MSKTab
@@ -932,3 +939,22 @@ export function tabs(
 
     return tabs;
 }
+
+const haveClinicalEventsPromData = (
+    clinicalEvents: ClinicalEvent[],
+    promEvents: string[]
+): boolean => {
+    if (!clinicalEvents) {
+        return false;
+    }
+    for (let promEvent of promEvents) {
+        if (
+            clinicalEvents.find(
+                (event: ClinicalEvent) => event.eventType === promEvent
+            )
+        ) {
+            return true;
+        }
+    }
+    return false;
+};

@@ -1,4 +1,22 @@
 /* meta data for EQ-5D-5L questionnaire as constants */
+// dataset keys
+export const PROM_KEYS = [
+    'MOBILITY',
+    'SELF-CARE',
+    'USUAL_ACTIVITY',
+    'PAIN/DISCOMFORT',
+    'ANXIETY/DEPRESSION',
+    'AVERAGE',
+    'INDEX',
+    'VAS',
+];
+
+export const AVERAGE_KEY = 'AVERAGE';
+export const DATE_KEY = 'DATE_ISO';
+export const INDEX_KEY = 'INDEX';
+export const VAS_KEY = 'VAS';
+export const STANDARD_RANGE_KEY = 'STANDARD_RANGE';
+
 // 5 Dimensions
 export const VALUES_ALPHA = ['Extreme', 'Severe', 'Moderate', 'Slight', 'No'];
 export const VALUES_RANGE: [number, number] = [1, 5];
@@ -30,4 +48,5 @@ export const eq5d5lInfo =
     'https://euroqol.org/information-and-support/euroqol-instruments/eq-5d-5l/';
 export const scoresDescription = 'Lorem ipsum Standard range toggle legend';
 export const healthDetailsDescription = 'Lorem ipsum dimensions toogle legend';
-export const currentEqVasDescription = 'Lorem ipsum eq and vas';
+export const currentEqVasDescription =
+    'Lorem ipsum eq and vas WHICH values are displayed (incomplete data)';

@@ -28,17 +28,26 @@ import {
 } from 'cbioportal-frontend-commons';
 
 import CBIOPORTAL_VICTORY_THEME_PROM from '../utils/cBioPortalThemePROM';
+import {
+    AVERAGE_KEY,
+    INDEX_KEY,
+    VAS_KEY,
+    STANDARD_RANGE_KEY,
+} from '../utils/EQ-5D-5LChartMetadata';
 
 import * as Constants from '../utils/PromChartConstants';
+import { parse } from 'date-fns';
 
 import {
     Datum,
     DataSet,
-    Range,
     mergeArrays,
     createRangeData,
     normalizeDataSet,
     getOriginalY,
+    transformString,
+    createCommonXAxisForDataSet,
+    convertISOToDDMMYYYY,
 } from '../utils/PromChartHelperFunctions';
 
 // Props of LineScatterPlot
@@ -54,7 +63,7 @@ interface LineScatterPlotProps {
     secondYLabel?: string;
     secondYTickFormat?: string[];
     secondYRange?: [number, number];
-    standardRange?: Range;
+    standardRange?: [number, number];
     showTooltip?: boolean;
 }
 
@@ -91,16 +100,16 @@ const ArrowAxis = (props: any) => {
 // functions for required layout
 
 const getColor = (key: string, index: number): string => {
-    if (key === 'Average') {
+    if (key === AVERAGE_KEY) {
         return Constants.averageLayoutValues.color;
     }
-    if (key === 'Index') {
+    if (key === INDEX_KEY) {
         return Constants.eqLayoutValues.color;
     }
-    if (key === 'VAS') {
+    if (key === VAS_KEY) {
         return Constants.vasLayoutValues.color;
     }
-    if (key === 'Standard Range') {
+    if (key === STANDARD_RANGE_KEY) {
         return Constants.standardRangeLayoutValues.color;
     } else {
         return Constants.lineColors[index % Constants.lineColors.length];
@@ -108,17 +117,17 @@ const getColor = (key: string, index: number): string => {
 };
 
 const getLegendSymbol = (key: string): string => {
-    if (key === 'Average') {
+    if (key === AVERAGE_KEY) {
         return Constants.averageLayoutValues.symbol;
     }
-    if (key === 'Index') {
+    if (key === INDEX_KEY) {
         // negative values ??
         return Constants.eqLayoutValues.symbol;
     }
-    if (key === 'VAS') {
+    if (key === VAS_KEY) {
         return Constants.vasLayoutValues.symbol;
     }
-    if (key === 'Standard Range') {
+    if (key === STANDARD_RANGE_KEY) {
         return Constants.standardRangeLayoutValues.symbol;
     } else {
         return 'minus';
@@ -126,17 +135,17 @@ const getLegendSymbol = (key: string): string => {
 };
 
 const getScatterSymbol = (key: string, origY: number | null): string => {
-    if (key === 'Average') {
+    if (key === AVERAGE_KEY) {
         return Constants.averageLayoutValues.symbol;
     }
-    if (key === 'Index') {
+    if (key === INDEX_KEY) {
         // negative values ??
         if (origY !== null && origY < 0) {
             return Constants.eqLayoutValues.symbolNegative;
         }
         return Constants.eqLayoutValues.symbol;
     }
-    if (key === 'VAS') {
+    if (key === VAS_KEY) {
         return Constants.vasLayoutValues.symbol;
     } else {
         return 'circle';
@@ -148,7 +157,7 @@ const getScatterColor = (
     color: string,
     origY: number | null
 ): string => {
-    if (key === 'Index' && origY !== null && origY < 0) {
+    if (key === INDEX_KEY && origY !== null && origY < 0) {
         return Constants.eqLayoutValues.colorNegative;
     }
     return color;
@@ -160,52 +169,91 @@ const useProcessedData = (
     yRange: [number, number],
     secondYRange?: [number, number]
 ): DataSet => {
-    return useMemo(() => {
-        const keys = Object.keys(data);
+    //return useMemo(() => {
+    const keys = Object.keys(data);
 
-        /* fill label property of data entries */
-        for (let key of keys) {
-            data[key].forEach((datum: Datum) => {
-                datum.labelName = key;
-            });
-        }
+    /* fill label property of data entries */
+    for (let key of keys) {
+        data[key].forEach((datum: Datum) => {
+            datum.labelName = key;
+        });
+    }
 
-        // add dummy data as first and last element (used for standardRange)
-        //if (standardRange) {
-        for (let key of keys) {
-            let dummyDatumBefore: Datum;
-            let dummyDatumAfter: Datum;
-            if (data[key].every(datum => typeof datum.x === 'number')) {
-                dummyDatumBefore = { x: -Infinity, y: null };
-                dummyDatumAfter = { x: Infinity, y: null };
-            } else {
-                // strings
-                dummyDatumBefore = { x: '!', y: null }; // first utf-16 element to ensure sorting won't destroy order
-                dummyDatumAfter = { x: '~', y: null }; // last utf-16 element to ensure sorting won't destroy order
-            }
-            data[key].unshift(dummyDatumBefore);
-            data[key].push(dummyDatumAfter);
+    // find longest sequence of data points
+    let maxLength = 0;
+    for (let key of keys) {
+        if (data[key].length > maxLength) {
+            maxLength = data[key].length;
         }
+    }
+    console.log('maxLength:', maxLength);
+
+    // add dummy data as first and last element (used for standardRange)
+    //if (standardRange) {
+    for (let key of keys) {
+        let dummyDatumBefore: Datum;
+        let dummyDatumAfter: Datum;
+        dummyDatumBefore = { x: Constants.DUMMY_DATE_IN_THE_PAST, y: null };
+        data[key].unshift(dummyDatumBefore);
+        //if (data[key].length > maxLength) {
+        dummyDatumAfter = { x: Constants.DUMMY_DAT_IN_THE_FUTURE, y: null };
+        data[key].push(dummyDatumAfter);
         //}
 
-        /* normalization */
-        // If no second axis, return original data (no normalization needed here)
-        if (!secondYRange) {
-            return data;
-        }
+        // data[key].unshift(dummyDatumBefore);
+        // data[key].push(dummyDatumAfter);
+    }
+    //}
 
-        const newData: DataSet = { ...data };
+    /* normalization */
+    // If no second axis, return original data (no normalization needed here)
+    if (!secondYRange) {
+        return data;
+    }
 
-        // Normalize the first dataset if it exists
-        if (keys.length > 0) {
+    const newData: DataSet = { ...data };
+
+    // Normalize dataset if it exists
+    if (yRange && secondYRange) {
+        if (keys.length > 1) {
             newData[keys[0]] = normalizeDataSet(data[keys[0]], yRange);
-        }
-        // Normalize the second dataset if it exists and secondYRange is valid
-        if (keys.length > 1 && secondYRange) {
             newData[keys[1]] = normalizeDataSet(data[keys[1]], secondYRange);
+        } else if (keys.length === 1) {
+            const range = keys[0] === INDEX_KEY ? yRange : secondYRange;
+            newData[keys[0]] = normalizeDataSet(data[keys[0]], range);
         }
-        return newData;
-    }, [data, yRange, secondYRange]);
+    }
+    return newData;
+    //}, [data, yRange, secondYRange]);
+};
+
+const useProcessedStandardRangeData = (
+    rangeData: DataSet,
+    yRange: [number, number]
+): DataSet => {
+    const keys = Object.keys(rangeData);
+
+    /* fill label property of data entries */
+    for (let key of keys) {
+        rangeData[key].forEach((datum: Datum) => {
+            datum.labelName = key;
+        });
+    }
+
+    /* normalization */
+
+    const newRangeData: DataSet = { ...rangeData };
+
+    // Normalize dataset if it exists
+    if (yRange) {
+        if (keys.length === 1) {
+            newRangeData[keys[0]] = normalizeDataSet(
+                rangeData[keys[0]],
+                yRange
+            );
+        }
+    }
+    return newRangeData;
 };
 
 /* Plot logic */
@@ -226,14 +274,18 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     showTooltip = true,
 }) => {
     // useState hook to show and hide specific datasets
-    const [hiddenKeys, setHiddenKeys] = useState<string[]>(['Average']); // datasetes named "Average" are initially not shown
+    const [hiddenKeys, setHiddenKeys] = useState<string[]>([AVERAGE_KEY]); // datasetes named "Average" are initially not shown
 
     // TODO: assure yRange has same format as yTickFormat
 
     const processedData = useProcessedData(data, yRange, secondYRange);
+    console.log('processedData for LineScatterPlot:', processedData);
+
+    const augmentedData = createCommonXAxisForDataSet(processedData);
+    console.log('augmentedData for LineScatterPlot:', augmentedData);
 
     // transform input: input is object, output array
-    const datasets = Object.entries(processedData).map(([key, points], i) => ({
+    const datasets = Object.entries(augmentedData).map(([key, points], i) => ({
         key,
         points,
         color: getColor(key, i),
@@ -285,8 +337,8 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     };
 
     // tick values for x-axis without the dummy ticks
-    const xTickValues = (data: DataSet): Array<number | string> => {
-        const allX: (string | number)[] = [];
+    const xTickValues = (data: DataSet): Array<string> => {
+        const allX: string[] = [];
         for (const series of Object.values(data)) {
             for (const d of series) {
                 if (d.x !== null && d.x !== undefined) {
@@ -294,15 +346,35 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 }
             }
         }
+        console.log('allX:', allX);
 
         // Remove duplicates
         const uniqueX = Array.from(new Set(allX));
 
+        // convert to date
+        // uniqueX.forEach((d, i) => {
+        //     uniqueX[i] = parse(d, "dd/MM/yyyy", new Date()).toISOString();
+        //     //const year = parsedISODate.getFullYear();
+        //     //const month = parsedISODate.getMonth();
+        //     //const day = parsedISODate.getDate();
+        //     //uniqueX[i] = day + '/' + (month + 1).toString() + '/' + year;
+        // });
+
         // Sort
         const sortedX = uniqueX.sort((a, b) => {
-            if (typeof a === 'number' && typeof b === 'number') return a - b;
             return new Date(a).getTime() - new Date(b).getTime(); // for dates saved as strings
         });
+        console.log('sortedX:', sortedX);
+
+        // Convert to right format again
+        // sortedX.forEach((d, i) => {
+        //     const date = new Date(d);
+        //     const day = date.getDate();
+        //     const month = date.getMonth() + 1;
+        //     const year = date.getFullYear();
+        //     sortedX[i] = day + '/' + month + '/' + year;
+        // })
+
         // remove first and last element
         // console.log('Unique Array');
         // console.log(uniqueX);
@@ -310,18 +382,24 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         // console.log(sortedX);
         sortedX.shift();
         sortedX.pop();
+        console.log('sortedX without first and last:', sortedX);
 
         // Return all except first and last
         //return sortedX.slice(1, -1);
+
         return sortedX;
     };
 
     const displayTooltip = (datum: Datum, origData: Datum[]): string => {
         if (secondYRange) {
             const originalY = getOriginalY(datum.x, origData);
-            return `${datum.labelName}: ${originalY}`;
+            return datum.labelName
+                ? `${transformString(datum.labelName)}: ${originalY}`
+                : `${originalY}`;
         }
-        return `${datum.labelName}: ${datum.y}`;
+        return datum.labelName
+            ? `${transformString(datum.labelName)}: ${datum.y}`
+            : `${datum.labelName}: ${datum.y}`;
     };
 
     // helpers for showing standard range
@@ -342,11 +420,12 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
 
     if (standardRange) {
         standardRangeData = createRangeData(data, standardRange);
-        standardRangeDataProcessed = useProcessedData(
+        console.log('standardRangeData:', standardRangeData); //OK
+        standardRangeDataProcessed = useProcessedStandardRangeData(
             standardRangeData,
-            yRange,
-            secondYRange
+            yRange
         );
+        console.log('standardRangeDataProcessed:', standardRangeDataProcessed);
         standardRangeDataMapped = Object.entries(
             standardRangeDataProcessed
         ).map(([key, points], i) => ({
@@ -477,10 +556,13 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                     axisComponent={<ArrowAxis />}
                     label={xLabel}
                     tickValues={xTickValues(processedData)}
-                    //tickFormat={xTickValues(data)}
+                    tickFormat={(t: string) => `${convertISOToDDMMYYYY(t)}`}
                     axisLabelComponent={
-                        <VictoryLabel dx={0.3 * width - 2} dy={0} />
-                    } // dx={0.29 * width} dy={-3 * Constants.TICK_SIZE}
+                        <VictoryLabel
+                            dx={0.33 * width - Constants.ARROW_HEIGHT}
+                            dy={Constants.XLABEL_YOFFSET}
+                        />
+                    } // dx={0.3 * width - 2} dy={-3 * Constants.TICK_SIZE}
                     // theme
                     style={{ grid: { strokeOpacity: 0 } }}
                     /* style={{
@@ -574,6 +656,9 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                             <VictoryScatter
                                 name={childName}
                                 data={points}
+                                sortOrder="ascending"
+                                sortKey="x"
+                                scale={{ x: 'time' }}
                                 //size={Constants.SCATTER_POINT_SIZE} //theme // size={( { active }: { active: any }) => active ? 2 * SCATTER_POINT_SIZE: SCATTER_POINT_SIZE}
                                 symbol={(d: Datum) =>
                                     getScatterSymbol(
@@ -639,14 +724,14 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                     data={
                         standardRange
                             ? mergedDataForLegend.map(({ key, color }, i) => ({
-                                  name: key,
+                                  name: transformString(key),
                                   symbol: {
                                       fill: hiddenKeys.includes(key)
                                           ? 'lightgray'
                                           : color,
                                       type: getLegendSymbol(key),
                                       opacity:
-                                          key === 'Standard Range'
+                                          key === STANDARD_RANGE_KEY
                                               ? Constants
                                                     .standardRangeLayoutValues
                                                     .symbolOpacity
@@ -657,7 +742,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                           ? 'lightgray'
                                           : color,
                                       opacity:
-                                          key === 'Standard Range' &&
+                                          key === STANDARD_RANGE_KEY &&
                                           !hiddenKeys.includes(key)
                                               ? Constants
                                                     .standardRangeLayoutValues
@@ -666,7 +751,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                   },
                               }))
                             : datasets.map(({ key, color }, i) => ({
-                                  name: key,
+                                  name: transformString(key),
                                   symbol: {
                                       fill: hiddenKeys.includes(key)
                                           ? 'lightgray'

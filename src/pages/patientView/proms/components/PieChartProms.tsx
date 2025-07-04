@@ -18,10 +18,9 @@ import {
 
 import * as Constants from '../utils/PromChartConstants';
 
-import { Datum } from '../utils/PromChartHelperFunctions';
+import { Datum, transformString } from '../utils/PromChartHelperFunctions';
 
 import CBIOPORTAL_VICTORY_THEME_PROM from '../utils/cBioPortalThemePROM';
-import { fill } from 'lodash';
 
 /* Interfaces for data format */
 
@@ -169,7 +168,7 @@ const PieChart: React.FC<PieChartProps> = ({
                     }}
                     x={width / 2}
                     y={height - 20} // - 3 * Constants.LABEL_TITLE_FONTSIZE
-                    text={data.x}
+                    text={transformString(data.x.toString())}
                 />
             </svg>
         </div>

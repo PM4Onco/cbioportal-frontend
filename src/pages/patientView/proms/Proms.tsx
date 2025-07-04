@@ -4,11 +4,23 @@ import Timeline from './components/patientTimeline';
 import LineScatterPlot from './components/LineScatterPlotProms';
 import {
     DataSet,
-    Range,
+    StringDataSet,
     addElementToDataset,
+    addElementToStringDataset,
     transformString,
+    calculateAverage,
+    sortArrayBasedOnComparator,
+    isAttributeNumberValueWellDefined,
+    isAttributeDateValueWellDefined,
+    compareClinicalEvents,
+    splitString,
+    convertISOToDDMMYYYY,
 } from './utils/PromChartHelperFunctions';
 import {
+    PROM_KEYS,
+    AVERAGE_KEY,
+    DATE_KEY,
+    INDEX_KEY,
     EQ_RANGE,
     VAS_RANGE,
     EQ_VALUES_ALPHA,
@@ -60,8 +72,9 @@ interface PROMsProps {
 }
 
 // Folgende Konstanten sollten auch aus Backend kommen
-const standardRange: Range = { name: 'Standard Range', range: [0.45, 0.7] };
-const thresholdsEQ = [0.2, 0.4, 0.6, 0.8]; // ggf auch für VAS
+const standardRange: [number, number] = [0.45, 0.7];
+const thresholdsEQ: number[] = [0.2, 0.4, 0.6, 0.8]; // ggf auch für VAS
+const thresholdsVAS: number[] = [];
 
 const InfoTooltip = ({
     id,
@@ -76,17 +89,6 @@ const InfoTooltip = ({
     tooltip: any;
     placement: string;
 }) => {
-    /*  return (
-        <OverlayTrigger
-            overlay={<Tooltip id={id}>{tooltip}</Tooltip>}
-            delayShow={300}
-            delayHide={150}
-            placement={placement}
-            >
-            {children}
-        </OverlayTrigger>
-   
-  ); */
     return (
         <DefaultTooltip
             placement={placement}
@@ -113,187 +115,250 @@ const InfoTooltip = ({
 //     return `${day}/${month}/${year}`;
 // }
 
-// meta data eq5d5l
-
-/* Sample data sets */
-// const sampleData5Dimensions: DataSet = {
-//     Mobility: [
-//         { x: formatDate(new Date(2025, 0, 1)), y: 1 },
-//         { x: formatDate(new Date(2025, 1, 1)), y: 2 },
-//         { x: formatDate(new Date(2025, 2, 1)), y: 1 },
-//         { x: formatDate(new Date(2025, 3, 1)), y: 4 },
-//     ],
-//     'Self-Care': [
-//         { x: formatDate(new Date(2025, 0, 1)), y: 3 },
-//         { x: formatDate(new Date(2025, 1, 1)), y: 5 },
-//         { x: formatDate(new Date(2025, 2, 1)), y: 4 },
-//         { x: formatDate(new Date(2025, 3, 1)), y: 2 },
-//     ],
-//     'Usual activities': [
-//         { x: formatDate(new Date(2025, 0, 1)), y: 1 },
-//         { x: formatDate(new Date(2025, 1, 1)), y: 1 },
-//         { x: formatDate(new Date(2025, 2, 1)), y: 2 },
-//         { x: formatDate(new Date(2025, 3, 1)), y: 2 },
-//     ],
-//     'Pain/Discomfort': [
-//         { x: formatDate(new Date(2025, 0, 1)), y: 5 },
-//         { x: formatDate(new Date(2025, 1, 1)), y: 3 },
-//         { x: formatDate(new Date(2025, 2, 1)), y: 1 },
-//         { x: formatDate(new Date(2025, 3, 1)), y: 3 },
-//     ],
-//     'Anxiety/Dipression': [
-//         { x: formatDate(new Date(2025, 0, 1)), y: 2 },
-//         { x: formatDate(new Date(2025, 1, 1)), y: 2 },
-//         { x: formatDate(new Date(2025, 2, 1)), y: 2 },
-//         { x: formatDate(new Date(2025, 3, 1)), y: 1 },
-//     ],
-//     Average: [
-//         { x: formatDate(new Date(2025, 0, 1)), y: 2.3 },
-//         { x: formatDate(new Date(2025, 1, 1)), y: 3.5 },
-//         { x: formatDate(new Date(2025, 2, 1)), y: 1.7 },
-//         { x: formatDate(new Date(2025, 3, 1)), y: 2.8 },
-//     ],
-// };
-
-// const sampleDataEqVas: DataSet = {
-//     EQ: [
-//         { x: formatDate(new Date(2025, 0, 1)), y: 0.6 },
-//         { x: formatDate(new Date(2025, 1, 9)), y: 0.55 },
-//         { x: formatDate(new Date(2025, 2, 1)), y: -0.33 },
-//         { x: formatDate(new Date(2025, 12, 7)), y: 0.2 },
-//         // { x: formatDate(new Date(2026, 0, 1)), y: 0.6 },
-//         // { x: formatDate(new Date(2026, 1, 9)), y: 0.55 },
-//         // { x: formatDate(new Date(2026, 2, 1)), y: -0.33 },
-//         // { x: formatDate(new Date(2026, 12, 7)), y: 0.2 },
-//     ],
-//     VAS: [
-//         { x: formatDate(new Date(2025, 0, 1)), y: 30 },
-//         { x: formatDate(new Date(2025, 1, 9)), y: 45 },
-//         { x: formatDate(new Date(2025, 2, 1)), y: 73 },
-//         { x: formatDate(new Date(2025, 12, 7)), y: 55 },
-//         // { x: formatDate(new Date(2026, 0, 1)), y: 30 },
-//         // { x: formatDate(new Date(2026, 1, 9)), y: 45 },
-//         // { x: formatDate(new Date(2026, 2, 1)), y: 73 },
-//         // { x: formatDate(new Date(2026, 12, 7)), y: 55 },
-//     ],
-// };
-
-// TODO Funktion zum Herauslesen des aktuellen EQ- und VAS-Wertes für PieChart
-// Bereich current EQ scores als eigene Komponente -> oberes dorthin auslagern?
-
 /* pre-process given data */
 // hook for processing data
-const useProcesseData = (data: ClinicalEvent[]): DataSet[] => {
+const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
     const promData = data.filter(
         (event: ClinicalEvent) => event.eventType === questionnaireName
     );
     console.log('promData:');
-    console.log(promData); // ok
-    // assert: alle gleichen uniquePatientKey
+    console.log(promData);
+
     let datasetKeys: string[] = [];
     let dimensionDataset: DataSet = {};
-    let eqVasDataset: DataSet = {};
-    let scoreDataset: DataSet = {};
-    let latestQuestionnaireRelativeDate = 0;
-    let latestQuestionnaireAbsoluteDate: string = '';
-    let latestScores: [string, number | string][] = [];
+    let eqVASDataset: DataSet = {};
+    let currentScoreDataset: DataSet = {};
+    let latestScores: [string, number | string | null][] = [];
+    let latestScoreDates: string[] = [];
+    let latestScoreDatesKeys: string[] = [];
+    let latestScoresDate = '';
 
-    promData[0].attributes.forEach((item: any) => {
-        datasetKeys.push(item.key);
+    //let useRelativeDates = false;
+
+    // Write out all keys provided in promData set
+    promData.forEach((event: ClinicalEvent) => {
+        event.attributes.forEach((item: any) => {
+            if (!datasetKeys.includes(item.key)) {
+                datasetKeys.push(item.key);
+            }
+        });
     });
     console.log('datasetKeys:', datasetKeys); //ok
 
-    // delete keys which are not needed
-    const keysNotToBeDeleted = [
-        'MOBILITY',
-        'SELF-CARE',
-        'USUAL_ACTIVITY',
-        'PAIN/DISCOMFORT',
-        'ANXIETY/DEPRESSION',
-        'AVERAGE',
-        'INDEX',
-        'VAS',
-    ];
     const datasetKeysForPlots = datasetKeys.filter((key: string) =>
-        keysNotToBeDeleted.includes(key)
+        PROM_KEYS.includes(key)
     );
+    // Add key for average
+    if (AVERAGE_KEY !== undefined) {
+        datasetKeysForPlots.push(AVERAGE_KEY);
+    }
     console.log('datasetKeysForPlots:', datasetKeysForPlots);
 
-    const keysDimensions = datasetKeysForPlots.slice(
-        0,
-        datasetKeysForPlots.length - 2
-    );
-    console.log('keysDimensions:', keysDimensions);
+    let keysForDimensionPlot = datasetKeysForPlots.filter((key: string) => {
+        const dimensionKeys = PROM_KEYS.slice(0, PROM_KEYS.length - 2);
+        return dimensionKeys.includes(key);
+    });
+    console.log('keysForDimensionPlot:', keysForDimensionPlot);
 
-    const keysEQVAS = datasetKeysForPlots.slice(
-        datasetKeysForPlots.length - 2,
-        datasetKeysForPlots.length
-    );
-    console.log('keysEQVAS:', keysEQVAS);
+    let keysForEQVASPlot = datasetKeysForPlots.filter((key: string) => {
+        const eqVasKeys = PROM_KEYS.slice(
+            PROM_KEYS.length - 2,
+            PROM_KEYS.length
+        );
+        return eqVasKeys.includes(key);
+    });
 
-    datasetKeysForPlots.forEach((key: string) => {
-        promData.forEach((event: ClinicalEvent) => {
-            const value = event.attributes.find((item: any) => item.key === key)
+    console.log('keysForEQVASPlot:', keysForEQVASPlot);
+
+    // sort promData according to startdate in ascending order
+    promData.sort(compareClinicalEvents);
+    console.log('promData sorted:', promData);
+
+    promData.forEach((event: ClinicalEvent, index: number) => {
+        let valuesForAverageCalculation: number[] = [];
+        datasetKeysForPlots.forEach((key: string) => {
+            let value = event.attributes.find((item: any) => item.key === key)
                 ?.value;
             //console.log("value: ", value)
-            const date = event.attributes.find(
-                (item: any) => item.key === 'DATE'
+
+            let date = event.attributes.find(
+                (item: any) => item.key === DATE_KEY
             )?.value;
             //console.log("date: ", date)
+
+            // Check if date is not found or maldefined
+            if (!isAttributeDateValueWellDefined(date)) {
+                // || useRelativeDates
+                return;
+                //date = event.startNumberOfDaysSinceDiagnosis.toString();
+                //useRelativeDates = true;
+            } else {
+                // format date
+                // date is always non-null
+                const realDate: string = date ? date : '';
+                //const parsedDate = Date.parse(realDate);
+                if (!isNaN(Date.parse(realDate))) {
+                    const parsedDate = new Date(realDate);
+                    const year = parsedDate.getFullYear();
+                    const month = parsedDate.getMonth();
+                    const day = parsedDate.getDate();
+                    // date = day + '/' + (month + 1).toString() + '/' + year;
+                    date = new Date(Date.UTC(year, month, day))
+                        .toISOString()
+                        .split('T')[0];
+                    console.log('date:', date);
+                }
+            }
+
+            // Check value (not for AVERAGE since this may not exist)
             if (
-                value === undefined ||
-                date === undefined ||
-                isNaN(Number(value))
+                (key !== AVERAGE_KEY &&
+                    !isAttributeNumberValueWellDefined(value)) ||
+                !date
             ) {
                 return;
             }
-            if (keysEQVAS.includes(key)) {
+            if (keysForEQVASPlot.includes(key)) {
                 console.log('EQ VAS key:', key);
-                addElementToDataset(eqVasDataset, transformString(key), [
-                    date,
-                    Number(value),
-                ]);
-                if (
-                    event.endNumberOfDaysSinceDiagnosis >=
-                    latestQuestionnaireRelativeDate
-                ) {
-                    latestQuestionnaireRelativeDate =
-                        event.endNumberOfDaysSinceDiagnosis;
-                    latestScores = latestScores.filter(
-                        (score: [string, number]) => score[0] !== key
-                    );
-                    latestScores.push([key, Number(value)]);
-                    latestQuestionnaireAbsoluteDate = date;
-                }
-            } else if (keysDimensions.includes(key)) {
+                addElementToDataset(eqVASDataset, key, [date, Number(value)]);
+            } else if (keysForDimensionPlot.includes(key)) {
                 console.log('Dimension key:', key);
-                addElementToDataset(dimensionDataset, transformString(key), [
-                    date,
-                    Number(value),
-                ]);
+                // push values of dimensions to array of which the average may be calculated
+                if (AVERAGE_KEY !== undefined) {
+                    if (key !== AVERAGE_KEY) {
+                        valuesForAverageCalculation.push(Number(value));
+                    }
+                    // calculate average
+                    else {
+                        // try to compute average dynamically if all values for dimensions are given
+                        console.log(
+                            'valuesForAverageCalculation:',
+                            valuesForAverageCalculation
+                        );
+                        //if (valuesForAverageCalculation.length === 5) {
+                        value = calculateAverage(
+                            valuesForAverageCalculation
+                        )?.toString();
+                        //    valuesForAverageCalculation = [];
+                        //} else {
+                        //    return;
+                        //}
+                    }
+
+                    addElementToDataset(dimensionDataset, key, [
+                        date,
+                        Number(value),
+                    ]);
+                }
             } else {
                 return;
             }
         });
     });
 
-    // add date of latest questionnaire to latestScores
-    latestScores.push(['DATE', latestQuestionnaireAbsoluteDate]);
+    // get latest EQ and VAS score
+    const keysOfEqVASDataset = Object.keys(eqVASDataset);
+    //let greatestCommonScoreIndex = Infinity;
 
-    // Transform latestScores to DataSet
-    latestScores.forEach((score: [string, number]) => {
-        addElementToDataset(scoreDataset, transformString(score[0]), [
-            transformString(score[0]),
-            score[1],
-        ]);
-    });
+    for (let key of keysOfEqVASDataset) {
+        // if (eqVASDataset[key].length - 1 < greatestCommonScoreIndex) {
+        //     greatestCommonScoreIndex = eqVASDataset[key].length - 1;
+        // }
+        // push last defined date to latestScoreDates
+        for (let i = eqVASDataset[key].length - 1; i >= 0; i--) {
+            if (
+                eqVASDataset[key][i].y !== undefined &&
+                eqVASDataset[key][i].y !== null
+            ) {
+                latestScoreDates.push(eqVASDataset[key][i].x);
+                latestScoreDatesKeys.push(key);
+                latestScores.push([key, eqVASDataset[key][i].y]);
+                break;
+            }
+        }
+    }
+    //}
+    //if (greatestCommonScoreIndex < Infinity) {
+    // for (let i = greatestCommonScoreIndex; i >= 0; i--) {
+    //     let oneKeyNotDefined = false;
+    //     for (let key of keysOfEqVASDataset) {
+    //         if (eqVASDataset[key][i].y === undefined || eqVASDataset[key][i].y === null) {
+    //             oneKeyNotDefined = true;
+    //         }
+    //     }
+    //     if (!oneKeyNotDefined) {
+    //         // const allEntriesEqual = keysOfEqVASDataset.length > 0 && keysOfEqVASDataset.every(key => eqVASDataset[key][i].x === eqVASDataset[keysOfEqVASDataset[0]][i].x);
+    //         //if (allEntriesEqual) {
+    //             for (let key of keysOfEqVASDataset) {
+    //                 latestScores.push([key, eqVASDataset[key][i].y]);
+    //                 latestScoreDates.push(eqVASDataset[key][i].x);
+    //             }
+    //             //latestScoresDate = eqVASDataset[keysOfEqVASDataset[0]][i].x.toString();
+    //             break;
+    //         //}
+
+    //     }
+    // }
+
+    if (latestScoreDates.length > 0 && latestScores.length > 0) {
+        const commonDate = latestScoreDates.every(
+            date => date === latestScoreDates[0]
+        );
+        if (commonDate) {
+            latestScoresDate = convertISOToDDMMYYYY(latestScoreDates[0]);
+            // add date of latest questionnaire to latestScores
+            latestScores.push(['DATE', latestScoresDate]);
+        } else {
+            let mergedScoreArrays: string[] = [];
+            for (
+                let i = 0;
+                i <
+                Math.min(latestScoreDates.length, latestScoreDatesKeys.length);
+                i++
+            ) {
+                mergedScoreArrays.push(
+                    convertISOToDDMMYYYY(latestScoreDates[i]) +
+                        ' (' +
+                        transformString(latestScoreDatesKeys[i]) +
+                        ')'
+                );
+            }
+            latestScores.push(['DATES', mergedScoreArrays.join(', ')]);
+        }
+
+        // Transform latestScores to DataSet
+        latestScores.forEach((score: [string, number]) => {
+            addElementToDataset(currentScoreDataset, score[0], [
+                score[0],
+                score[1],
+            ]);
+        });
+    }
+
+    //}
 
     console.log('dimensionDataset:', dimensionDataset);
-    console.log('eqVasDataset:', eqVasDataset);
-    console.log('scoreDataset:', scoreDataset);
+    console.log('eqVasDataset in processData:', eqVASDataset);
+    console.log('currentScoreDataset:', currentScoreDataset);
 
-    return [eqVasDataset, dimensionDataset, scoreDataset];
+    return [eqVASDataset, dimensionDataset, currentScoreDataset];
 };
+
+function StringWithLineBreaks({ text }: { text: string }) {
+    const lines = splitString(text, ',');
+
+    return (
+        <React.Fragment>
+            {lines.map((line, index) => (
+                <span key={index}>
+                    {line}
+                    {index < lines.length - 1 && ','}
+                    {index < lines.length - 1 && <br />}
+                </span>
+            ))}
+        </React.Fragment>
+    );
+}
 
 const Proms = ({
     patientViewPageStore,
@@ -305,76 +370,72 @@ const Proms = ({
     console.log(data);
 
     // process data before displaying it
-    const processedDataSets = useProcesseData(data);
 
-    const scoreKeys = Object.keys(processedDataSets[2]);
-    console.log('scoreKeys:', scoreKeys);
+    // console.log('scoreKeys:', Object.keys(processedDataSets[2]));
+    const processedDataSets = useProcessedData(data);
+    const scoreKeys = Object.keys(processedDataSets[0]);
+    const dimensionKeys = Object.keys(processedDataSets[1]);
+    const currentScoreKeys = Object.keys(processedDataSets[2]); // assert length === 3
 
-    // divide data into dimensions and eq/vas
+    // sort keys
+    const promKeysTransformed = PROM_KEYS.map((key: string) => {
+        return key;
+    });
+    const sortedScoreKeys = sortArrayBasedOnComparator(
+        scoreKeys,
+        promKeysTransformed
+    );
+    console.log('sortedScoreKeys:', sortedScoreKeys);
+    const sortedDimensionKeys = sortArrayBasedOnComparator(
+        dimensionKeys,
+        promKeysTransformed
+    );
+    console.log('sortedDimensionKeys:', sortedDimensionKeys);
+    const sortedCurrentScoreKeys = sortArrayBasedOnComparator(
+        currentScoreKeys,
+        promKeysTransformed
+    );
+    console.log('sortedScoreKeys:', sortedCurrentScoreKeys);
 
-    // mock
-    //     const mockData = {
-    //         "uniquePatientKey": "VUtFdl8xOnByYWRfZXZhbHVhdGlvbl8yMDI0",
-    //         "patientId": "UKEv_1",
-    //         "studyId": "prad_evaluation_2024",
-    //         "clinicalAttribute": {
-    //             "displayName": "TEST",
-    //             "description": "Genomic Instability Score",
-    //             "datatype": "STRING",
-    //             "patientAttribute": true,
-    //             "priority": "1",
-    //             "clinicalAttributeId": "TEST",
-    //             "studyId": "prad_evaluation_2024"
-    //         },
-    //         "patientAttribute": true,
-    //         "clinicalAttributeId": "TEST",
-    //         "value": "51"
-    //     }
+    console.log('processedDataSets:');
+    console.log(processedDataSets[0]);
+    console.log(processedDataSets[1]);
+    console.log(processedDataSets[2]);
 
-    //     const [data, setData] = useState<any[]>([]);
-    //     const [loading, setLoading] = useState<boolean>(true);
-    //     const [error, setError] = useState<string | null>(null);
+    // Sort keys
 
-    //   useEffect(() => {
-    //     const fetchData = async () => {
-    //       try {
-    //         const response = await fetch('https://cbioportal.imi.med.fau.de/api/studies/prad_evaluation_2024/patients/UKEv_1/clinical-data?projection=DETAILED');
-    //         if (!response.ok) {
-    //           throw new Error('Network response was not ok');
-    //         }
-    //         const result = await response.json();
+    const eqVASDataset: DataSet = {};
+    for (let i = 0; i < sortedScoreKeys.length; i++) {
+        eqVASDataset[sortedScoreKeys[i]] =
+            processedDataSets[0][sortedScoreKeys[i]];
+    }
 
-    //         // Manipulate the data as needed
-    //         const manipulatedData = result.map((item: any) => {
-    //     //       // Add or modify properties as needed
-    //     //     //   if (item.id === someCondition) {
-    //     //     //     item.newProperty = 'New Value';
-    //     //     //   }
-    //         return item;
-    //        });
-    //        //const manipulatedData = result;
+    const dimensionDataset: DataSet = {};
+    for (let i = 0; i < sortedDimensionKeys.length; i++) {
+        dimensionDataset[sortedDimensionKeys[i]] =
+            processedDataSets[1][sortedDimensionKeys[i]];
+    }
 
-    //         // Add new dummy data
-    //         manipulatedData.push(mockData);
+    const currentScoreDataset: DataSet = processedDataSets[2];
 
-    //         setData(manipulatedData);
-    //       } catch (error) {
-    //         setError(error.message);
-    //       } finally {
-    //         setLoading(false);
-    //       }
-    //     };
+    console.log('Transformed and sorted data sets:');
+    console.log(eqVASDataset);
+    console.log(dimensionDataset);
+    console.log(currentScoreDataset);
 
-    //     fetchData();
-    //   }, []); // Empty dependency array means this effect runs once on mount
-
-    //   if (loading) {
-    //     return <div>Loading...</div>;
-    //   }
-
-    //   if (error) {
-    //     return <div>Error: {error}</div>;
-    //   }
+    const currentScoreDates = currentScoreDataset[
+        sortedCurrentScoreKeys[sortedCurrentScoreKeys.length - 1]
+    ]
+        ? currentScoreDataset[
+              sortedCurrentScoreKeys[sortedCurrentScoreKeys.length - 1]
+          ][0].y
+        : null;
+    const currentScoreDatesString = currentScoreDates
+        ? currentScoreDates.toString()
+        : '';
+    // const currentScoreDatesString = currentScoreDates
+    //     ? convertISOToDDMMYYYY(currentScoreDates.toString())
+    //     : '';
 
     return (
         <div className="proms">
@@ -408,38 +469,89 @@ const Proms = ({
                                     </div>
                                 </InfoTooltip>
                             </div>
-                            <p>
-                                Date:{' '}
-                                {
-                                    Object.values(processedDataSets)[2][
-                                        scoreKeys[2]
-                                    ][0].y
-                                }
-                            </p>
+                            {sortedCurrentScoreKeys &&
+                                sortedCurrentScoreKeys.length > 1 && (
+                                    <p>
+                                        {transformString(
+                                            currentScoreDataset[
+                                                sortedCurrentScoreKeys[
+                                                    sortedCurrentScoreKeys.length -
+                                                        1
+                                                ]
+                                            ][0].x
+                                        )}
+                                        {': '}
+                                        <StringWithLineBreaks
+                                            text={currentScoreDatesString}
+                                        />
+                                    </p>
+                                )}
                             <div
                                 style={{
                                     display: 'flex',
                                     justifyContent: 'space-evenly',
                                 }}
                             >
-                                <PieChart
-                                    data={
-                                        Object.values(processedDataSets)[2][
-                                            scoreKeys[0]
-                                        ][0]
-                                    }
-                                    dataRange={EQ_RANGE}
-                                    thresholds={thresholdsEQ}
-                                />
-                                <PieChart
-                                    data={
-                                        Object.values(processedDataSets)[2][
-                                            scoreKeys[1]
-                                        ][0]
-                                    }
-                                    dataRange={VAS_RANGE}
-                                />
+                                {sortedCurrentScoreKeys &&
+                                    sortedCurrentScoreKeys.length > 1 && (
+                                        <React.Fragment>
+                                            <PieChart
+                                                data={
+                                                    currentScoreDataset[
+                                                        sortedCurrentScoreKeys[0]
+                                                    ][0]
+                                                }
+                                                dataRange={
+                                                    sortedCurrentScoreKeys.includes(
+                                                        INDEX_KEY
+                                                    )
+                                                        ? EQ_RANGE
+                                                        : VAS_RANGE
+                                                }
+                                                thresholds={
+                                                    sortedCurrentScoreKeys.includes(
+                                                        INDEX_KEY
+                                                    )
+                                                        ? thresholdsEQ
+                                                        : thresholdsVAS
+                                                }
+                                            />
+                                            {sortedCurrentScoreKeys.length ===
+                                                2 &&
+                                                (sortedCurrentScoreKeys.includes(
+                                                    INDEX_KEY
+                                                ) ? (
+                                                    <div>
+                                                        No VAS score <br />{' '}
+                                                        available
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        No EQ index <br />{' '}
+                                                        available
+                                                    </div>
+                                                ))}
+                                        </React.Fragment>
+                                    )}
+                                {sortedCurrentScoreKeys &&
+                                    sortedCurrentScoreKeys.length > 2 && (
+                                        <PieChart
+                                            data={
+                                                currentScoreDataset[
+                                                    sortedCurrentScoreKeys[1]
+                                                ][0]
+                                            }
+                                            dataRange={VAS_RANGE}
+                                        />
+                                    )}
                             </div>
+                            {!sortedCurrentScoreKeys ||
+                                (sortedCurrentScoreKeys.length === 0 && (
+                                    <p>
+                                        Neither EQ indices nor VAS scores are
+                                        available for this patient.
+                                    </p>
+                                ))}
                         </div>
                     </Col>
 
@@ -462,21 +574,31 @@ const Proms = ({
                             </div>
 
                             {/* EQ vs VAS */}
-                            <LineScatterPlot
-                                data={processedDataSets[0]}
-                                // width={800}
-                                // height={400}
-                                title="Scores"
-                                xLabel="Date"
-                                yLabel="EQ Index"
-                                yTickFormat={EQ_VALUES_ALPHA}
-                                yRange={EQ_RANGE}
-                                secondYLabel="EQ VAS"
-                                secondYTickFormat={VAS_VALUES_ALPHA}
-                                secondYRange={VAS_RANGE}
-                                standardRange={standardRange}
-                                showTooltip={true}
-                            />
+                            {eqVASDataset &&
+                                Object.keys(eqVASDataset).length > 0 && (
+                                    <LineScatterPlot
+                                        data={eqVASDataset}
+                                        // width={800}
+                                        // height={400}
+                                        title="Scores"
+                                        xLabel="Date"
+                                        yLabel="EQ Index"
+                                        yTickFormat={EQ_VALUES_ALPHA}
+                                        yRange={EQ_RANGE}
+                                        secondYLabel="EQ VAS"
+                                        secondYTickFormat={VAS_VALUES_ALPHA}
+                                        secondYRange={VAS_RANGE}
+                                        standardRange={standardRange}
+                                        showTooltip={true}
+                                    />
+                                )}
+                            {!eqVASDataset ||
+                                (Object.keys(eqVASDataset).length === 0 && (
+                                    <p>
+                                        Neither EQ indices nor VAS scores are
+                                        available for this patient.
+                                    </p>
+                                ))}
                         </div>
                     </Col>
                 </Row>
@@ -500,31 +622,43 @@ const Proms = ({
                                 </InfoTooltip>
                             </div>
                             {/* 5 Dimensions */}
-                            <LineScatterPlot
-                                data={processedDataSets[1]}
-                                // width={800}
-                                // height={400}
-                                title="Health State Detail"
-                                xLabel="Date"
-                                yLabel={'Problems'}
-                                yTickFormat={VALUES_ALPHA}
-                                yRange={VALUES_RANGE}
-                                showTooltip={true}
-                            />
+                            {dimensionDataset &&
+                                Object.keys(dimensionDataset).length > 0 && (
+                                    <LineScatterPlot
+                                        data={dimensionDataset}
+                                        // width={800}
+                                        // height={400}
+                                        title="Health State Detail"
+                                        xLabel="Date"
+                                        yLabel={'Problems'}
+                                        yTickFormat={VALUES_ALPHA}
+                                        yRange={VALUES_RANGE}
+                                        showTooltip={true}
+                                    />
+                                )}
+                            {!dimensionDataset ||
+                                (Object.keys(dimensionDataset).length === 0 && (
+                                    <p>
+                                        No health state data is applicable for
+                                        this patient.
+                                    </p>
+                                ))}
                         </div>
                     </Col>
                 </Row>
-                <Row className="prom-grid">
-                    <Col md={12} lg={9} lgOffset={3}>
-                        <div className="proms-container-large">
-                            <Timeline
-                                patientViewPageStore={patientViewPageStore}
-                                sampleManager={sampleManager}
-                                dataStore={dataStore}
-                            />
-                        </div>
-                    </Col>
-                </Row>
+                {sampleManager && dataStore && (
+                    <Row className="prom-grid">
+                        <Col md={12} lg={9} lgOffset={3}>
+                            <div className="proms-container-large">
+                                <Timeline
+                                    patientViewPageStore={patientViewPageStore}
+                                    sampleManager={sampleManager}
+                                    dataStore={dataStore}
+                                />
+                            </div>
+                        </Col>
+                    </Row>
+                )}
             </Grid>
             {/* </div> */}
             <div>

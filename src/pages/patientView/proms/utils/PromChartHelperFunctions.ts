@@ -1,6 +1,7 @@
 /* structures */
 
-import { string } from 'yargs';
+import { ClinicalEvent } from 'cbioportal-ts-api-client';
+import { STANDARD_RANGE_KEY, VAS_KEY } from './EQ-5D-5LChartMetadata';
 
 // structure for data transformation
 // export interface Eq5d5lDataset {
@@ -9,10 +10,15 @@ import { string } from 'yargs';
 
 // structure of a singel data point
 export interface Datum {
-    x: number | string;
+    x: string;
     y: number | null;
     y0?: number;
     labelName?: string; // used only for tooltip, will be dynamically filled with content
+}
+
+export interface StringDatum {
+    x: string;
+    y: string;
 }
 
 // structure of input data object: identifier, x/y points
@@ -20,11 +26,14 @@ export interface DataSet {
     [key: string]: Datum[];
 }
 
-// structure of range data
-export interface Range {
-    name?: string;
-    range: [number, number];
+export interface StringDataSet {
+    [key: string]: StringDatum[];
 }
+
+// structure of range data
+// export interface Range {
+//     range: [number, number];
+// }
 
 // export interface DataPair {
 //     x: string;
@@ -36,7 +45,7 @@ export interface Range {
 // transforms a string to lowercase with capital first letter (keys of datasets)
 export const transformString = (input: string): string => {
     // cases where no transformation is needed
-    if (input === 'EQ' || input === 'VAS') {
+    if (input === 'EQ' || input === VAS_KEY) {
         return input;
     }
 
@@ -83,6 +92,24 @@ export const addElementToDataset = (
     element: [string, number]
 ) => {
     const datum: Datum = {
+        x: element[0],
+        y: element[1],
+    };
+    if (dataset[key]) {
+        // If the key exists, push the new element to the array
+        dataset[key].push(datum);
+    } else {
+        // If the key does not exist, create a new array with the element
+        dataset[key] = [datum];
+    }
+};
+
+export const addElementToStringDataset = (
+    dataset: StringDataSet,
+    key: string,
+    element: [string, string]
+) => {
+    const datum: StringDatum = {
         x: element[0],
         y: element[1],
     };
@@ -186,27 +213,27 @@ export const mergeArrays = (
 // function to display standard range in plot
 export const createRangeData = (
     dataSet: DataSet,
-    standardRange: Range
+    standardRange: [number, number]
 ): DataSet => {
     const { minX, maxX } = getXDomain(dataSet);
 
     if (minX === null || maxX === null) return {};
 
     // if name given in standardRange, use this, otherwise a default name
-    const name = standardRange.name ? standardRange.name : 'Standard Range';
+    const name = STANDARD_RANGE_KEY;
 
     // create DataSet of two elements = four value pairs
     const result: DataSet = {
         [name]: [
             {
                 x: minX,
-                y: standardRange.range[1],
-                y0: standardRange.range[0],
+                y: standardRange[1],
+                y0: standardRange[0],
             },
             {
                 x: maxX,
-                y: standardRange.range[1],
-                y0: standardRange.range[0],
+                y: standardRange[1],
+                y0: standardRange[0],
             },
         ],
     };
@@ -266,4 +293,142 @@ export const getOriginalY = (
         }
     }
     return null;
+};
+
+export const calculateAverage = (numbers: number[]): number | undefined => {
+    if (numbers.length === 0) {
+        return undefined;
+    }
+    const sum = numbers.reduce((a, b) => a + b, 0);
+    return sum / numbers.length;
+};
+
+// Sort an array according to another array's order,
+// If array is not a subset of comparator, elements that do not occur in comparator will be placed at the end
+export const sortArrayBasedOnComparator = (
+    array: any[],
+    comparator: any[]
+): any[] => {
+    // Convert arrays to lower case
+    //array = array.map(item => item.toLowerCase());
+    //comparator = comparator.map(item => item.toLowerCase());
+
+    return array.sort((a, b) => {
+        const indexA = comparator.indexOf(a);
+        const indexB = comparator.indexOf(b);
+        // If both are not found, maintain relative order
+        if (indexA === -1 && indexB === -1) return 0;
+        // If only a is not found, place it after b
+        if (indexA === -1) return 1;
+        // If only b is not found, place it after a
+        if (indexB === -1) return -1;
+        // Both found, sort by original order
+        return indexA - indexB;
+    });
+};
+
+export const isAttributeNumberValueWellDefined = (
+    value: string | undefined
+): boolean => {
+    return (
+        value !== undefined &&
+        value !== null &&
+        value.length > 0 &&
+        !isNaN(Number(value))
+    );
+};
+
+export const isAttributeDateValueWellDefined = (
+    value: string | undefined
+): boolean => {
+    return (
+        value !== undefined &&
+        value !== null &&
+        value.length > 0 &&
+        !isNaN(Date.parse(value))
+    );
+};
+
+export const compareClinicalEvents = (a: ClinicalEvent, b: ClinicalEvent) => {
+    return (
+        a.startNumberOfDaysSinceDiagnosis - b.startNumberOfDaysSinceDiagnosis
+    );
+};
+
+export const createCommonXAxisForDataSet = (ds: DataSet) => {
+    const keys = Object.keys(ds);
+    let xValues: string[] = [];
+
+    for (let key of keys) {
+        for (let i = 0; i < ds[key].length; i++) {
+            if (!xValues.includes(ds[key][i].x)) {
+                xValues.push(ds[key][i].x);
+            }
+        }
+    }
+
+    for (let key of keys) {
+        for (let xVal of xValues) {
+            if (!ds[key].some(obj => obj.x === xVal)) {
+                ds[key].push({ x: xVal, y: null });
+            }
+        }
+    }
+
+    // sort DataSet
+    for (let key of keys) {
+        ds[key].sort((a, b) => {
+            const dateA = new Date(a.x);
+            const dateB = new Date(b.x);
+            return dateA.getTime() - dateB.getTime();
+        });
+    }
+
+    return ds;
+};
+
+export const splitString = (text: string, separator: string): string[] => {
+    return text.split(separator).map(line => line.trim());
+};
+
+export const convertISOToDDMMYYYY = (isoDate: string) => {
+    // Check if the input matches the ISO format (YYYY-MM-dd)
+    const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!isoRegex.test(isoDate)) {
+        //return isoDate;
+        throw new Error(
+            'Invalid ISO date format. Expected YYYY-MM-dd but got: ' + isoDate
+        );
+    }
+
+    // Split the date string into components
+    const [year, month, day] = isoDate.split('-').map(Number);
+
+    // Validate date components
+    if (
+        isNaN(year) ||
+        isNaN(month) ||
+        isNaN(day) ||
+        month < 1 ||
+        month > 12 ||
+        day < 1 ||
+        day > 31
+    ) {
+        throw new Error('Invalid date components');
+    }
+
+    // Create a Date object to validate the date
+    const date = new Date(year, month - 1, day);
+    if (
+        date.getFullYear() !== year ||
+        date.getMonth() + 1 !== month ||
+        date.getDate() !== day
+    ) {
+        throw new Error('Invalid date');
+    }
+
+    // Format the date as dd/MM/YYYY
+    return `${day.toString().padStart(2, '0')}/${month
+        .toString()
+        .padStart(2, '0')}/${year}`;
 };

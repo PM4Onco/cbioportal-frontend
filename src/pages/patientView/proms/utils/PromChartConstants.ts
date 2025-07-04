@@ -99,3 +99,10 @@ export const ARROW_WIDTH = 2 * TICK_SIZE + 1;
 export const REF_Y = ARROW_HEIGHT / 2;
 export const POLYGON =
     '0 0, ' + ARROW_WIDTH + ' ' + REF_Y + ', 0 ' + ARROW_HEIGHT;
+
+// offsets
+export const XLABEL_YOFFSET = 9;
+
+// date constants
+export const DUMMY_DATE_IN_THE_PAST = '1800-01-01';
+export const DUMMY_DAT_IN_THE_FUTURE = '3000-01-01';
