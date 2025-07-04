@@ -1,30 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import {
-    VictoryChart,
-    VictoryLine,
-    VictoryScatter,
-    VictoryAxis,
-    VictoryLegend,
-    VictoryTooltip,
-    VictoryGroup,
-    VictoryTheme,
-    LineSegment,
-    VictoryLabel,
-    VictoryArea,
-    VictoryVoronoiContainer,
-    VictoryPie,
-    VictoryContainer,
-} from 'victory';
+/**
+ * Component for Victory pie chart
+ */
 
+import React from 'react';
+import { VictoryLabel, VictoryPie, VictoryContainer } from 'victory';
 import * as Constants from '../utils/PromChartConstants';
-
 import { Datum, transformString } from '../utils/PromChartHelperFunctions';
-
 import CBIOPORTAL_VICTORY_THEME_PROM from '../utils/cBioPortalThemePROM';
 
-/* Interfaces for data format */
-
-// Props of PieChart
 interface PieChartProps {
     data: Datum;
     width?: number;
@@ -33,29 +16,21 @@ interface PieChartProps {
     thresholds?: number[];
 }
 
-/* Pre-defined constants*/
-
-// colors
-//const colors = ['#ff9800 ', 'lightgray'];
-
-// create array of length 2 (two parts of pie chart)
-const processData = (data: Datum, range: [number, number]): Datum[] => {
-    let newData: Datum[] = [];
-
-    newData[0] = data;
-    newData[1] = { x: '', y: data.y !== null ? range[1] - data.y : range[1] };
-
-    return newData;
-};
-
+/**
+ * Defines the colors to be used by the chart
+ * @param y number, value to be displayed in the pie chart
+ * @param thresholds optional parameter indicating that the color should be selected according to some threshold values
+ * @param thresholdColorScale string[] array containing the colors used when thresholds are given
+ * @param defaultColorScale string[] array containing the colors which are used as default
+ * @returns an array of colors as strings
+ */
 const getColors = (
     y: number,
     thresholds: number[] | null | undefined,
     thresholdColorScale: string[],
     defaultColorScale: string[]
 ): string[] => {
-    // Voraussetzungen: defautlColorScale.length === 2
-
+    // Check whether thresholds are defined
     if (
         thresholds === null ||
         thresholds === undefined ||
@@ -65,7 +40,7 @@ const getColors = (
         return defaultColorScale;
     }
 
-    // for given y, find index of nearest smaller number of thresholds
+    // For given y, find index of nearest smaller number of thresholds
     let colorIndex = thresholds.length;
     for (let j = 0; j < thresholds.length; j++) {
         if (thresholds[j] > y) {
@@ -76,15 +51,14 @@ const getColors = (
 
     let color: string;
 
-    // deals with the case if length of thresholds is greater or equal than lenght of colors corr. to thresholds
+    // Case: length of thresholds is greater than or equal to length of colors corresponding to thresholds
     if (
         thresholdColorScale.length > thresholds.length ||
         colorIndex < thresholdColorScale.length
     ) {
-        // everything ok
         color = thresholdColorScale[colorIndex];
     } else {
-        color = thresholdColorScale[thresholdColorScale.length - 1]; // choose last color
+        color = thresholdColorScale[thresholdColorScale.length - 1]; // Choose last color
     }
 
     const newColors = [...defaultColorScale];
@@ -94,30 +68,62 @@ const getColors = (
     return newColors;
 };
 
-/* Plot logic */
+/**
+ * Pre-processes the data before it will be rendered in the chart
+ * @param data Datum, x/y value pair
+ * @param range tuple representing the total range of y
+ * @returns processed data
+ */
+const processData = (data: Datum, range: [number, number]): Datum[] => {
+    let newData: Datum[] = [];
+
+    newData[0] = data;
+    newData[1] = { x: '', y: data.y !== null ? range[1] - data.y : range[1] };
+
+    return newData;
+};
 
 const PieChart: React.FC<PieChartProps> = ({
     data,
-    width = 125, //125
-    height = 150, // 150
+    width = 125,
+    height = 150,
     dataRange,
     thresholds,
 }) => {
-    // viewBox path
     const viewBoxPath = '0 0 ' + width + ' ' + height;
-
     const processedData = processData(data, dataRange);
+    let thresholdColorScale = Constants.thresholdColorScale;
 
-    // rendering
+    if (thresholds) {
+        switch (thresholds.length) {
+            case 1:
+                thresholdColorScale = [
+                    Constants.thresholdColorScale[0],
+                    Constants.thresholdColorScale[4],
+                ];
+                break;
+            case 2:
+                thresholdColorScale = [
+                    Constants.thresholdColorScale[0],
+                    Constants.thresholdColorScale[2],
+                    Constants.thresholdColorScale[4],
+                ];
+                break;
+            case 3:
+                thresholdColorScale = [
+                    Constants.thresholdColorScale[0],
+                    Constants.thresholdColorScale[2],
+                    Constants.thresholdColorScale[3],
+                    Constants.thresholdColorScale[4],
+                ];
+                break;
+            default:
+                break;
+        }
+    }
+
     return (
-        <div
-        /* className="container"
-            style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-            }} */
-        >
+        <div>
             <svg viewBox={viewBoxPath} width={width} height={height}>
                 {/* Pie Chart */}
                 <VictoryPie
@@ -133,14 +139,14 @@ const PieChart: React.FC<PieChartProps> = ({
                     colorScale={getColors(
                         data.y !== null ? data.y : NaN,
                         thresholds,
-                        Constants.thresholdColorScale,
+                        thresholdColorScale,
                         Constants.defaultPieColors
                     )}
                     padAngle={3}
                 />
 
                 {/* Labels for name and value*/}
-                {/* value in the middle of the doughnut chart*/}
+                {/* Value in the middle of the donut chart*/}
                 <VictoryLabel
                     textAnchor="middle"
                     style={{
@@ -153,17 +159,10 @@ const PieChart: React.FC<PieChartProps> = ({
                     }}
                     x={width / 2}
                     y={width / 2}
-                    text={
-                        data.y !== null
-                            ? //data.y.toString().includes('.')
-                              // ? data.y//.toFixed(2)
-                              //:
-                              data.y
-                            : 'N/A'
-                    }
+                    text={data.y !== null ? data.y : 'N/A'}
                 />
 
-                {/* name below chart */}
+                {/* Name below chart */}
                 <VictoryLabel
                     textAnchor="middle"
                     style={{
@@ -171,7 +170,7 @@ const PieChart: React.FC<PieChartProps> = ({
                         fill: Constants.cBioPortalFontColor,
                     }}
                     x={width / 2}
-                    y={height - 20} // - 3 * Constants.LABEL_TITLE_FONTSIZE
+                    y={height - 20}
                     text={transformString(data.x.toString())}
                 />
             </svg>

@@ -1,11 +1,5 @@
 @import '/src/globalStyles/variables.scss';
 
-//@import '/node_modules/bootstrap/dist/css/bootstrap.min.css';
-// Variables
-//$text-color: $gray-dark; // default text color #333
-//$link-color: #3786c2;
-//$link-color-hover: #265d86;
-
 $break-point: 1529px;
 $icon-padding: 10px;
 $container-padding: 10px;
@@ -25,11 +19,7 @@ $container-padding: 10px;
     box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
         0 3px 1px -2px rgba(0, 0, 0, 0.12), 0 1px 5px 0 rgba(0, 0, 0, 0.2);
     padding: $container-padding;
-    //margin: 12px auto 12px 0;
-    //margin-top: 12px;
-    margin-bottom: 25px;
-
-    //width: 90%;
+    margin-bottom: 30px;
 }
 
 .proms .proms-container-small {
@@ -39,14 +29,9 @@ $container-padding: 10px;
 }
 
 .proms .proms-container-large {
-    max-width: 1205px; //1140
-    min-width: 860px; //795
+    max-width: 1205px;
+    min-width: 860px;
     margin-right: auto;
-    /* overflow-x: scroll;
-    overflow-y: hidden;
-    width: 100%;
-    scrollbar-color: #888 #f1f1f1;
-    scrollbar-width: thin; */
     @extend .proms-container;
 }
 
@@ -65,7 +50,6 @@ $container-padding: 10px;
 
 .proms .flex-width-container {
     flex-grow: 1; /* Allow the heading to take available space */
-    //padding-left: $icon-padding;
 }
 
 @mixin container-icon-padding($pad-left: 0, $pad-right: 0) {
@@ -75,9 +59,9 @@ $container-padding: 10px;
 
 .proms .chart-heading-container {
     display: flex;
-    align-items: center; /* Vertically align items */
-    justify-content: space-between; /* Space out the heading and icon */
-    width: 100%; /* Ensure it spans the full width */
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
 }
 
 .proms .chart-heading-container-left {
@@ -111,8 +95,6 @@ $container-padding: 10px;
 .proms .icon-wrapper {
     display: flex;
     justify-content: flex-end; /* Ensure icon stays on the right */
-    //padding: 0.5rem; /* Example: padding around the icon */
-    //padding-right: $icon-padding;
     margin-top: 0.5 * $container-padding;
     margin-bottom: $container-padding;
 }
@@ -124,25 +106,21 @@ $container-padding: 10px;
 
 .proms .icon-wrapper .fa,
 .proms .icon-wrapper-no-bot-margin .fa {
-    font-size: inherit; //16px; /* Icon size */
-    //color:$link-color;
+    font-size: inherit;
     cursor: pointer;
 }
-
-/* Hover effect for the icon */
-/* .proms .icon-wrapper .fa:hover {
-  color: $link-hover-color;
-} */
 
 .proms .row.prom-grid {
     clear: both;
     *zoom: 1;
 }
+
 .proms .row.prom-grid:before,
 .proms .row.prom-grid:after {
     content: ' ';
     display: table;
 }
+
 .proms .row.prom-grid:after {
     clear: both;
 }
@@ -154,6 +132,7 @@ $container-padding: 10px;
         margin-left: 0;
     }
 }
+
 @media (min-width: calc($break-point + 1px)) {
     .proms .row.prom-grid div[class*='col-lg-3'] {
         width: 25%;
@@ -178,4 +157,10 @@ $container-padding: 10px;
 
 .proms .column-download-buttons {
     padding-top: 30px;
+}
+
+.proms .text-unavailable-data {
+    display: flex;
+    padding-top: 40px;
+    text-align: center;
 }

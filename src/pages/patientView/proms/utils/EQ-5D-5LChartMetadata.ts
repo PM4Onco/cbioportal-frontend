@@ -1,4 +1,11 @@
-/* meta data for EQ-5D-5L questionnaire as constants */
+/**
+ * This is contains constants which are related to the EQ-5D-5L questionnaire.
+ * The data is crucial for correctly displaying and interpreting the results of the EQ-5D-5L questionnaire in the PROMs tab.
+ */
+
+// questionnaire identification
+export const QUESTIONNAIRE_NAME = 'EQ-5D-5L';
+
 // dataset keys
 export const PROM_KEYS = [
     'MOBILITY',
@@ -17,9 +24,10 @@ export const INDEX_KEY = 'INDEX';
 export const VAS_KEY = 'VAS';
 export const STANDARD_RANGE_KEY = 'STANDARD_RANGE';
 
-// 5 Dimensions
+// Dimensions
 export const VALUES_ALPHA = ['No', 'Slight', 'Moderate', 'Severe', 'Extreme'];
 export const VALUES_RANGE: [number, number] = [1, 5];
+
 // EQ and VAS
 export const EQ_RANGE: [number, number] = [0, 1];
 export const EQ_VALUES_ALPHA = [
@@ -38,15 +46,21 @@ export const VAS_VALUES_ALPHA = [
     '100 (best health)',
 ];
 
-export const questionnaireName = 'EQ-5D-5L';
-export const chartTitles = [
+// Standard Range & Thresholds
+export const STANDARD_RANGE: [number, number] = [Infinity, Infinity];
+export const THRESHOLDS_EQ: number[] = [];
+export const THRESHOLDS_VAS: number[] = [];
+
+// Texts
+export const CHART_TITLES = [
     'Current EQ-Score',
     'Scores',
     'Health State Detail',
 ];
-export const eq5d5lInfo =
+export const EQ_5D_5L_INFO_URL: string =
     'https://euroqol.org/information-and-support/euroqol-instruments/eq-5d-5l/';
-export const currentScoresDescription: string = `<p><strong>EQ-5D-5L Most Recent Index and VAS Score</strong></p>
+
+export const CURRENT_SCORES_INFO: string = `<p><strong>EQ-5D-5L Most Recent Index and VAS Score</strong></p>
 <p>This donut chart displays the patient's most recent Index and VAS scores from the EQ-5D-5L<br />questionnaire, along with the collection date.</p>
 <p>The colored portion of each donut represents the score as a percentage of the maximum possible value:
 <ul>
@@ -63,7 +77,7 @@ export const currentScoresDescription: string = `<p><strong>EQ-5D-5L Most Recent
 </ul>
 </p>`;
 
-export const scoresDescription: string = `<p><strong>EQ-5D-5L Index and VAS Score Over Time</strong></p>
+export const SCORES_INFO: string = `<p><strong>EQ-5D-5L Index and VAS Score Over Time</strong></p>
 <p>This line chart tracks changes in both the EQ-5D-5L Index and VAS scores across multiple questionnaires,<br />with each data point representing one completed questionnaire.</p>
 <p><strong>Chart Layout:</strong>
 <ul>
@@ -90,7 +104,7 @@ export const scoresDescription: string = `<p><strong>EQ-5D-5L Index and VAS Scor
 </p>
 `;
 
-export const healthDetailsDescription: string = `<p><strong>EQ-5D-5L Dimensions Over Time</strong></p>
+export const HEALTH_DETAILS_INFO: string = `<p><strong>EQ-5D-5L Dimensions Over Time</strong></p>
 <p>This line chart tracks changes in the five EQ-5D-5L dimensions across multiple questionnaires, with each <br />data point representing one completed questionnaire. An optional average line can be displayed to show<br />the overall trend.</p>
 <p><strong>How to Use the Chart:</strong>
 <ul>

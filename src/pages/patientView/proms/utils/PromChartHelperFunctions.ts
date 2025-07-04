@@ -1,12 +1,12 @@
-/* structures */
+/**
+ * This file contains helper functions for the PROM charts which manipulate the clinical event data
+ * from the backend, so that it can be processed by the Victory charts.
+ */
 
 import { ClinicalEvent } from 'cbioportal-ts-api-client';
 import { STANDARD_RANGE_KEY, VAS_KEY, DATE_KEY } from './EQ-5D-5LChartMetadata';
 
-// structure for data transformation
-// export interface Eq5d5lDataset {
-//     [key: string]: [string, number][]; // date, value
-// }
+/* Data structures */
 
 // structure of a singel data point
 export interface Datum {
@@ -16,33 +16,18 @@ export interface Datum {
     labelName?: string; // used only for tooltip, will be dynamically filled with content
 }
 
-export interface StringDatum {
-    x: string;
-    y: string;
-}
-
-// structure of input data object: identifier, x/y points
+// structure of input data object: identifier, data points as x/y pairs
 export interface DataSet {
     [key: string]: Datum[];
 }
 
-export interface StringDataSet {
-    [key: string]: StringDatum[];
-}
-
-// structure of range data
-// export interface Range {
-//     range: [number, number];
-// }
-
-// export interface DataPair {
-//     x: string;
-//     y: number;
-// }
-
 /* Helper functions */
 
-// transforms a string to lowercase with capital first letter (keys of datasets)
+/**
+ * Transforms a string to Camelcase (first letter of each word capital, all others lower-case)
+ * @param input string to be transformed
+ * @returns transformed string
+ */
 export const transformString = (input: string): string => {
     // cases where no transformation is needed
     if (input === 'EQ' || input === VAS_KEY) {
@@ -85,7 +70,12 @@ export const transformString = (input: string): string => {
     return result;
 };
 
-// adds element to object of type Eq5d5lDataset
+/**
+ * Adds an element to a data set
+ * @param dataset data set of type DataSet
+ * @param key string, the identifier of the subset
+ * @param element [string, number] pair (x,y values), the element to be inserted
+ */
 export const addElementToDataset = (
     dataset: DataSet,
     key: string,
@@ -104,25 +94,12 @@ export const addElementToDataset = (
     }
 };
 
-export const addElementToStringDataset = (
-    dataset: StringDataSet,
-    key: string,
-    element: [string, string]
-) => {
-    const datum: StringDatum = {
-        x: element[0],
-        y: element[1],
-    };
-    if (dataset[key]) {
-        // If the key exists, push the new element to the array
-        dataset[key].push(datum);
-    } else {
-        // If the key does not exist, create a new array with the element
-        dataset[key] = [datum];
-    }
-};
-
 // functions that returns the smallest and largest x values (used for computing the standard range area plot)
+/**
+ * Finds smallest and largest x value contained in a DataSet
+ * @param dataSet DataSet used for the computation
+ * @returns object with minimum and maximum x value
+ */
 const getXDomain = (
     dataSet: DataSet
 ): {
@@ -137,7 +114,9 @@ const getXDomain = (
         }
     }
 
-    if (allX.length === 0) return { minX: null, maxX: null };
+    if (allX.length === 0) {
+        return { minX: null, maxX: null };
+    }
 
     // Normalize to sortable numbers
     const xWithSortKeys = allX.map(originalX => {
@@ -148,9 +127,6 @@ const getXDomain = (
         } else if (typeof originalX === 'string') {
             key = new Date(originalX).getTime(); // fallback for ISO strings
         } else {
-            /*else if (originalX instanceof Date) {
-            key = originalX.getTime();
-        } */
             throw new Error('Unsupported x type');
         }
 
@@ -166,6 +142,13 @@ const getXDomain = (
     };
 };
 
+/**
+ * Normalizes a variable given the range it can take
+ * @param y value to be normalized (non-negative)
+ * @param maxY maximum value y can be
+ * @param minY minimum value y can be
+ * @returns normalized value of y
+ */
 const getNormalizedValue = (y: number, maxY: number, minY: number): number => {
     if (y < 0) {
         return 0;
@@ -173,8 +156,14 @@ const getNormalizedValue = (y: number, maxY: number, minY: number): number => {
     return (y - minY) / (maxY - minY);
 };
 
-/* function that merges two arrays where the values of the second are added after a specific position, 
-thus the output looks like [first part of first array, second array, remaining of first array]*/
+/**
+ * Merges two arrays where the values of the second are added after a specific position
+ * Output looks like [first part of first array, second array, remaining of first array]
+ * @param array1 first array for the merge
+ * @param array2 second array for the merge
+ * @param insertPosition array position where the values of array2 will be inserted in array1
+ * @returns new array, which is the merge result
+ */
 export const mergeArrays = (
     array1: any[],
     array2: any[],
@@ -210,7 +199,12 @@ export const mergeArrays = (
     return result;
 };
 
-// function to display standard range in plot
+/**
+ * Creates DataSet of the standard range values, which can be displayed the PROM chart
+ * @param dataSet DataSet for which the standard range set will be created
+ * @param standardRange tuple representing a range for values of dataSet
+ * @returns DataSet where x values are from dataSet and y values are the standardRange values
+ */
 export const createRangeData = (
     dataSet: DataSet,
     standardRange: [number, number]
@@ -219,7 +213,6 @@ export const createRangeData = (
 
     if (minX === null || maxX === null) return {};
 
-    // if name given in standardRange, use this, otherwise a default name
     const name = STANDARD_RANGE_KEY;
 
     // create DataSet of two elements = four value pairs
@@ -240,14 +233,19 @@ export const createRangeData = (
     return result;
 };
 
-// normalize data
+/**
+ * Normalizes all y values of a DataSet
+ * @param dataSet Datum[], data set, where the y values are to be normalized
+ * @param range Tuple of the minimum and maximum value y can take
+ * @returns the normalized data set
+ */
 export const normalizeDataSet = (
     dataSet: Datum[],
     range: [number, number]
 ): Datum[] => {
     const [minY, maxY] = range;
 
-    // If normalization not possible (max is 0 or max equals min), return original data.
+    // If normalization not possible (max is 0 or max equals min), return original data
     if (maxY === 0 || maxY === minY) {
         return dataSet;
     }
@@ -257,36 +255,22 @@ export const normalizeDataSet = (
         ...datum,
         y:
             typeof datum.y === 'number'
-                ? getNormalizedValue(datum.y, maxY, minY) // normalization of positive values
+                ? getNormalizedValue(datum.y, maxY, minY) // Normalization of positive values
                 : null,
     }));
 };
 
-/* const transformNormalizedNumberToOriginal = (
-    y: number | null,
-    range: [number, number] | null
-): number | null => {
-    if (y === null) {
-        return null;
-    }
-    if (range === null) {
-        return y;
-    }
-    const [minY, maxY] = range;
-    const result = y * (maxY - minY) + minY;
-
-    // to prevent some numerical issues with VAS score
-    if (result.toString().length > 5) {
-        return Math.round(result);
-    } else {
-        return result;
-    }
-}; */
-
+/**
+ * Gets the original y value of a x/y pair where y has previously been normalized
+ * @param x x value for which the original y value must be found
+ * @param origData Datum[], where x is supposed to be included in one element
+ * @returns y for which the pair x,y is contained in origData
+ */
 export const getOriginalY = (
     x: number | string,
     origData: Datum[]
 ): number | null => {
+    // iterate through origData
     for (let datum of origData) {
         if (datum.x === x) {
             return datum.y;
@@ -295,6 +279,11 @@ export const getOriginalY = (
     return null;
 };
 
+/**
+ * Calclates the average of an array of numbers
+ * @param numbers array of numbers for which the average is calculated
+ * @returns average of the elements of numbers
+ */
 export const calculateAverage = (numbers: number[]): number | undefined => {
     if (numbers.length === 0) {
         return undefined;
@@ -303,16 +292,19 @@ export const calculateAverage = (numbers: number[]): number | undefined => {
     return sum / numbers.length;
 };
 
-// Sort an array according to another array's order,
 // If array is not a subset of comparator, elements that do not occur in comparator will be placed at the end
+/**
+ * Custom sort function for arrays based on element order in a comparator array, which ideally is a superset
+ * of the array. If the array is not a subset of the comparator, elements that do not occur
+ * in comparator will be placed at the end.
+ * @param array array to be sorted
+ * @param comparator reference array, which determines the sort order
+ * @returns sorted array
+ */
 export const sortArrayBasedOnComparator = (
     array: any[],
     comparator: any[]
 ): any[] => {
-    // Convert arrays to lower case
-    //array = array.map(item => item.toLowerCase());
-    //comparator = comparator.map(item => item.toLowerCase());
-
     return array.sort((a, b) => {
         const indexA = comparator.indexOf(a);
         const indexB = comparator.indexOf(b);
@@ -327,6 +319,11 @@ export const sortArrayBasedOnComparator = (
     });
 };
 
+/**
+ * Checks whether a variable of type string can be converted to number without issues
+ * @param value string to be checked for safe conversion
+ * @returns true if value can meaningfully be converted to number, otherwise false
+ */
 export const isAttributeNumberValueWellDefined = (
     value: string | undefined
 ): boolean => {
@@ -338,6 +335,11 @@ export const isAttributeNumberValueWellDefined = (
     );
 };
 
+/**
+ * Checks whether a variable of type string can be converted to Date without issues
+ * @param value string to be checked for safe conversion
+ * @returns true if value can meaningfully be converted to Date, otherwise false
+ */
 export const isAttributeDateValueWellDefined = (
     value: string | undefined
 ): boolean => {
@@ -349,6 +351,12 @@ export const isAttributeDateValueWellDefined = (
     );
 };
 
+/**
+ * Compares two ClinicalEvent according to an attribute representing a date
+ * @param a ClinicalEvent
+ * @param b ClinicalEvent
+ * @returns time difference between the two events
+ */
 export const compareClinicalEvents = (a: ClinicalEvent, b: ClinicalEvent) => {
     const dateA = a.attributes.find(attr => attr.key === DATE_KEY)?.value;
     const dateB = b.attributes.find(attr => attr.key === DATE_KEY)?.value;
@@ -365,16 +373,22 @@ export const compareClinicalEvents = (a: ClinicalEvent, b: ClinicalEvent) => {
         return dateAObj.getTime() - dateBObj.getTime();
     }
 
-    // if not possible use startNumberOfDaysSinceDiagnosis attribute
+    // if not possible, use startNumberOfDaysSinceDiagnosis attribute
     return (
         a.startNumberOfDaysSinceDiagnosis - b.startNumberOfDaysSinceDiagnosis
     );
 };
 
+/**
+ * Extends a DataSet so that all elements share the same x values
+ * @param ds DataSet of which the x values are to be considered
+ * @returns extended data set with common x values
+ */
 export const createCommonXAxisForDataSet = (ds: DataSet) => {
     const keys = Object.keys(ds);
     let xValues: string[] = [];
 
+    // collect all x values
     for (let key of keys) {
         for (let i = 0; i < ds[key].length; i++) {
             if (!xValues.includes(ds[key][i].x)) {
@@ -383,6 +397,7 @@ export const createCommonXAxisForDataSet = (ds: DataSet) => {
         }
     }
 
+    // add dummy data points if subset does not contain an x/y pair for x of xValues
     for (let key of keys) {
         for (let xVal of xValues) {
             if (!ds[key].some(obj => obj.x === xVal)) {
@@ -403,10 +418,21 @@ export const createCommonXAxisForDataSet = (ds: DataSet) => {
     return ds;
 };
 
+/**
+ * Split a string after the occurance of a separator string
+ * @param text string to be split
+ * @param separator string signalling the split position
+ * @returns split string
+ */
 export const splitString = (text: string, separator: string): string[] => {
     return text.split(separator).map(line => line.trim());
 };
 
+/**
+ * Converts a date string in ISO format to the format DD/MM/YYYY
+ * @param isoDate string representing an ISO date
+ * @returns string representing the date as DD/MM/YYYY
+ */
 export const convertISOToDDMMYYYY = (isoDate: string) => {
     // Check if the input matches the ISO format (YYYY-MM-dd)
     const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -447,4 +473,29 @@ export const convertISOToDDMMYYYY = (isoDate: string) => {
     return `${day.toString().padStart(2, '0')}/${month
         .toString()
         .padStart(2, '0')}/${year}`;
+};
+
+/**
+ * Checks whether the clinicalEvents array contains events representing PROM data
+ * @param clinicalEvents ClinicalEvent[] array to be checked
+ * @param promEvents string[] array containing the names of all event types which represent PROM data
+ * @returns true if there are PROM data in the clinicalEvents, otherwise false
+ */
+export const doClinicalEventsHavePromData = (
+    clinicalEvents: ClinicalEvent[],
+    promEvents: string[]
+): boolean => {
+    if (!clinicalEvents) {
+        return false;
+    }
+    for (let promEvent of promEvents) {
+        if (
+            clinicalEvents.find(
+                (event: ClinicalEvent) => event.eventType === promEvent
+            )
+        ) {
+            return true;
+        }
+    }
+    return false;
 };

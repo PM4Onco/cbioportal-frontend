@@ -1,14 +1,14 @@
+/**
+ * Component that dsiplays the timeline in the PROMs tab
+ */
+
 import React, { useState } from 'react';
-
-import PatientViewMutationsTab from 'pages/patientView/mutation/PatientViewMutationsTab'; // Show-Hide button from here
-import TimelineWrapper from 'pages/patientView/timeline/TimelineWrapper'; // CNA Timeline from here
-
+import TimelineWrapper from 'pages/patientView/timeline/TimelineWrapper';
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
 import PatientViewMutationsDataStore from 'pages/patientView/mutation/PatientViewMutationsDataStore';
 import WindowStore from 'shared/components/window/WindowStore';
 import './../styles.scss';
 
-// Define props of timeline
 interface PatientTimelineProps {
     patientViewPageStore: PatientViewPageStore;
     sampleManager: any;
@@ -24,7 +24,7 @@ const Timeline = ({
     const [showTimeline, setShowTimeline] = useState(false); // Initialize as false (initially hidden)
     // Define the toggle function
     const toggleTimeline = () => {
-        setShowTimeline(prevShowTimeline => !prevShowTimeline); // Toggle the state
+        setShowTimeline(prevShowTimeline => !prevShowTimeline);
     };
 
     // Check if necessary data is available before rendering the timeline section

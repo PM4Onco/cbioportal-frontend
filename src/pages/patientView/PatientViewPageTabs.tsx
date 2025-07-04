@@ -39,6 +39,8 @@ import { HelpWidget } from 'shared/components/HelpWidget/HelpWidget';
 import FollowUpTable from './therapyRecommendation/FollowUpTable';
 import MutationTableWrapper from './mutation/MutationTableWrapper';
 import Proms from './proms/Proms';
+import { doClinicalEventsHavePromData } from './proms/utils/PromChartHelperFunctions';
+import { QUESTIONNAIRE_NAME as QUESTIONNAIRE_NAME_EQ_5D_5L } from './proms/utils/EQ-5D-5LChartMetadata';
 import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
 import { Else, If } from 'react-if';
 import { ClinicalEvent } from 'cbioportal-ts-api-client';
@@ -864,9 +866,9 @@ export function tabs(
 
     pageComponent.patientViewPageStore.clinicalEvents.isComplete &&
         pageComponent.patientViewPageStore.clinicalEvents.result.length > 0 &&
-        haveClinicalEventsPromData(
+        doClinicalEventsHavePromData(
             pageComponent.patientViewPageStore.clinicalEvents.result,
-            ['EQ-5D-5L']
+            [QUESTIONNAIRE_NAME_EQ_5D_5L]
         ) &&
         tabs.push(
             <MSKTab
@@ -939,22 +941,3 @@ export function tabs(
 
     return tabs;
 }
-
-const haveClinicalEventsPromData = (
-    clinicalEvents: ClinicalEvent[],
-    promEvents: string[]
-): boolean => {
-    if (!clinicalEvents) {
-        return false;
-    }
-    for (let promEvent of promEvents) {
-        if (
-            clinicalEvents.find(
-                (event: ClinicalEvent) => event.eventType === promEvent
-            )
-        ) {
-            return true;
-        }
-    }
-    return false;
-};

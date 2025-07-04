@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Main component for PROMs
+ */
+
+import React from 'react';
 import Timeline from './components/patientTimeline';
-// import TimelineWrapper from 'pages/patientView/timeline/TimelineWrapper';
 import LineScatterPlot from './components/LineScatterPlotProms';
 import {
     DataSet,
-    StringDataSet,
     addElementToDataset,
-    addElementToStringDataset,
     transformString,
     calculateAverage,
     sortArrayBasedOnComparator,
@@ -27,44 +28,25 @@ import {
     VAS_VALUES_ALPHA,
     VALUES_ALPHA,
     VALUES_RANGE,
-    chartTitles,
-    questionnaireName,
-    eq5d5lInfo,
-    scoresDescription,
-    healthDetailsDescription,
-    currentScoresDescription,
+    STANDARD_RANGE,
+    THRESHOLDS_EQ,
+    THRESHOLDS_VAS,
+    CHART_TITLES,
+    QUESTIONNAIRE_NAME,
+    EQ_5D_5L_INFO_URL,
+    SCORES_INFO,
+    HEALTH_DETAILS_INFO,
+    CURRENT_SCORES_INFO,
 } from './utils/EQ-5D-5LChartMetadata';
 import PieChart from './components/PieChartProms';
-
 import FontAwesome from 'react-fontawesome';
-
-// import SampleManager from 'pages/patientView/SampleManager';
-// import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
-// import PatientViewCnaDataStore from 'pages/patientView/copyNumberAlterations/PatientViewCnaDataStore'; // Import type if needed
-
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
 import PatientViewMutationsDataStore from '../mutation/PatientViewMutationsDataStore';
-import {
-    Grid,
-    Row,
-    Col,
-    Clearfix,
-    Tooltip,
-    OverlayTrigger,
-} from 'react-bootstrap';
-//import ReactGridLayout  from 'react-grid-layout';
+import { Grid, Row, Col } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
-
-import {
-    DefaultTooltip,
-    placeArrowBottomLeft,
-} from 'cbioportal-frontend-commons';
-
+import { DefaultTooltip } from 'cbioportal-frontend-commons';
 import { ClinicalEvent } from 'cbioportal-ts-api-client';
-
 import * as Constants from './utils/PromChartConstants';
-
-// import styles from './promStyles.module.scss';
 import './styles.scss';
 
 interface PROMsProps {
@@ -73,11 +55,7 @@ interface PROMsProps {
     dataStore: PatientViewMutationsDataStore;
 }
 
-// Folgende Konstanten sollten auch aus Backend kommen
-const standardRange: [number, number] = [0.45, 0.7];
-const thresholdsEQ: number[] = [0.2, 0.4, 0.6, 0.8]; // ggf auch für VAS
-const thresholdsVAS: number[] = [];
-
+// Defines the layout and content of tooltip for the info icons
 const InfoTooltip = ({
     id,
     children,
@@ -98,30 +76,21 @@ const InfoTooltip = ({
             overlay={tooltip}
             arrowContent={<div className="rc-tooltip-arrow-inner" />}
             destroyTooltipOnHide={true}
-            //onPopupAlign={placeArrowBottomLeft}
         >
             {children}
         </DefaultTooltip>
     );
 };
 
-/* function to convert date to right format */
-// function formatDate(date: Date) {
-//     const day = String(date.getDate()).padStart(2, '0');
-//     const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-//     const year = date
-//         .getFullYear()
-//         .toString()
-//         .slice(-2); // Get the last two digits of the year
-
-//     return `${day}/${month}/${year}`;
-// }
-
-/* pre-process given data */
-// hook for processing data
+/**
+ * Transforms and pre-processes the data before it will be provided to the chart components
+ * @param data ClinicalEvent[] array, the input data for this component
+ * @returns
+ */
 const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
+    // Filter data so that only PROM events are included
     const promData = data.filter(
-        (event: ClinicalEvent) => event.eventType === questionnaireName
+        (event: ClinicalEvent) => event.eventType === QUESTIONNAIRE_NAME
     );
     console.log('promData:');
     console.log(promData);
@@ -134,8 +103,6 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
     let latestScoreDates: string[] = [];
     let latestScoreDatesKeys: string[] = [];
     let latestScoresDate = '';
-
-    //let useRelativeDates = false;
 
     // Write out all keys provided in promData set
     promData.forEach((event: ClinicalEvent) => {
@@ -150,18 +117,21 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
     const datasetKeysForPlots = datasetKeys.filter((key: string) =>
         PROM_KEYS.includes(key)
     );
+
     // Add key for average
     if (AVERAGE_KEY !== undefined) {
         datasetKeysForPlots.push(AVERAGE_KEY);
     }
     console.log('datasetKeysForPlots:', datasetKeysForPlots);
 
+    // Write out keys for the dimension plot
     let keysForDimensionPlot = datasetKeysForPlots.filter((key: string) => {
         const dimensionKeys = PROM_KEYS.slice(0, PROM_KEYS.length - 2);
         return dimensionKeys.includes(key);
     });
     console.log('keysForDimensionPlot:', keysForDimensionPlot);
 
+    // Write out keys for the EQ VAS plot
     let keysForEQVASPlot = datasetKeysForPlots.filter((key: string) => {
         const eqVasKeys = PROM_KEYS.slice(
             PROM_KEYS.length - 2,
@@ -172,7 +142,7 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
 
     console.log('keysForEQVASPlot:', keysForEQVASPlot);
 
-    // sort promData according to startdate in ascending order
+    // Sort promData according to start date in ascending order
     promData.sort(compareClinicalEvents);
     console.log('promData sorted:', promData);
 
@@ -190,21 +160,17 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
 
             // Check if date is not found or maldefined
             if (!isAttributeDateValueWellDefined(date)) {
-                // || useRelativeDates
+                console.log('date not found or maldefined', date);
                 return;
-                //date = event.startNumberOfDaysSinceDiagnosis.toString();
-                //useRelativeDates = true;
             } else {
                 // format date
                 // date is always non-null
                 const realDate: string = date ? date : '';
-                //const parsedDate = Date.parse(realDate);
                 if (!isNaN(Date.parse(realDate))) {
                     const parsedDate = new Date(realDate);
                     const year = parsedDate.getFullYear();
                     const month = parsedDate.getMonth();
                     const day = parsedDate.getDate();
-                    // date = day + '/' + (month + 1).toString() + '/' + year;
                     date = new Date(Date.UTC(year, month, day))
                         .toISOString()
                         .split('T')[0];
@@ -212,7 +178,7 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
                 }
             }
 
-            // Check value (not for AVERAGE since this may not exist)
+            // Check value (not for AVERAGE since this does not exist yet)
             if (
                 (key !== AVERAGE_KEY &&
                     !isAttributeNumberValueWellDefined(value)) ||
@@ -228,28 +194,26 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
                 addElementToDataset(eqVASDataset, key, [date, Number(value)]);
             } else if (keysForDimensionPlot.includes(key)) {
                 console.log('Dimension key:', key);
-                // push values of dimensions to array of which the average may be calculated
+                // Push values to an array of which the average will be calculated
                 if (AVERAGE_KEY !== undefined) {
                     if (key !== AVERAGE_KEY) {
                         valuesForAverageCalculation.push(Number(value));
                     }
-                    // calculate average
+                    // Calculate average
                     else {
-                        // try to compute average dynamically if all values for dimensions are given
+                        // Try to compute average dynamically
                         console.log(
                             'valuesForAverageCalculation:',
                             valuesForAverageCalculation
                         );
-                        //if (valuesForAverageCalculation.length === 5) {
                         value = calculateAverage(
                             valuesForAverageCalculation
                         )?.toString();
-                        //    valuesForAverageCalculation = [];
-                        //} else {
-                        //    return;
-                        //}
                     }
+                }
 
+                // Check again if value is well-defined (needed for the average case) and push data to data set
+                if (value !== undefined && value.length > 0) {
                     addElementToDataset(dimensionDataset, key, [
                         date,
                         Number(value),
@@ -261,14 +225,10 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
         });
     });
 
-    // get latest EQ and VAS score
+    // Get latest EQ and VAS score
     const keysOfEqVASDataset = Object.keys(eqVASDataset);
-    //let greatestCommonScoreIndex = Infinity;
 
     for (let key of keysOfEqVASDataset) {
-        // if (eqVASDataset[key].length - 1 < greatestCommonScoreIndex) {
-        //     greatestCommonScoreIndex = eqVASDataset[key].length - 1;
-        // }
         // push last defined date to latestScoreDates
         for (let i = eqVASDataset[key].length - 1; i >= 0; i--) {
             if (
@@ -282,38 +242,18 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
             }
         }
     }
-    //}
-    //if (greatestCommonScoreIndex < Infinity) {
-    // for (let i = greatestCommonScoreIndex; i >= 0; i--) {
-    //     let oneKeyNotDefined = false;
-    //     for (let key of keysOfEqVASDataset) {
-    //         if (eqVASDataset[key][i].y === undefined || eqVASDataset[key][i].y === null) {
-    //             oneKeyNotDefined = true;
-    //         }
-    //     }
-    //     if (!oneKeyNotDefined) {
-    //         // const allEntriesEqual = keysOfEqVASDataset.length > 0 && keysOfEqVASDataset.every(key => eqVASDataset[key][i].x === eqVASDataset[keysOfEqVASDataset[0]][i].x);
-    //         //if (allEntriesEqual) {
-    //             for (let key of keysOfEqVASDataset) {
-    //                 latestScores.push([key, eqVASDataset[key][i].y]);
-    //                 latestScoreDates.push(eqVASDataset[key][i].x);
-    //             }
-    //             //latestScoresDate = eqVASDataset[keysOfEqVASDataset[0]][i].x.toString();
-    //             break;
-    //         //}
 
-    //     }
-    // }
-
+    // Check whether there is one date for the latest scores or two
     if (latestScoreDates.length > 0 && latestScores.length > 0) {
         const commonDate = latestScoreDates.every(
             date => date === latestScoreDates[0]
         );
         if (commonDate) {
             latestScoresDate = convertISOToDDMMYYYY(latestScoreDates[0]);
-            // add date of latest questionnaire to latestScores
+            // Add date of latest questionnaire to latestScores
             latestScores.push(['DATE', latestScoresDate]);
         } else {
+            // two different dates
             let mergedScoreArrays: string[] = [];
             for (
                 let i = 0;
@@ -339,9 +279,6 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
             ]);
         });
     }
-
-    //}
-
     console.log('dimensionDataset:', dimensionDataset);
     console.log('eqVasDataset in processData:', eqVASDataset);
     console.log('currentScoreDataset:', currentScoreDataset);
@@ -349,7 +286,12 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
     return [eqVASDataset, dimensionDataset, currentScoreDataset];
 };
 
-function StringWithLineBreaks({ text }: { text: string }) {
+/**
+ * Adds line breaks to a string and renders it accordingly
+ * @param text string to be precessed
+ * @returns a JSX element where text is displayed with the added line breaks
+ */
+const StringWithLineBreaks = ({ text }: { text: string }) => {
     const lines = splitString(text, ',');
 
     return (
@@ -363,7 +305,7 @@ function StringWithLineBreaks({ text }: { text: string }) {
             ))}
         </React.Fragment>
     );
-}
+};
 
 const Proms = ({
     patientViewPageStore,
@@ -374,15 +316,13 @@ const Proms = ({
     console.log('data:');
     console.log(data);
 
-    // process data before displaying it
-
-    // console.log('scoreKeys:', Object.keys(processedDataSets[2]));
+    // Processed data
     const processedDataSets = useProcessedData(data);
     const scoreKeys = Object.keys(processedDataSets[0]);
     const dimensionKeys = Object.keys(processedDataSets[1]);
     const currentScoreKeys = Object.keys(processedDataSets[2]); // assert length === 3
 
-    // sort keys
+    // Sort keys
     const promKeysTransformed = PROM_KEYS.map((key: string) => {
         return key;
     });
@@ -401,26 +341,22 @@ const Proms = ({
         promKeysTransformed
     );
     console.log('sortedScoreKeys:', sortedCurrentScoreKeys);
-
     console.log('processedDataSets:');
     console.log(processedDataSets[0]);
     console.log(processedDataSets[1]);
     console.log(processedDataSets[2]);
 
-    // Sort keys
-
+    // Create the dataset used in the chart components
     const eqVASDataset: DataSet = {};
     for (let i = 0; i < sortedScoreKeys.length; i++) {
         eqVASDataset[sortedScoreKeys[i]] =
             processedDataSets[0][sortedScoreKeys[i]];
     }
-
     const dimensionDataset: DataSet = {};
     for (let i = 0; i < sortedDimensionKeys.length; i++) {
         dimensionDataset[sortedDimensionKeys[i]] =
             processedDataSets[1][sortedDimensionKeys[i]];
     }
-
     const currentScoreDataset: DataSet = processedDataSets[2];
 
     console.log('Transformed and sorted data sets:');
@@ -428,6 +364,7 @@ const Proms = ({
     console.log(dimensionDataset);
     console.log(currentScoreDataset);
 
+    // Get the dates of the latest scores
     const currentScoreDates = currentScoreDataset[
         sortedCurrentScoreKeys[sortedCurrentScoreKeys.length - 1]
     ]
@@ -438,49 +375,50 @@ const Proms = ({
     const currentScoreDatesString = currentScoreDates
         ? currentScoreDates.toString()
         : '';
-    // const currentScoreDatesString = currentScoreDates
-    //     ? convertISOToDDMMYYYY(currentScoreDates.toString())
-    //     : '';
 
+    // Formatted texts for the info tooltip
     const currentScoresDescriptionFormatted: React.FC = () => {
         return (
             <div
                 color={Constants.cBioPortalFontColor}
-                dangerouslySetInnerHTML={{ __html: currentScoresDescription }}
+                dangerouslySetInnerHTML={{ __html: CURRENT_SCORES_INFO }}
             />
         );
     };
-
     const scoresDescriptionFormatted: React.FC = () => {
         return (
             <div
                 color={Constants.cBioPortalFontColor}
-                dangerouslySetInnerHTML={{ __html: scoresDescription }}
+                dangerouslySetInnerHTML={{ __html: SCORES_INFO }}
             />
         );
     };
-
     const healthDetailsDescriptionFormatted: React.FC = () => {
         return (
             <div
                 color={Constants.cBioPortalFontColor}
-                dangerouslySetInnerHTML={{ __html: healthDetailsDescription }}
+                dangerouslySetInnerHTML={{ __html: HEALTH_DETAILS_INFO }}
             />
         );
     };
 
+    // Define standard range if it exists (default: non-existent, value: [Infinity, Infinity])
+    const standardRange =
+        STANDARD_RANGE[0] !== Infinity && STANDARD_RANGE[1] !== Infinity
+            ? STANDARD_RANGE
+            : undefined;
+
+    // Rendering
     return (
         <div className="proms">
             <h2>Patient-Reported Outcome Measures</h2>
-
             <div className="questionnaire-title">
-                Questionnaire: {questionnaireName} (
-                <a href={eq5d5lInfo} target="_blank" rel="opener">
+                Questionnaire: {QUESTIONNAIRE_NAME} (
+                <a href={EQ_5D_5L_INFO_URL} target="_blank" rel="opener">
                     Info
                 </a>
                 )
             </div>
-            {/* <div className="container-fluid"> */}
 
             <Grid fluid>
                 <Row className="prom-grid">
@@ -488,7 +426,7 @@ const Proms = ({
                         <div className="proms-container-small">
                             <div className="chart-heading-container-left">
                                 <div className="chart-heading">
-                                    {chartTitles[0]}
+                                    {CHART_TITLES[0]}
                                 </div>
                                 <InfoTooltip
                                     tooltip={currentScoresDescriptionFormatted}
@@ -544,8 +482,8 @@ const Proms = ({
                                                     sortedCurrentScoreKeys.includes(
                                                         INDEX_KEY
                                                     )
-                                                        ? thresholdsEQ
-                                                        : thresholdsVAS
+                                                        ? THRESHOLDS_EQ
+                                                        : THRESHOLDS_VAS
                                                 }
                                             />
                                             {sortedCurrentScoreKeys.length ===
@@ -553,12 +491,12 @@ const Proms = ({
                                                 (sortedCurrentScoreKeys.includes(
                                                     INDEX_KEY
                                                 ) ? (
-                                                    <div>
+                                                    <div className="text-unavailable-data">
                                                         No VAS score <br />{' '}
                                                         available
                                                     </div>
                                                 ) : (
-                                                    <div>
+                                                    <div className="text-unavailable-data">
                                                         No EQ index <br />{' '}
                                                         available
                                                     </div>
@@ -574,6 +512,7 @@ const Proms = ({
                                                 ][0]
                                             }
                                             dataRange={VAS_RANGE}
+                                            thresholds={THRESHOLDS_VAS}
                                         />
                                     )}
                             </div>
@@ -586,12 +525,11 @@ const Proms = ({
                                 ))}
                         </div>
                     </Col>
-
                     <Col md={12} lg={9}>
                         <div className="proms-container-large">
                             <div className="chart-heading-container-center">
                                 <div className="chart-heading__capitalLettersCentered flex-width-container">
-                                    {chartTitles[1]}
+                                    {CHART_TITLES[1]}
                                 </div>
                                 <InfoTooltip
                                     tooltip={scoresDescriptionFormatted}
@@ -604,14 +542,11 @@ const Proms = ({
                                     </div>
                                 </InfoTooltip>
                             </div>
-
                             {/* EQ vs VAS */}
                             {eqVASDataset &&
                                 Object.keys(eqVASDataset).length > 0 && (
                                     <LineScatterPlot
                                         data={eqVASDataset}
-                                        // width={800}
-                                        // height={400}
                                         title="Scores"
                                         xLabel="Date"
                                         yLabel="EQ Index"
@@ -634,13 +569,12 @@ const Proms = ({
                         </div>
                     </Col>
                 </Row>
-
                 <Row className="prom-grid">
                     <Col md={12} lg={9} lgOffset={3}>
                         <div className="proms-container-large">
                             <div className="chart-heading-container-center">
                                 <div className="chart-heading__capitalLettersCentered flex-width-container">
-                                    {chartTitles[2]}
+                                    {CHART_TITLES[2]}
                                 </div>
                                 <InfoTooltip
                                     tooltip={healthDetailsDescriptionFormatted}
@@ -653,13 +587,11 @@ const Proms = ({
                                     </div>
                                 </InfoTooltip>
                             </div>
-                            {/* 5 Dimensions */}
+                            {/* Dimensions plot */}
                             {dimensionDataset &&
                                 Object.keys(dimensionDataset).length > 0 && (
                                     <LineScatterPlot
                                         data={dimensionDataset}
-                                        // width={800}
-                                        // height={400}
                                         title="Health State Detail"
                                         xLabel="Date"
                                         yLabel={'Problems'}
@@ -679,6 +611,7 @@ const Proms = ({
                         </div>
                     </Col>
                 </Row>
+                {/* Timeline */}
                 {sampleManager && dataStore && (
                     <Row className="prom-grid">
                         <Col md={12} lg={9} lgOffset={3}>
@@ -693,15 +626,7 @@ const Proms = ({
                     </Row>
                 )}
             </Grid>
-            {/* </div> */}
-            <div>
-                {/* <h1>Your Data</h1>
-      <ul>
-        {data.map((item) => (
-          <li key={item.clinicalAttributeId}>{item.value}</li>
-        ))}
-      </ul> */}
-            </div>
+            <div></div>
         </div>
     );
 };

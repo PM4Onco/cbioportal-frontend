@@ -1,6 +1,10 @@
+/**
+ * This file loads the CBIOPORTAL_VICTORY_THEME for Victory charts and adapts it for the
+ * case of the PROM charts
+ */
+
 import { CBIOPORTAL_VICTORY_THEME } from 'cbioportal-frontend-commons';
 import * as Constants from './PromChartConstants';
-
 import { assign } from 'lodash';
 
 // *
@@ -22,7 +26,6 @@ const baseProps = {
 // *
 // * Labels
 // *
-
 const baseLabelStyles = {
     fontFamily: sansSerif,
     fontSize,
@@ -31,9 +34,7 @@ const baseLabelStyles = {
     stroke: 'transparent',
     strokeWidth: 0,
 };
-
 const centeredLabelStyles = assign({ textAnchor: 'middle' }, baseLabelStyles);
-
 const axisLabelStyles = assign({}, baseLabelStyles, {
     fontSize: Constants.AXISLABEL_FONTSIZE,
     padding,
@@ -43,9 +44,7 @@ const axisTickLabelStyles = assign({}, baseLabelStyles, {
     fill: Constants.cBioPortalFontColor,
     padding: 2,
 });
-
 const legendLabelStyles = assign({}, baseLabelStyles);
-
 // *
 // * Strokes
 // *

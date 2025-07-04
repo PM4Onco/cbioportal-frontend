@@ -1,5 +1,8 @@
+/**
+ * Component for Victory line scatter plot
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
-import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import FontAwesome from 'react-fontawesome';
 import { saveSvgAsPng } from 'save-svg-as-png';
 import {
@@ -10,41 +13,21 @@ import {
     VictoryLegend,
     VictoryTooltip,
     VictoryGroup,
-    VictoryTheme,
-    LineSegment,
     VictoryLabel,
     VictoryArea,
-    VictoryVoronoiContainer,
     VictoryZoomContainer,
-    VictoryBrushContainer,
 } from 'victory';
-
-import {
-    CBIOPORTAL_VICTORY_THEME,
-    axisTickLabelStyles,
-    getTextWidth,
-    ScatterPlotTooltip,
-    ScatterPlotTooltipHelper,
-    truncateWithEllipsis,
-    wrapText,
-    DownloadControls,
-    DefaultTooltip,
-} from 'cbioportal-frontend-commons';
-
+import { DefaultTooltip } from 'cbioportal-frontend-commons';
 import CBIOPORTAL_VICTORY_THEME_PROM from '../utils/cBioPortalThemePROM';
 import {
     AVERAGE_KEY,
     INDEX_KEY,
     VAS_KEY,
     STANDARD_RANGE_KEY,
-    questionnaireName,
+    QUESTIONNAIRE_NAME,
 } from '../utils/EQ-5D-5LChartMetadata';
-
 import * as Constants from '../utils/PromChartConstants';
-import { parse } from 'date-fns';
-
 import '../styles.scss';
-
 import {
     Datum,
     DataSet,
@@ -57,7 +40,6 @@ import {
     convertISOToDDMMYYYY,
 } from '../utils/PromChartHelperFunctions';
 
-// Props of LineScatterPlot
 interface LineScatterPlotProps {
     data: DataSet;
     width?: number;
@@ -75,7 +57,11 @@ interface LineScatterPlotProps {
     invertYAxis?: boolean;
 }
 
-// custom svg component: axis with arrow at end
+/**
+ * Custom svg component representing an axis with an arrow at the end
+ * @param props properties
+ * @returns rendered axis
+ */
 const ArrowAxis = (props: any) => {
     return (
         <svg>
@@ -105,8 +91,12 @@ const ArrowAxis = (props: any) => {
     );
 };
 
-// functions for required layout
-
+/**
+ * Defines the color used for a line
+ * @param key string identifying the line
+ * @param index number that helps to identify the right color of a pre-defined colors array
+ * @returns color as string
+ */
 const getColor = (key: string, index: number): string => {
     if (key === AVERAGE_KEY) {
         return Constants.averageLayoutValues.color;
@@ -124,6 +114,11 @@ const getColor = (key: string, index: number): string => {
     }
 };
 
+/**
+ * Defines the symbol used in the legend
+ * @param key string identifying the set of data points
+ * @returns symbol as string
+ */
 const getLegendSymbol = (key: string): string => {
     if (key === AVERAGE_KEY) {
         return Constants.averageLayoutValues.symbol;
@@ -142,12 +137,17 @@ const getLegendSymbol = (key: string): string => {
     }
 };
 
+/**
+ * Defines the symbol used in the scatter chart
+ * @param key string identifying a set of data points
+ * @param origY original non-normalized y value of a Datum
+ * @returns symbol as string
+ */
 const getScatterSymbol = (key: string, origY: number | null): string => {
     if (key === AVERAGE_KEY) {
         return Constants.averageLayoutValues.symbol;
     }
     if (key === INDEX_KEY) {
-        // negative values ??
         if (origY !== null && origY < 0) {
             return Constants.eqLayoutValues.symbolNegative;
         }
@@ -160,6 +160,13 @@ const getScatterSymbol = (key: string, origY: number | null): string => {
     }
 };
 
+/**
+ * Changes the color for negative EQ Index values
+ * @param key string identifying the set of data points
+ * @param color string representing the default color
+ * @param origY original non-normalized y value of a Datum
+ * @returns color of a Datum in the scatter plot as string
+ */
 const getScatterColor = (
     key: string,
     color: string,
@@ -172,15 +179,22 @@ const getScatterColor = (
 };
 
 // Hook to memoize processed data, applying normalization if a second Y axis is present + fill label (needed for tooltip)
+
+/**
+ * Pre-processes the data before it will be rendered in the chart
+ * @param data DataSet, the input data
+ * @param yRange tuple representing the minimum and maximum possible y value of the first y axis
+ * @param secondYRange tuple representing the minimum and maximum possible y value of a second y axis
+ * @returns processed data
+ */
 const useProcessedData = (
     data: DataSet,
     yRange: [number, number],
     secondYRange?: [number, number]
 ): DataSet => {
-    //return useMemo(() => {
     const keys = Object.keys(data);
 
-    /* fill label property of data entries */
+    // fill label property of data entries
     for (let key of keys) {
         data[key].forEach((datum: Datum) => {
             datum.labelName = key;
@@ -197,24 +211,17 @@ const useProcessedData = (
     console.log('maxLength:', maxLength);
 
     // add dummy data as first and last element (used for standardRange)
-    //if (standardRange) {
     for (let key of keys) {
         let dummyDatumBefore: Datum;
         let dummyDatumAfter: Datum;
         dummyDatumBefore = { x: Constants.DUMMY_DATE_IN_THE_PAST, y: null };
         data[key].unshift(dummyDatumBefore);
-        //if (data[key].length > maxLength) {
         dummyDatumAfter = { x: Constants.DUMMY_DAT_IN_THE_FUTURE, y: null };
         data[key].push(dummyDatumAfter);
-        //}
-
-        // data[key].unshift(dummyDatumBefore);
-        // data[key].push(dummyDatumAfter);
     }
-    //}
 
-    /* normalization */
-    // If no second axis, return original data (no normalization needed here)
+    // Normalization
+    // If no second axis given, return original data (no normalization needed here)
     if (!secondYRange) {
         return data;
     }
@@ -232,27 +239,30 @@ const useProcessedData = (
         }
     }
     return newData;
-    //}, [data, yRange, secondYRange]);
 };
 
+/**
+ * Pre-processes a DataSet which was generated of a given range
+ * @param rangeData DataSet containing data points with the range data
+ * @param yRange tuple representing the minimum and maximum possible y value
+ * @returns processed rangeData
+ */
 const useProcessedStandardRangeData = (
     rangeData: DataSet,
     yRange: [number, number]
 ): DataSet => {
     const keys = Object.keys(rangeData);
 
-    /* fill label property of data entries */
+    // fill label property of data entries
     for (let key of keys) {
         rangeData[key].forEach((datum: Datum) => {
             datum.labelName = key;
         });
     }
 
-    /* normalization */
-
     const newRangeData: DataSet = { ...rangeData };
 
-    // Normalize dataset if it exists
+    // Normalize dataset if a range is given
     if (yRange) {
         if (keys.length === 1) {
             newRangeData[keys[0]] = normalizeDataSet(
@@ -263,8 +273,6 @@ const useProcessedStandardRangeData = (
     }
     return newRangeData;
 };
-
-/* Plot logic */
 
 const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     data,
@@ -287,24 +295,19 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     const [zoomDomain, setZoomDomain] = useState<[number, number]>();
     // Ref for VictoryZoomContainer
     const chartRef = useRef<HTMLDivElement>(null);
-    // State for dropdown visibility
-    // const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    // Ref for dropdown to detect outside clicks
-    // const dropdownRef = useRef<HTMLDivElement>(null);
-
+    // File names for the svg and png images of the chart
     const exportFileName = title
-        ? `${questionnaireName}_${title.toLowerCase()}`
-        : `${questionnaireName}_chart`;
+        ? `${QUESTIONNAIRE_NAME}_${title.toLowerCase()}`
+        : `${QUESTIONNAIRE_NAME}_chart`;
 
-    // TODO: assure yRange has same format as yTickFormat
-
+    // chart data
     const processedData = useProcessedData(data, yRange, secondYRange);
     console.log('processedData for LineScatterPlot:', processedData);
 
     const augmentedData = createCommonXAxisForDataSet(processedData);
     console.log('augmentedData for LineScatterPlot:', augmentedData);
 
-    // transform input: input is object, output array
+    // Transform augmentedData: input is object, output will be array
     const datasets = Object.entries(augmentedData).map(([key, points], i) => ({
         key,
         points,
@@ -312,29 +315,33 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         childName: `dataset-${i}`,
     }));
 
-    // adds/removes identifier of a dataset to/from hiddenKeys
+    /**
+     * Adds(removes an identifier of a data set to/from hiddenKeys
+     * @param key string identifying the data set
+     */
     const toggleKey = (key: string) => {
         setHiddenKeys(prev =>
             prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
         );
     };
 
-    // Function to compute zoom domain based on data length
+    /**
+     * Computes the zoom domain of the line chart based on the length of the displayed data
+     * @param data array, the data to be displayed
+     */
     const updateZoomDomain = (data: any[]) => {
         console.log('In updateZoomDomain; data.length', data.length);
         console.log(data);
         if (!data || data.length === 0) return;
 
-        // const xValues = data.map(d => d.x);
-        // const minX = Math.min(...xValues);
-        // const maxX = Math.max(...xValues);
+        // determine the length of the input data
         let maxNumberOfPoints = 0;
         for (let i = 0; i < data.length; i++) {
             if (data[i].points.length > maxNumberOfPoints) {
                 maxNumberOfPoints = data[i].points.length;
             }
         }
-        // Example logic: Show full range if data length <= 5, else show last 3 data points
+        // Zoom in if data has too many entries to be nicely displayed together
         if (
             maxNumberOfPoints >
             Constants.MAX_NUMBER_OF_QUESTIONNAIRES_VISIBLE + 2
@@ -343,10 +350,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 1,
                 Constants.MAX_NUMBER_OF_QUESTIONNAIRES_VISIBLE + 2,
             ]);
-        } /* else {
-      const lastThreePoints = xValues.slice(-3); // Last 3 points
-      setZoomDomain({ x: [Math.min(...lastThreePoints), maxX] });
-    } */
+        }
     };
 
     // Update zoom domain when data prop changes
@@ -354,18 +358,8 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         updateZoomDomain(datasets);
     }, []);
 
-    // Close dropdown when clicking outside
-    //   useEffect(() => {
-    //     const handleClickOutside = (event: MouseEvent) => {
-    //       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-    //         setIsDropdownOpen(false);
-    //       }
-    //     };
-    //     document.addEventListener('mousedown', handleClickOutside);
-    //     return () => document.removeEventListener('mousedown', handleClickOutside);
-    //   }, []);
-
-    // events executed when clicked on legend -> toggle visibility of legend entry and line-scatter plot
+    // Events executed when clicked on legend
+    // Toggle visibility of legend entry and line-scatter
     const legendEvents = [
         {
             target: ['data', 'labels'],
@@ -381,20 +375,12 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         },
     ];
 
-    /*  const toggleStrokeWidth = (strokeWidth: number, color: string) => {
-        if (strokeWidth === STROKE_WIDTH + 1) {
-          return null;
-        } else {
-          return {
-            style: {
-              strokeWidth: STROKE_WIDTH + 1,
-              stroke: color,
-            },
-          };
-        }
-      }; */
-
-    // calculate tick values given the range of the data and the number of ticks
+    /**
+     * Calculates tick values given the range of the data and the number of ticks
+     * @param range tuple representing the minimum and maximum possible y value
+     * @param ticks number of ticks on the axis
+     * @returns number[] array of tick values
+     */
     const yTickValues = (range: [number, number], ticks: number): number[] => {
         // if second y axis present, normalize tick values, otherwise keep original range
         const [min, max] = secondYRange ? [0, 1] : range;
@@ -402,7 +388,11 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         return Array.from({ length: ticks }, (_, i) => min + i * step);
     };
 
-    // tick values for x-axis without the dummy ticks
+    /**
+     * Calculates x tick values for a DataSet
+     * @param data DataSet
+     * @returns string array with x tick values
+     */
     const xTickValues = (data: DataSet): Array<string> => {
         const allX: string[] = [];
         for (const series of Object.values(data)) {
@@ -417,45 +407,26 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         // Remove duplicates
         const uniqueX = Array.from(new Set(allX));
 
-        // convert to date
-        // uniqueX.forEach((d, i) => {
-        //     uniqueX[i] = parse(d, "dd/MM/yyyy", new Date()).toISOString();
-        //     //const year = parsedISODate.getFullYear();
-        //     //const month = parsedISODate.getMonth();
-        //     //const day = parsedISODate.getDate();
-        //     //uniqueX[i] = day + '/' + (month + 1).toString() + '/' + year;
-        // });
-
         // Sort
         const sortedX = uniqueX.sort((a, b) => {
             return new Date(a).getTime() - new Date(b).getTime(); // for dates saved as strings
         });
         console.log('sortedX:', sortedX);
 
-        // Convert to right format again
-        // sortedX.forEach((d, i) => {
-        //     const date = new Date(d);
-        //     const day = date.getDate();
-        //     const month = date.getMonth() + 1;
-        //     const year = date.getFullYear();
-        //     sortedX[i] = day + '/' + month + '/' + year;
-        // })
-
-        // remove first and last element
-        // console.log('Unique Array');
-        // console.log(uniqueX);
-        // console.log('Sorted Array');
-        // console.log(sortedX);
+        // Remove first and last element (dummy elements)
         sortedX.shift();
         sortedX.pop();
         console.log('sortedX without first and last:', sortedX);
 
-        // Return all except first and last
-        //return sortedX.slice(1, -1);
-
         return sortedX;
     };
 
+    /**
+     * Defines the text of the tooltip for the scatter points
+     * @param datum Datum, the scatter point
+     * @param origData Datum with the original unnormalized y value
+     * @returns text for the tooltip
+     */
     const displayTooltip = (datum: Datum, origData: Datum[]): string => {
         if (secondYRange) {
             const originalY = getOriginalY(datum.x, origData);
@@ -468,7 +439,10 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
             : `${datum.labelName}: ${datum.y}`;
     };
 
-    // Export chart as SVG
+    /**
+     * Exports the Vicotry chart to SVG
+     * @param filename name of the file to be saved
+     */
     const exportAsSVG = (filename = 'chart.svg') => {
         if (!chartRef.current) {
             alert('Chart not rendered yet!');
@@ -504,7 +478,10 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         }, 10);
     };
 
-    // Export chart as PNG
+    /**
+     * Exports the Vicotry chart to a PNG file
+     * @param filename name of the file to be saved
+     */
     const exportAsPNG = (filename = 'chart.png') => {
         if (!chartRef.current) {
             alert('Chart not rendered yet!');
@@ -532,7 +509,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         }, 10);
     };
 
-    // helpers for showing standard range
+    // Helpers for showing standard range
     let standardRangeData: DataSet;
     let standardRangeDataProcessed: DataSet;
     let standardRangeDataMapped: {
@@ -567,27 +544,17 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         mergedDataForLegend = mergeArrays(datasets, standardRangeDataMapped, 2);
     }
 
-    // Toggle dropdown visibility
-    //   const toggleDropdown = () => {
-    //     setIsDropdownOpen((prev) => !prev);
-    //   };
-
-    // rendering
+    // Rendering
     return (
         <div
             style={{
                 display: 'flex',
             }}
-
-            /* style={{ overflowX: 'auto', overflowY: 'hidden', width: '600px' }} */
         >
-            {/* <div style={{ width: '1140px' }}> */}
             <VictoryChart
                 width={width}
                 height={height}
-                // containerComponent={<VictoryVoronoiContainer />}
                 theme={CBIOPORTAL_VICTORY_THEME_PROM}
-                //theme={VictoryTheme.clean}
                 padding={{
                     top: height / 5,
                     bottom: height / 5,
@@ -595,7 +562,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                     right: width / 5,
                 }} // padding between chart and other Victory components, e. g. legend, title
                 domainPadding={{ x: 5, y: height / 10 }} // padding between axes and data points (padding around actual plot within the diagram)
-                // events
+                // Zoom functionality
                 containerComponent={
                     <VictoryZoomContainer
                         responsive={true}
@@ -603,25 +570,11 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                         allowZoom={false}
                         zoomDomain={{ x: zoomDomain }}
                         allowPan={true}
-                        //zoomDomain={this.state.zoomDomain}
-                        //onZoomDomainChange={this.handleZoom.bind(this)}
                         containerRef={chartRef}
                     />
                 }
             >
-                {/* Chart Title */}
-                {/* {title && (
-                    <VictoryLabel
-                        text={title.toUpperCase()}
-                        x={width / 2}
-                        y={height / 10}
-                        textAnchor="middle"
-                        padding={{bottom: 10}}
-                    />
-                )} */}
-
                 {/* Important: first print Y axis, then X axis */}
-
                 {/* Y Axis */}
                 <VictoryAxis
                     dependentAxis
@@ -633,27 +586,11 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                     tickFormat={yTickFormat}
                     axisLabelComponent={
                         <VictoryLabel
-                            dx={-3 * Constants.TICK_SIZE - 2} //-Constants.TICK_SIZE / 2
-                            dy={-height / 3 + Constants.ARROW_HEIGHT - 1} // -height / 3 + Constants.ARROW_HEIGHT + 2
+                            dx={-3 * Constants.TICK_SIZE - 2}
+                            dy={-height / 3 + Constants.ARROW_HEIGHT - 1}
                             angle={0}
                         />
-                    } // ok
-                    // theme
-                    /* style={{
-                        ticks: {
-                            stroke: Constants.TICK_COLOR,
-                            size: Constants.TICK_SIZE,
-                            strokeWidth: Constants.TICK_STROKE_WIDTH,
-                        },
-                        tickLabels: { fontSize: Constants.TICK_FONTSIZE },
-                        axisLabel: { fontSize: Constants.AXISLABEL_FONTSIZE },
-                        grid: {
-                            stroke: Constants.GRID_COLOR,
-                            size: Constants.GRID_SIZE,
-                            strokeWidth: Constants.GRID_STROKE_WIDTH,
-                            strokeDasharray: '10, 5',
-                        },
-                    }} */
+                    }
                 />
                 {/* Second Y Axis */}
                 {secondYRange && secondYTickFormat && (
@@ -662,7 +599,6 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                         orientation="right"
                         axisComponent={<ArrowAxis />}
                         label={secondYLabel}
-                        //tickValues={tickValues(yRange[1], yTickFormat[1].length)}
                         tickValues={yTickValues(
                             secondYRange,
                             secondYTickFormat.length
@@ -676,21 +612,11 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                     height / 3 +
                                     Constants.ARROW_HEIGHT -
                                     1
-                                } // -Constants.AXISLABEL_FONTSIZE - height / 3 + Constants.ARROW_HEIGHT + 2
+                                }
                                 angle={0}
                             />
                         }
-                        // theme
                         style={{ grid: { strokeOpacity: 0 } }}
-                        /* style={{
-                            ticks: {
-                                stroke: Constants.TICK_COLOR,
-                                size: Constants.TICK_SIZE,
-                                strokeWidth: Constants.TICK_STROKE_WIDTH,
-                            },
-                            tickLabels: { fontSize: Constants.TICK_FONTSIZE },
-                            axisLabel: { fontSize: Constants.AXISLABEL_FONTSIZE },
-                        }} */
                     />
                 )}
 
@@ -705,30 +631,9 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                             dx={0.33 * width - Constants.ARROW_HEIGHT}
                             dy={Constants.XLABEL_YOFFSET}
                         />
-                    } // dx={0.3 * width - 2} dy={-3 * Constants.TICK_SIZE}
-                    // theme
+                    }
                     style={{ grid: { strokeOpacity: 0 } }}
-                    /* style={{
-                        ticks: {
-                            stroke: Constants.TICK_COLOR,
-                            size: Constants.TICK_SIZE,
-                            strokeWidth: Constants.TICK_STROKE_WIDTH,
-                        },
-                        tickLabels: { fontSize: Constants.TICK_FONTSIZE },
-                        axisLabel: { fontSize: Constants.AXISLABEL_FONTSIZE },
-                    }} */
                 />
-
-                {/* Label for standard Range MUST USE NORMALZED RANGE*/}
-                {/* {standardRange && 
-                    <VictoryLabel
-                        //textAnchor="inherit"
-                        style={{ fontSize: LABEL_FONTSIZE, opacity: 0.9 }}
-                        x={standardRange.name ? 0.7 * width - standardRange.name.length * 4 : 0.7 * width - 40}
-                        y={(yTickFormat.length + 1)/yTickFormat.length * standardRange.range[0] * height + 1}
-                        text={standardRange.name}
-                    />      
-                } */}
 
                 {/* Plots */}
 
@@ -768,33 +673,12 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                 style={{
                                     data: {
                                         stroke: color,
-                                        //strokeWidth: Constants.LINE_STROKE_WIDTH, //theme
                                         visibility: hiddenKeys.includes(key)
                                             ? 'hidden'
                                             : 'visible',
                                     },
                                 }}
                                 interpolation="linear"
-                                //dataComponent={<LineSegment />}
-                                /* events={!hiddenKeys.includes(key) ? [
-                                    {
-                                      target: "data",
-                                      eventHandlers: {
-                                        onClick: () => {
-                                          return [
-                                            {
-                                              eventKey: "all",
-                                              mutation: (props: any) =>
-                                                toggleStrokeWidth(
-                                                  props.style
-                                                    ?.strokeWidth, color
-                                                ),
-                                            },
-                                          ];
-                                        },
-                                      },
-                                    },
-                                  ] : null} */
                             />
                             <VictoryScatter
                                 name={childName}
@@ -802,7 +686,6 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                 sortOrder="ascending"
                                 sortKey="x"
                                 scale={{ x: 'time' }}
-                                //size={Constants.SCATTER_POINT_SIZE} //theme // size={( { active }: { active: any }) => active ? 2 * SCATTER_POINT_SIZE: SCATTER_POINT_SIZE}
                                 symbol={(d: Datum) =>
                                     getScatterSymbol(
                                         key,
@@ -828,29 +711,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                               displayTooltip(d, data[key])
                                         : null
                                 }
-                                labelComponent={
-                                    <VictoryTooltip
-                                        dy={-7}
-                                        // theme
-                                        /* cornerRadius={5}
-                                        flyoutPadding={{
-                                            top: 4,
-                                            bottom: 4,
-                                            left: 6,
-                                            right: 6,
-                                        }}
-                                        flyoutStyle={{
-                                            fill: 'white',
-                                            stroke: 'gray',
-                                        }}
-                                        pointerWidth={5}
-                                        style={{
-                                            fontSize: Constants.LABEL_FONTSIZE,
-                                            fill: '#333',
-                                        }} */
-                                    />
-                                }
-                                //dataComponent={<Point />}
+                                labelComponent={<VictoryTooltip dy={-7} />}
                             />
                         </VictoryGroup>
                     );
@@ -860,9 +721,9 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 <VictoryLegend
                     title={secondYRange ? null : 'Legend'}
                     orientation={secondYRange ? 'horizontal' : 'vertical'}
-                    y={secondYRange ? 16 : height / 6 + 2} // height / 6 + 2 : height / 6 + 2
-                    x={secondYRange ? width / 5 + 15 : (5 / 6) * width} // secondYRange ? width / 5 + 5 : (5 / 6) * width
-                    gutter={20} // theme // only for horizontal alignment standardRang ? width / 5 - 6 : width / 2 - 5
+                    y={secondYRange ? 16 : height / 6 + 2}
+                    x={secondYRange ? width / 5 + 15 : (5 / 6) * width}
+                    gutter={20} // only for horizontal alignment
                     name="legend"
                     data={
                         standardRange
@@ -909,85 +770,37 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                               }))
                     }
                     events={legendEvents}
-
-                    // theme
-                    /* style={{
-                        title: {
-                            fontSize: Constants.LEGEND_FONTSIZE,
-                            fontWeight: 'bold',
-                        },
-                        labels: { fontSize: Constants.TICK_FONTSIZE },
-                        padding: { bottom: 8, top: 8, left: 4, right: 4 },
-                    }} */
                 />
             </VictoryChart>
-            {/* </div> */}
 
             <div className="column-download-buttons">
-                {/*   <button onClick={() => exportAsSVG(`${exportFileName}.svg`)}>Export as SVG</button>
-                    <button onClick={() => exportAsPNG(`${exportFileName}.png`)}>Export as PNG</button>
- */}
-                {/* <DownloadControls
-                        buttons={['PDF', 'PNG', 'SVG']}
-                        filename="timeline"
-                        dontFade={true}
-                        type={'button'}
-                        style={{ marginLeft: 7 }}
-                    /> */}
-
-                {/*  <div ref={dropdownRef}>  */}
-                {/* className */}
-                {/*    <DefaultTooltip
-                            overlay={<span>Export PNG or SVG</span>}
-                            placement='top'
+                <div>
+                    {' '}
+                    <DefaultTooltip
+                        overlay={<span>Download SVG</span>}
+                        placement="right"
+                    >
+                        <button
+                            onClick={() => exportAsSVG(`${exportFileName}.svg`)}
+                            className="btn btn-default btn-xs download-button"
                         >
- <button
-          onClick={toggleDropdown}
-          className="btn btn-default btn-xs"
-        >
-          
-                                        <FontAwesome name="cloud-download" />
-                                    
-        </button>
-                        </DefaultTooltip> */}
-
-                {/* {isDropdownOpen && ( */}
-                <React.Fragment>
-                    <div>
-                        {' '}
-                        {/* className */}
-                        <DefaultTooltip
-                            overlay={<span>Download SVG</span>}
-                            placement="right"
+                            <FontAwesome name="cloud-download" /> SVG
+                        </button>
+                    </DefaultTooltip>
+                </div>
+                <div>
+                    <DefaultTooltip
+                        overlay={<span>Download PNG</span>}
+                        placement="right"
+                    >
+                        <button
+                            onClick={() => exportAsPNG(`${exportFileName}.png`)}
+                            className="btn btn-default btn-xs download-button"
                         >
-                            <button
-                                onClick={() =>
-                                    exportAsSVG(`${exportFileName}.svg`)
-                                }
-                                className="btn btn-default btn-xs download-button"
-                            >
-                                <FontAwesome name="cloud-download" /> SVG
-                            </button>
-                        </DefaultTooltip>
-                    </div>
-                    <div>
-                        <DefaultTooltip
-                            overlay={<span>Download PNG</span>}
-                            placement="right"
-                        >
-                            <button
-                                onClick={() =>
-                                    exportAsPNG(`${exportFileName}.png`)
-                                }
-                                className="btn btn-default btn-xs download-button"
-                            >
-                                <FontAwesome name="cloud-download" /> PNG
-                            </button>
-                        </DefaultTooltip>
-                    </div>
-                </React.Fragment>
-                {/* )} */}
-                {/* </div> */}
+                            <FontAwesome name="cloud-download" /> PNG
+                        </button>
+                    </DefaultTooltip>
+                </div>
             </div>
         </div>
     );
