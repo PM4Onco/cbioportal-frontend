@@ -6,6 +6,7 @@ import TimelineWrapper from 'pages/patientView/timeline/TimelineWrapper'; // CNA
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
 import PatientViewMutationsDataStore from 'pages/patientView/mutation/PatientViewMutationsDataStore';
 import WindowStore from 'shared/components/window/WindowStore';
+import './../styles.scss';
 
 // Define props of timeline
 interface PatientTimelineProps {
@@ -43,7 +44,7 @@ const Timeline = ({
                         }}
                     >
                         <button
-                            className="btn btn-xs btn-default displayBlock"
+                            className="btn btn-xs btn-default displayBlock button-margin"
                             onClick={toggleTimeline}
                             data-test="ToggleTimeline"
                         >

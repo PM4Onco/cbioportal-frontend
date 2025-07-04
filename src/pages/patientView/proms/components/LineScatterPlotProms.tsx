@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import FontAwesome from 'react-fontawesome';
 import {
     VictoryChart,
     VictoryLine,
@@ -12,6 +14,7 @@ import {
     VictoryLabel,
     VictoryArea,
     VictoryVoronoiContainer,
+    VictoryZoomContainer,
 } from 'victory';
 
 import {
@@ -23,29 +26,20 @@ import {
     truncateWithEllipsis,
     wrapText,
 } from 'cbioportal-frontend-commons';
-import { key } from 'localforage';
-import { numLeadingDecimalZeros } from 'pages/patientView/timeline/VAFChartUtils';
 
-/* Interfaces for data format */
+import CBIOPORTAL_VICTORY_THEME_PROM from '../utils/cBioPortalThemePROM';
 
-// structure of a singel data point
-interface Datum {
-    x: number | string | Date;
-    y: number | null;
-    y0?: number;
-    labelName?: string; // used only for tooltip, will be dynamically filled with content
-}
+import * as Constants from '../utils/PromChartConstants';
 
-// structure of input data object: identifier, x/y points
-export interface DataSet {
-    [key: string]: Datum[];
-}
-
-// structure of range data
-export interface Range {
-    name?: string;
-    range: [number, number];
-}
+import {
+    Datum,
+    DataSet,
+    Range,
+    mergeArrays,
+    createRangeData,
+    normalizeDataSet,
+    getOriginalY,
+} from '../utils/PromChartHelperFunctions';
 
 // Props of LineScatterPlot
 interface LineScatterPlotProps {
@@ -64,52 +58,6 @@ interface LineScatterPlotProps {
     showTooltip?: boolean;
 }
 
-/* Pre-defined constants*/
-
-// colors
-const colors = [
-    '#0dcaf0',
-    '#198754',
-    '#fd7e14',
-    '#6610f2',
-    '#dc3545',
-    '#212529',
-    '#20c997',
-];
-
-// base layout constants
-const STROKE_WIDTH = 1;
-const TEXT_FONTSIZE = 8;
-
-// fontsize
-const TICK_FONTSIZE = TEXT_FONTSIZE;
-const AXISLABEL_FONTSIZE = TICK_FONTSIZE + 1;
-const TITLE_FONTSIZE = TICK_FONTSIZE + 2;
-const LEGEND_FONTSIZE = AXISLABEL_FONTSIZE;
-const LABEL_FONTSIZE = TEXT_FONTSIZE;
-
-// stroke width
-const LINE_STROKE_WIDTH = STROKE_WIDTH / 2;
-const GRID_STROKE_WIDTH = 0.75 * STROKE_WIDTH;
-const TICK_STROKE_WIDTH = STROKE_WIDTH;
-const AXIS_STROKE_WIDTH = LINE_STROKE_WIDTH;
-
-// size
-const SCATTER_POINT_SIZE = 4 * LINE_STROKE_WIDTH;
-const GRID_SIZE = 5;
-const TICK_SIZE = GRID_SIZE + 1;
-
-// grid colors
-const AXIS_COLOR = 'gray';
-const TICK_COLOR = AXIS_COLOR;
-const GRID_COLOR = 'lightgray';
-
-// arrows
-const ARROW_HEIGHT = (2 / 3) * 2 * TICK_SIZE + 2 / 3;
-const ARROW_WIDTH = 2 * TICK_SIZE + 1;
-const REF_Y = ARROW_HEIGHT / 2;
-const POLYGON = '0 0, ' + ARROW_WIDTH + ' ' + REF_Y + ', 0 ' + ARROW_HEIGHT;
-
 // custom svg component: axis with arrow at end
 const ArrowAxis = (props: any) => {
     return (
@@ -117,14 +65,14 @@ const ArrowAxis = (props: any) => {
             <defs>
                 <marker
                     id="arrowhead"
-                    markerWidth={ARROW_WIDTH}
-                    markerHeight={ARROW_HEIGHT}
+                    markerWidth={Constants.ARROW_WIDTH}
+                    markerHeight={Constants.ARROW_HEIGHT}
                     refX="0"
-                    refY={REF_Y}
+                    refY={Constants.REF_Y}
                     orient="auto"
-                    fill={AXIS_COLOR}
+                    fill={Constants.AXIS_COLOR}
                 >
-                    <polygon points={POLYGON} />
+                    <polygon points={Constants.POLYGON} />
                 </marker>
             </defs>
             <line
@@ -132,164 +80,132 @@ const ArrowAxis = (props: any) => {
                 y1={props.y2}
                 x2={props.x2}
                 y2={props.dimension === 'x' ? props.y2 : props.y1}
-                stroke={AXIS_COLOR}
-                stroke-width={AXIS_STROKE_WIDTH}
+                stroke={Constants.AXIS_COLOR}
+                stroke-width={Constants.AXIS_STROKE_WIDTH}
                 marker-end="url(#arrowhead)"
             />
         </svg>
     );
 };
 
-/* Helper functions */
+// functions for required layout
 
-// functions that returns the smallest and largest x values (used for computing the standard range area plot)
-const getXDomain = (
-    dataSet: DataSet
-): {
-    minX: Datum['x'] | null;
-    maxX: Datum['x'] | null;
-} => {
-    const allX: Datum['x'][] = [];
-
-    for (const series of Object.values(dataSet)) {
-        for (const { x } of series) {
-            allX.push(x);
-        }
+const getColor = (key: string, index: number): string => {
+    if (key === 'Average') {
+        return Constants.averageLayoutValues.color;
     }
-
-    if (allX.length === 0) return { minX: null, maxX: null };
-
-    // Normalize to sortable numbers
-    const xWithSortKeys = allX.map(originalX => {
-        let key: number;
-
-        if (typeof originalX === 'number') {
-            key = originalX;
-        } else if (typeof originalX === 'string') {
-            key = new Date(originalX).getTime(); // fallback for ISO strings
-        } else if (originalX instanceof Date) {
-            key = originalX.getTime();
-        } else {
-            throw new Error('Unsupported x type');
-        }
-
-        return { originalX, key };
-    });
-
-    // Sort by key
-    xWithSortKeys.sort((a, b) => a.key - b.key);
-
-    return {
-        minX: xWithSortKeys[0].originalX,
-        maxX: xWithSortKeys[xWithSortKeys.length - 1].originalX,
-    };
-};
-
-/* function that merges two arrays where the values of the second are added after a specific position, 
-thus the output looks like [first part of first array, second array, remaining of first array]*/
-const mergeArrays = (
-    array1: any[],
-    array2: any[],
-    insertPosition: number
-): any[] => {
-    const arr1 = array1;
-    const arr2 = array2;
-    const position = insertPosition;
-
-    if (position < 0 || position === null || position === undefined) return [];
-    let result = [];
-
-    // if position greater than length of arr1, concate arr2 to arr1 regardless of concrete position
-    if (position > arr1.length - 1) {
-        for (let i = 0; i < arr1.length + arr2.length; i++) {
-            result[i] = i < arr1.length ? arr1[i] : arr2[i - arr2.length];
-        }
-        return result;
+    if (key === 'Index') {
+        return Constants.eqLayoutValues.color;
     }
-
-    // add first part of first array
-    for (let i = 0; i < position; i++) {
-        result[i] = arr1[i];
+    if (key === 'VAS') {
+        return Constants.vasLayoutValues.color;
     }
-    // add second array
-    for (let i = position; i < position + arr2.length; i++) {
-        result[i] = arr2[i - position];
-    }
-    // add remaining part of first array
-    for (let i = position + arr2.length; i < arr2.length + arr1.length; i++) {
-        result[i] = arr1[i - arr2.length];
-    }
-    return result;
-};
-
-// function to display standard range in plot
-const createRangeData = (dataSet: DataSet, standardRange: Range): DataSet => {
-    const { minX, maxX } = getXDomain(dataSet);
-
-    if (minX === null || maxX === null) return {};
-
-    // if name given in standardRange, use this, otherwise a default name
-    const name = standardRange.name ? standardRange.name : 'Standard Range';
-
-    // create DataSet of two elements = four value pairs
-    const result: DataSet = {
-        [name]: [
-            {
-                x: minX,
-                y: standardRange.range[1],
-                y0: standardRange.range[0],
-            },
-            {
-                x: maxX,
-                y: standardRange.range[1],
-                y0: standardRange.range[0],
-            },
-        ],
-    };
-    return result;
-};
-
-// normalize data
-const normalizeDataSet = (
-    dataSet: Datum[],
-    range: [number, number]
-): Datum[] => {
-    const [minY, maxY] = range;
-
-    // If normalization not possible (max is 0 or max equals min), return original data.
-    if (maxY === 0 || maxY === minY) {
-        return dataSet;
-    }
-
-    // Normalize the y values
-    return dataSet.map(datum => ({
-        ...datum,
-        y:
-            typeof datum.y === 'number'
-                ? (datum.y - minY) / (maxY - minY) // normalization
-                : null,
-    }));
-};
-
-const transformNormalizedNumberToOriginal = (
-    y: number | null,
-    range: [number, number] | null
-): number | null => {
-    if (y === null) {
-        return null;
-    }
-    if (range === null) {
-        return y;
-    }
-    const [minY, maxY] = range;
-    const result = y * (maxY - minY) + minY;
-
-    // to prevent some numerical issues with VAS score
-    if (result >= 1) {
-        return Math.round(result);
+    if (key === 'Standard Range') {
+        return Constants.standardRangeLayoutValues.color;
     } else {
-        return result;
+        return Constants.lineColors[index % Constants.lineColors.length];
     }
+};
+
+const getLegendSymbol = (key: string): string => {
+    if (key === 'Average') {
+        return Constants.averageLayoutValues.symbol;
+    }
+    if (key === 'Index') {
+        // negative values ??
+        return Constants.eqLayoutValues.symbol;
+    }
+    if (key === 'VAS') {
+        return Constants.vasLayoutValues.symbol;
+    }
+    if (key === 'Standard Range') {
+        return Constants.standardRangeLayoutValues.symbol;
+    } else {
+        return 'minus';
+    }
+};
+
+const getScatterSymbol = (key: string, origY: number | null): string => {
+    if (key === 'Average') {
+        return Constants.averageLayoutValues.symbol;
+    }
+    if (key === 'Index') {
+        // negative values ??
+        if (origY !== null && origY < 0) {
+            return Constants.eqLayoutValues.symbolNegative;
+        }
+        return Constants.eqLayoutValues.symbol;
+    }
+    if (key === 'VAS') {
+        return Constants.vasLayoutValues.symbol;
+    } else {
+        return 'circle';
+    }
+};
+
+const getScatterColor = (
+    key: string,
+    color: string,
+    origY: number | null
+): string => {
+    if (key === 'Index' && origY !== null && origY < 0) {
+        return Constants.eqLayoutValues.colorNegative;
+    }
+    return color;
+};
+
+// Hook to memoize processed data, applying normalization if a second Y axis is present + fill label (needed for tooltip)
+const useProcessedData = (
+    data: DataSet,
+    yRange: [number, number],
+    secondYRange?: [number, number]
+): DataSet => {
+    return useMemo(() => {
+        const keys = Object.keys(data);
+
+        /* fill label property of data entries */
+        for (let key of keys) {
+            data[key].forEach((datum: Datum) => {
+                datum.labelName = key;
+            });
+        }
+
+        // add dummy data as first and last element (used for standardRange)
+        //if (standardRange) {
+        for (let key of keys) {
+            let dummyDatumBefore: Datum;
+            let dummyDatumAfter: Datum;
+            if (data[key].every(datum => typeof datum.x === 'number')) {
+                dummyDatumBefore = { x: -Infinity, y: null };
+                dummyDatumAfter = { x: Infinity, y: null };
+            } else {
+                // strings
+                dummyDatumBefore = { x: '!', y: null }; // first utf-16 element to ensure sorting won't destroy order
+                dummyDatumAfter = { x: '~', y: null }; // last utf-16 element to ensure sorting won't destroy order
+            }
+            data[key].unshift(dummyDatumBefore);
+            data[key].push(dummyDatumAfter);
+        }
+        //}
+
+        /* normalization */
+        // If no second axis, return original data (no normalization needed here)
+        if (!secondYRange) {
+            return data;
+        }
+
+        const newData: DataSet = { ...data };
+
+        // Normalize the first dataset if it exists
+        if (keys.length > 0) {
+            newData[keys[0]] = normalizeDataSet(data[keys[0]], yRange);
+        }
+        // Normalize the second dataset if it exists and secondYRange is valid
+        if (keys.length > 1 && secondYRange) {
+            newData[keys[1]] = normalizeDataSet(data[keys[1]], secondYRange);
+        }
+        return newData;
+    }, [data, yRange, secondYRange]);
 };
 
 /* Plot logic */
@@ -314,61 +230,13 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
 
     // TODO: assure yRange has same format as yTickFormat
 
-    // Hook to memoize processed data, applying normalization if a second Y axis is present + fill label (needed for tooltip)
-    const useProcessedData = (
-        data: DataSet,
-        yRange: [number, number],
-        secondYRange?: [number, number]
-    ): DataSet => {
-        return useMemo(() => {
-            const keys = Object.keys(data);
-
-            /* fill label property of data entries */
-            for (let key of keys) {
-                data[key].forEach((datum: Datum) => {
-                    datum.labelName = key;
-                });
-            }
-
-            // add dummy data as first and last element (used for standardRange)
-            if (standardRange) {
-                const dummyDatumBefore: Datum = { x: '!', y: null };
-                const dummyDatumAfter: Datum = { x: '~', y: null };
-                for (let key of keys) {
-                    data[key].unshift(dummyDatumBefore);
-                    data[key].push(dummyDatumAfter);
-                }
-            }
-            /* normalization */
-            // If no second axis, return original data (no normalization needed here)
-            if (!secondYRange) {
-                return data;
-            }
-
-            const newData: DataSet = { ...data };
-
-            // Normalize the first dataset if it exists
-            if (keys.length > 0) {
-                newData[keys[0]] = normalizeDataSet(data[keys[0]], yRange);
-            }
-            // Normalize the second dataset if it exists and secondYRange is valid
-            if (keys.length > 1 && secondYRange) {
-                newData[keys[1]] = normalizeDataSet(
-                    data[keys[1]],
-                    secondYRange
-                );
-            }
-            return newData;
-        }, [data, yRange, secondYRange]);
-    };
-
     const processedData = useProcessedData(data, yRange, secondYRange);
 
     // transform input: input is object, output array
     const datasets = Object.entries(processedData).map(([key, points], i) => ({
         key,
         points,
-        color: colors[i % colors.length],
+        color: getColor(key, i),
         childName: `dataset-${i}`,
     }));
 
@@ -409,11 +277,51 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
       }; */
 
     // calculate tick values given the range of the data and the number of ticks
-    const tickValues = (range: [number, number], ticks: number): number[] => {
+    const yTickValues = (range: [number, number], ticks: number): number[] => {
         // if second y axis present, normalize tick values, otherwise keep original range
         const [min, max] = secondYRange ? [0, 1] : range;
         const step = (max - min) / (ticks - 1);
         return Array.from({ length: ticks }, (_, i) => min + i * step);
+    };
+
+    // tick values for x-axis without the dummy ticks
+    const xTickValues = (data: DataSet): Array<number | string> => {
+        const allX: (string | number)[] = [];
+        for (const series of Object.values(data)) {
+            for (const d of series) {
+                if (d.x !== null && d.x !== undefined) {
+                    allX.push(d.x);
+                }
+            }
+        }
+
+        // Remove duplicates
+        const uniqueX = Array.from(new Set(allX));
+
+        // Sort
+        const sortedX = uniqueX.sort((a, b) => {
+            if (typeof a === 'number' && typeof b === 'number') return a - b;
+            return new Date(a).getTime() - new Date(b).getTime(); // for dates saved as strings
+        });
+        // remove first and last element
+        // console.log('Unique Array');
+        // console.log(uniqueX);
+        // console.log('Sorted Array');
+        // console.log(sortedX);
+        sortedX.shift();
+        sortedX.pop();
+
+        // Return all except first and last
+        //return sortedX.slice(1, -1);
+        return sortedX;
+    };
+
+    const displayTooltip = (datum: Datum, origData: Datum[]): string => {
+        if (secondYRange) {
+            const originalY = getOriginalY(datum.x, origData);
+            return `${datum.labelName}: ${originalY}`;
+        }
+        return `${datum.labelName}: ${datum.y}`;
     };
 
     // helpers for showing standard range
@@ -444,63 +352,52 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         ).map(([key, points], i) => ({
             key,
             points,
-            color: 'black',
+            color: getColor(key, i),
             childName: `range-${i}`,
         }));
-        mergedDataForLegend = mergeArrays(datasets, standardRangeDataMapped, 1);
+        mergedDataForLegend = mergeArrays(datasets, standardRangeDataMapped, 2);
     }
-
-    const displayTooltip = (datum: Datum, index: number): string => {
-        if (secondYRange) {
-            if (index === 0) {
-                const originalY = transformNormalizedNumberToOriginal(
-                    datum.y,
-                    yRange
-                );
-                return `${datum.labelName}: ${originalY}`;
-            }
-            if (index === 1) {
-                const originalY2 = transformNormalizedNumberToOriginal(
-                    datum.y,
-                    secondYRange
-                );
-                return `${datum.labelName}: ${originalY2}`;
-            }
-            // default: should not be reached
-            return `${datum.labelName}: ${datum.y}`;
-        } else {
-            return `${datum.labelName}: ${datum.y}`;
-        }
-    };
 
     // rendering
     return (
-        <div>
+        <div /*style={{ overflowX: 'auto', overflowY: 'hidden', width: '100%' }}*/
+        >
+            {/* <div style={{ width: '1140px' }}> */}
             <VictoryChart
                 width={width}
                 height={height}
-                containerComponent={<VictoryVoronoiContainer />}
-                //theme={CBIOPORTAL_VICTORY_THEME}
-                theme={VictoryTheme.clean}
+                //containerComponent={<VictoryVoronoiContainer />}
+                theme={CBIOPORTAL_VICTORY_THEME_PROM}
+                //theme={VictoryTheme.clean}
                 padding={{
                     top: height / 5,
                     bottom: height / 5,
                     left: width / 5,
                     right: width / 5,
                 }} // padding between chart and other Victory components, e. g. legend, title
-                domainPadding={{ x: width / 10, y: width / 30 }} // padding between axes and data points (padding around actual plot within the diagram)
+                domainPadding={{ x: 5, y: height / 10 }} // padding between axes and data points (padding around actual plot within the diagram)
                 // events
+                //   containerComponent={
+                //   <VictoryZoomContainer responsive={true}
+                //     zoomDimension="x"
+                //     allowZoom={false}
+                //     zoomDomain={{ x: [1, 6] }}
+                //     //allowPan={true}
+                //     //zoomDomain={this.state.zoomDomain}
+                //     //onZoomDomainChange={this.handleZoom.bind(this)}
+                //   />
+                // }
             >
                 {/* Chart Title */}
-                {title && (
+                {/* {title && (
                     <VictoryLabel
                         text={title.toUpperCase()}
-                        x={width / 2} // ok
-                        y={height / 10} // ok
+                        x={width / 2}
+                        y={height / 10}
                         textAnchor="middle"
-                        style={{ fontSize: TITLE_FONTSIZE, fontWeight: 'bold' }}
+                        padding={{bottom: 10}}
                     />
-                )}
+                )} */}
 
                 {/* Important: first print Y axis, then X axis */}
 
@@ -510,31 +407,31 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                     orientation="left"
                     axisComponent={<ArrowAxis />}
                     label={yLabel}
-                    tickValues={tickValues(yRange, yTickFormat.length)}
+                    tickValues={yTickValues(yRange, yTickFormat.length)}
                     tickFormat={yTickFormat}
                     axisLabelComponent={
                         <VictoryLabel
-                            dx={-TICK_SIZE / 2}
-                            dy={-height / 3 + ARROW_HEIGHT + 2}
+                            dx={-3 * Constants.TICK_SIZE - 2} //-Constants.TICK_SIZE / 2
+                            dy={-height / 3 + Constants.ARROW_HEIGHT - 1} // -height / 3 + Constants.ARROW_HEIGHT + 2
                             angle={0}
                         />
                     } // ok
-                    style={{
-                        // axis: { stroke: AXIS_COLOR, strokeWidth: AXIS_STROKE_WIDTH },
+                    // theme
+                    /* style={{
                         ticks: {
-                            stroke: TICK_COLOR,
-                            size: TICK_SIZE,
-                            strokeWidth: TICK_STROKE_WIDTH,
+                            stroke: Constants.TICK_COLOR,
+                            size: Constants.TICK_SIZE,
+                            strokeWidth: Constants.TICK_STROKE_WIDTH,
                         },
-                        tickLabels: { fontSize: TICK_FONTSIZE },
-                        axisLabel: { fontSize: AXISLABEL_FONTSIZE },
+                        tickLabels: { fontSize: Constants.TICK_FONTSIZE },
+                        axisLabel: { fontSize: Constants.AXISLABEL_FONTSIZE },
                         grid: {
-                            stroke: GRID_COLOR,
-                            size: GRID_SIZE,
-                            strokeWidth: GRID_STROKE_WIDTH,
+                            stroke: Constants.GRID_COLOR,
+                            size: Constants.GRID_SIZE,
+                            strokeWidth: Constants.GRID_STROKE_WIDTH,
                             strokeDasharray: '10, 5',
                         },
-                    }}
+                    }} */
                 />
                 {/* Second Y Axis */}
                 {secondYRange && secondYTickFormat && (
@@ -544,32 +441,34 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                         axisComponent={<ArrowAxis />}
                         label={secondYLabel}
                         //tickValues={tickValues(yRange[1], yTickFormat[1].length)}
-                        tickValues={tickValues(
+                        tickValues={yTickValues(
                             secondYRange,
                             secondYTickFormat.length
                         )}
                         tickFormat={secondYTickFormat}
                         axisLabelComponent={
                             <VictoryLabel
-                                dx={-TICK_SIZE / 2}
+                                dx={3 * Constants.TICK_SIZE - 1}
                                 dy={
-                                    -AXISLABEL_FONTSIZE -
+                                    -Constants.AXISLABEL_FONTSIZE -
                                     height / 3 +
-                                    ARROW_HEIGHT +
-                                    2
-                                }
+                                    Constants.ARROW_HEIGHT -
+                                    1
+                                } // -Constants.AXISLABEL_FONTSIZE - height / 3 + Constants.ARROW_HEIGHT + 2
                                 angle={0}
                             />
                         }
-                        style={{
+                        // theme
+                        style={{ grid: { strokeOpacity: 0 } }}
+                        /* style={{
                             ticks: {
-                                stroke: TICK_COLOR,
-                                size: TICK_SIZE,
-                                strokeWidth: TICK_STROKE_WIDTH,
+                                stroke: Constants.TICK_COLOR,
+                                size: Constants.TICK_SIZE,
+                                strokeWidth: Constants.TICK_STROKE_WIDTH,
                             },
-                            tickLabels: { fontSize: TICK_FONTSIZE },
-                            axisLabel: { fontSize: AXISLABEL_FONTSIZE },
-                        }}
+                            tickLabels: { fontSize: Constants.TICK_FONTSIZE },
+                            axisLabel: { fontSize: Constants.AXISLABEL_FONTSIZE },
+                        }} */
                     />
                 )}
 
@@ -577,19 +476,22 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 <VictoryAxis
                     axisComponent={<ArrowAxis />}
                     label={xLabel}
+                    tickValues={xTickValues(processedData)}
+                    //tickFormat={xTickValues(data)}
                     axisLabelComponent={
-                        <VictoryLabel dx={0.29 * width} dy={-3 * TICK_SIZE} />
-                    } // ok y={-2 * AXISLABEL_FONTSIZE}
-                    style={{
-                        // axis: { stroke: AXIS_COLOR, strokeWidth: AXIS_STROKE_WIDTH },
+                        <VictoryLabel dx={0.3 * width - 2} dy={0} />
+                    } // dx={0.29 * width} dy={-3 * Constants.TICK_SIZE}
+                    // theme
+                    style={{ grid: { strokeOpacity: 0 } }}
+                    /* style={{
                         ticks: {
-                            stroke: TICK_COLOR,
-                            size: TICK_SIZE,
-                            strokeWidth: TICK_STROKE_WIDTH,
+                            stroke: Constants.TICK_COLOR,
+                            size: Constants.TICK_SIZE,
+                            strokeWidth: Constants.TICK_STROKE_WIDTH,
                         },
-                        tickLabels: { fontSize: TICK_FONTSIZE },
-                        axisLabel: { fontSize: AXISLABEL_FONTSIZE },
-                    }}
+                        tickLabels: { fontSize: Constants.TICK_FONTSIZE },
+                        axisLabel: { fontSize: Constants.AXISLABEL_FONTSIZE },
+                    }} */
                 />
 
                 {/* Label for standard Range MUST USE NORMALZED RANGE*/}
@@ -615,7 +517,10 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                     style={{
                                         data: {
                                             fill: color,
-                                            opacity: 0.04,
+                                            opacity:
+                                                Constants
+                                                    .standardRangeLayoutValues
+                                                    .areaOpacity,
                                             visibility: hiddenKeys.includes(key)
                                                 ? 'hidden'
                                                 : 'visible',
@@ -629,17 +534,16 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 {datasets.map(({ key, points, color, childName }, i) => {
                     const scatterPoints = points.filter(
                         p => p.y !== null && p.y !== undefined
-                    ); // filters out points with null or undefined y-value
+                    ); // filters out points with null or undefined y value
                     return (
-                        <VictoryGroup>
-                            {/*data={scatterPoints}*/}
+                        <VictoryGroup data={scatterPoints}>
                             <VictoryLine
                                 name={childName}
                                 data={points}
                                 style={{
                                     data: {
                                         stroke: color,
-                                        strokeWidth: LINE_STROKE_WIDTH,
+                                        //strokeWidth: Constants.LINE_STROKE_WIDTH, //theme
                                         visibility: hiddenKeys.includes(key)
                                             ? 'hidden'
                                             : 'visible',
@@ -670,11 +574,21 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                             <VictoryScatter
                                 name={childName}
                                 data={points}
-                                size={SCATTER_POINT_SIZE} // size={( { active }: { active: any }) => active ? 2 * SCATTER_POINT_SIZE: SCATTER_POINT_SIZE}
-                                symbol={'circle'}
+                                //size={Constants.SCATTER_POINT_SIZE} //theme // size={( { active }: { active: any }) => active ? 2 * SCATTER_POINT_SIZE: SCATTER_POINT_SIZE}
+                                symbol={(d: Datum) =>
+                                    getScatterSymbol(
+                                        key,
+                                        getOriginalY(d.x, data[key])
+                                    )
+                                } // different scatter symbol for negative EQ values, use original data
                                 style={{
                                     data: {
-                                        fill: color,
+                                        fill: (d: Datum) =>
+                                            getScatterColor(
+                                                key,
+                                                color,
+                                                getOriginalY(d.x, data[key])
+                                            ), // different color for negative EQ values, use original data
                                         visibility: hiddenKeys.includes(key)
                                             ? 'hidden'
                                             : 'visible',
@@ -682,13 +596,15 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                 }}
                                 labels={
                                     !hiddenKeys.includes(key) && showTooltip
-                                        ? (d: Datum) => displayTooltip(d, i)
+                                        ? (d: Datum) =>
+                                              displayTooltip(d, data[key])
                                         : null
                                 }
                                 labelComponent={
                                     <VictoryTooltip
                                         dy={-7}
-                                        cornerRadius={5}
+                                        // theme
+                                        /* cornerRadius={5}
                                         flyoutPadding={{
                                             top: 4,
                                             bottom: 4,
@@ -701,9 +617,9 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                         }}
                                         pointerWidth={5}
                                         style={{
-                                            fontSize: LABEL_FONTSIZE,
+                                            fontSize: Constants.LABEL_FONTSIZE,
                                             fill: '#333',
-                                        }}
+                                        }} */
                                     />
                                 }
                                 //dataComponent={<Point />}
@@ -716,24 +632,25 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 <VictoryLegend
                     title={secondYRange ? null : 'Legend'}
                     orientation={secondYRange ? 'horizontal' : 'vertical'}
-                    y={secondYRange ? height / 6 + 2 : height / 6 + 2}
-                    x={secondYRange ? width / 5 + 5 : (5 / 6) * width} // Problem bei sehr langen Legendeneinträgen: werden abgeschnitten
-                    gutter={standardRange ? width / 5 - 6 : width / 2 - 5} // only for horizontal alignment
+                    y={secondYRange ? 16 : height / 6 + 2} // height / 6 + 2 : height / 6 + 2
+                    x={secondYRange ? width / 5 + 15 : (5 / 6) * width} // secondYRange ? width / 5 + 5 : (5 / 6) * width
+                    gutter={20} // theme // only for horizontal alignment standardRang ? width / 5 - 6 : width / 2 - 5
                     name="legend"
                     data={
                         standardRange
-                            ? mergedDataForLegend.map(({ key, color }) => ({
+                            ? mergedDataForLegend.map(({ key, color }, i) => ({
                                   name: key,
                                   symbol: {
                                       fill: hiddenKeys.includes(key)
                                           ? 'lightgray'
                                           : color,
-                                      type:
-                                          key === 'Standard Range'
-                                              ? 'square'
-                                              : 'minus',
+                                      type: getLegendSymbol(key),
                                       opacity:
-                                          key === 'Standard Range' ? 0.12 : 1.0,
+                                          key === 'Standard Range'
+                                              ? Constants
+                                                    .standardRangeLayoutValues
+                                                    .symbolOpacity
+                                              : 1.0,
                                   },
                                   labels: {
                                       fill: hiddenKeys.includes(key)
@@ -742,17 +659,19 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                                       opacity:
                                           key === 'Standard Range' &&
                                           !hiddenKeys.includes(key)
-                                              ? 0.8
+                                              ? Constants
+                                                    .standardRangeLayoutValues
+                                                    .labelOpacity
                                               : 1.0,
                                   },
                               }))
-                            : datasets.map(({ key, color }) => ({
+                            : datasets.map(({ key, color }, i) => ({
                                   name: key,
                                   symbol: {
                                       fill: hiddenKeys.includes(key)
                                           ? 'lightgray'
                                           : color,
-                                      type: 'minus',
+                                      type: getLegendSymbol(key),
                                   },
                                   labels: {
                                       fill: hiddenKeys.includes(key)
@@ -762,16 +681,19 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                               }))
                     }
                     events={legendEvents}
-                    style={{
+
+                    // theme
+                    /* style={{
                         title: {
-                            fontSize: LEGEND_FONTSIZE,
+                            fontSize: Constants.LEGEND_FONTSIZE,
                             fontWeight: 'bold',
                         },
-                        labels: { fontSize: TICK_FONTSIZE },
+                        labels: { fontSize: Constants.TICK_FONTSIZE },
                         padding: { bottom: 8, top: 8, left: 4, right: 4 },
-                    }}
+                    }} */
                 />
             </VictoryChart>
+            {/* </div> */}
         </div>
     );
 };
