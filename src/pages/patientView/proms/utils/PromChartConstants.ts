@@ -42,7 +42,7 @@ export const thresholdColorScale = [
 
 export const eqLayoutValues = {
     color: '#5e35b1', // deep-purple darken-1
-    colorNegative: '#e53935', // red darken-1
+    colorNegative: '#f44336', // red
     symbol: 'triangleUp',
     symbolNegative: 'triangleDown',
 };
@@ -106,3 +106,6 @@ export const XLABEL_YOFFSET = 9;
 // date constants
 export const DUMMY_DATE_IN_THE_PAST = '1800-01-01';
 export const DUMMY_DAT_IN_THE_FUTURE = '3000-01-01';
+
+// chart layout
+export const MAX_NUMBER_OF_QUESTIONNAIRES_VISIBLE = 6;

@@ -98,8 +98,8 @@ const getColors = (
 
 const PieChart: React.FC<PieChartProps> = ({
     data,
-    width = 120,
-    height = 150,
+    width = 125, //125
+    height = 150, // 150
     dataRange,
     thresholds,
 }) => {
@@ -146,15 +146,19 @@ const PieChart: React.FC<PieChartProps> = ({
                     style={{
                         fontSize: Constants.LABEL_TITLE_FONTSIZE,
                         fontWeight: 'bold',
-                        fill: Constants.cBioPortalFontColor,
+                        fill:
+                            data.y !== null && data.y < 0
+                                ? Constants.eqLayoutValues.colorNegative
+                                : Constants.cBioPortalFontColor,
                     }}
                     x={width / 2}
                     y={width / 2}
                     text={
                         data.y !== null
-                            ? data.y.toString().includes('.')
-                                ? data.y.toFixed(2)
-                                : data.y
+                            ? //data.y.toString().includes('.')
+                              // ? data.y//.toFixed(2)
+                              //:
+                              data.y
                             : 'N/A'
                     }
                 />

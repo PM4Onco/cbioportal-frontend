@@ -1,7 +1,7 @@
 /* structures */
 
 import { ClinicalEvent } from 'cbioportal-ts-api-client';
-import { STANDARD_RANGE_KEY, VAS_KEY } from './EQ-5D-5LChartMetadata';
+import { STANDARD_RANGE_KEY, VAS_KEY, DATE_KEY } from './EQ-5D-5LChartMetadata';
 
 // structure for data transformation
 // export interface Eq5d5lDataset {
@@ -350,6 +350,22 @@ export const isAttributeDateValueWellDefined = (
 };
 
 export const compareClinicalEvents = (a: ClinicalEvent, b: ClinicalEvent) => {
+    const dateA = a.attributes.find(attr => attr.key === DATE_KEY)?.value;
+    const dateB = b.attributes.find(attr => attr.key === DATE_KEY)?.value;
+
+    // try to compare according to date
+    if (
+        dateA &&
+        dateB &&
+        isAttributeDateValueWellDefined(dateA) &&
+        isAttributeDateValueWellDefined(dateB)
+    ) {
+        const dateAObj = new Date(dateA);
+        const dateBObj = new Date(dateB);
+        return dateAObj.getTime() - dateBObj.getTime();
+    }
+
+    // if not possible use startNumberOfDaysSinceDiagnosis attribute
     return (
         a.startNumberOfDaysSinceDiagnosis - b.startNumberOfDaysSinceDiagnosis
     );

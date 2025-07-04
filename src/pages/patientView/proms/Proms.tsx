@@ -30,9 +30,9 @@ import {
     chartTitles,
     questionnaireName,
     eq5d5lInfo,
-    currentEqVasDescription,
     scoresDescription,
     healthDetailsDescription,
+    currentScoresDescription,
 } from './utils/EQ-5D-5LChartMetadata';
 import PieChart from './components/PieChartProms';
 
@@ -61,6 +61,8 @@ import {
 } from 'cbioportal-frontend-commons';
 
 import { ClinicalEvent } from 'cbioportal-ts-api-client';
+
+import * as Constants from './utils/PromChartConstants';
 
 // import styles from './promStyles.module.scss';
 import './styles.scss';
@@ -174,7 +176,7 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
     promData.sort(compareClinicalEvents);
     console.log('promData sorted:', promData);
 
-    promData.forEach((event: ClinicalEvent, index: number) => {
+    promData.forEach((event: ClinicalEvent) => {
         let valuesForAverageCalculation: number[] = [];
         datasetKeysForPlots.forEach((key: string) => {
             let value = event.attributes.find((item: any) => item.key === key)
@@ -220,6 +222,9 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
             }
             if (keysForEQVASPlot.includes(key)) {
                 console.log('EQ VAS key:', key);
+                if (value !== undefined) {
+                    value = Number.parseFloat(value).toFixed(3);
+                }
                 addElementToDataset(eqVASDataset, key, [date, Number(value)]);
             } else if (keysForDimensionPlot.includes(key)) {
                 console.log('Dimension key:', key);
@@ -437,6 +442,33 @@ const Proms = ({
     //     ? convertISOToDDMMYYYY(currentScoreDates.toString())
     //     : '';
 
+    const currentScoresDescriptionFormatted: React.FC = () => {
+        return (
+            <div
+                color={Constants.cBioPortalFontColor}
+                dangerouslySetInnerHTML={{ __html: currentScoresDescription }}
+            />
+        );
+    };
+
+    const scoresDescriptionFormatted: React.FC = () => {
+        return (
+            <div
+                color={Constants.cBioPortalFontColor}
+                dangerouslySetInnerHTML={{ __html: scoresDescription }}
+            />
+        );
+    };
+
+    const healthDetailsDescriptionFormatted: React.FC = () => {
+        return (
+            <div
+                color={Constants.cBioPortalFontColor}
+                dangerouslySetInnerHTML={{ __html: healthDetailsDescription }}
+            />
+        );
+    };
+
     return (
         <div className="proms">
             <h2>Patient-Reported Outcome Measures</h2>
@@ -459,7 +491,7 @@ const Proms = ({
                                     {chartTitles[0]}
                                 </div>
                                 <InfoTooltip
-                                    tooltip={currentEqVasDescription}
+                                    tooltip={currentScoresDescriptionFormatted}
                                     href="#"
                                     id="currentEqVas"
                                     placement="right"
@@ -562,7 +594,7 @@ const Proms = ({
                                     {chartTitles[1]}
                                 </div>
                                 <InfoTooltip
-                                    tooltip={scoresDescription}
+                                    tooltip={scoresDescriptionFormatted}
                                     href="#"
                                     id="scores"
                                     placement="left"
@@ -611,7 +643,7 @@ const Proms = ({
                                     {chartTitles[2]}
                                 </div>
                                 <InfoTooltip
-                                    tooltip={healthDetailsDescription}
+                                    tooltip={healthDetailsDescriptionFormatted}
                                     href="#"
                                     id="healthDetails"
                                     placement="left"
@@ -634,6 +666,7 @@ const Proms = ({
                                         yTickFormat={VALUES_ALPHA}
                                         yRange={VALUES_RANGE}
                                         showTooltip={true}
+                                        invertYAxis={true}
                                     />
                                 )}
                             {!dimensionDataset ||

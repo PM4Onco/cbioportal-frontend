@@ -6,7 +6,7 @@
 //$link-color: #3786c2;
 //$link-color-hover: #265d86;
 
-$break-point: 1309px;
+$break-point: 1529px;
 $icon-padding: 10px;
 $container-padding: 10px;
 
@@ -39,8 +39,8 @@ $container-padding: 10px;
 }
 
 .proms .proms-container-large {
-    max-width: 1140px; //1140
-    min-width: 795px; //795
+    max-width: 1205px; //1140
+    min-width: 860px; //795
     margin-right: auto;
     /* overflow-x: scroll;
     overflow-y: hidden;
@@ -168,4 +168,14 @@ $container-padding: 10px;
 .proms .button-margin {
     margin-bottom: 40px;
     margin-top: 40px;
+}
+
+.proms .download-button {
+    margin-bottom: 15px;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.proms .column-download-buttons {
+    padding-top: 30px;
 }

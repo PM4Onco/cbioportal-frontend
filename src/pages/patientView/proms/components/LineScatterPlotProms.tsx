@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import FontAwesome from 'react-fontawesome';
+import { saveSvgAsPng } from 'save-svg-as-png';
 import {
     VictoryChart,
     VictoryLine,
@@ -15,6 +16,7 @@ import {
     VictoryArea,
     VictoryVoronoiContainer,
     VictoryZoomContainer,
+    VictoryBrushContainer,
 } from 'victory';
 
 import {
@@ -25,6 +27,8 @@ import {
     ScatterPlotTooltipHelper,
     truncateWithEllipsis,
     wrapText,
+    DownloadControls,
+    DefaultTooltip,
 } from 'cbioportal-frontend-commons';
 
 import CBIOPORTAL_VICTORY_THEME_PROM from '../utils/cBioPortalThemePROM';
@@ -33,10 +37,13 @@ import {
     INDEX_KEY,
     VAS_KEY,
     STANDARD_RANGE_KEY,
+    questionnaireName,
 } from '../utils/EQ-5D-5LChartMetadata';
 
 import * as Constants from '../utils/PromChartConstants';
 import { parse } from 'date-fns';
+
+import '../styles.scss';
 
 import {
     Datum,
@@ -65,6 +72,7 @@ interface LineScatterPlotProps {
     secondYRange?: [number, number];
     standardRange?: [number, number];
     showTooltip?: boolean;
+    invertYAxis?: boolean;
 }
 
 // custom svg component: axis with arrow at end
@@ -260,7 +268,7 @@ const useProcessedStandardRangeData = (
 
 const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     data,
-    width = 600,
+    width = 580,
     height = 200,
     title,
     xLabel,
@@ -272,9 +280,21 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     secondYRange,
     standardRange,
     showTooltip = true,
+    invertYAxis = false,
 }) => {
     // useState hook to show and hide specific datasets
     const [hiddenKeys, setHiddenKeys] = useState<string[]>([AVERAGE_KEY]); // datasetes named "Average" are initially not shown
+    const [zoomDomain, setZoomDomain] = useState<[number, number]>();
+    // Ref for VictoryZoomContainer
+    const chartRef = useRef<HTMLDivElement>(null);
+    // State for dropdown visibility
+    // const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    // Ref for dropdown to detect outside clicks
+    // const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const exportFileName = title
+        ? `${questionnaireName}_${title.toLowerCase()}`
+        : `${questionnaireName}_chart`;
 
     // TODO: assure yRange has same format as yTickFormat
 
@@ -298,6 +318,52 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
             prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
         );
     };
+
+    // Function to compute zoom domain based on data length
+    const updateZoomDomain = (data: any[]) => {
+        console.log('In updateZoomDomain; data.length', data.length);
+        console.log(data);
+        if (!data || data.length === 0) return;
+
+        // const xValues = data.map(d => d.x);
+        // const minX = Math.min(...xValues);
+        // const maxX = Math.max(...xValues);
+        let maxNumberOfPoints = 0;
+        for (let i = 0; i < data.length; i++) {
+            if (data[i].points.length > maxNumberOfPoints) {
+                maxNumberOfPoints = data[i].points.length;
+            }
+        }
+        // Example logic: Show full range if data length <= 5, else show last 3 data points
+        if (
+            maxNumberOfPoints >
+            Constants.MAX_NUMBER_OF_QUESTIONNAIRES_VISIBLE + 2
+        ) {
+            setZoomDomain([
+                1,
+                Constants.MAX_NUMBER_OF_QUESTIONNAIRES_VISIBLE + 2,
+            ]);
+        } /* else {
+      const lastThreePoints = xValues.slice(-3); // Last 3 points
+      setZoomDomain({ x: [Math.min(...lastThreePoints), maxX] });
+    } */
+    };
+
+    // Update zoom domain when data prop changes
+    useEffect(() => {
+        updateZoomDomain(datasets);
+    }, []);
+
+    // Close dropdown when clicking outside
+    //   useEffect(() => {
+    //     const handleClickOutside = (event: MouseEvent) => {
+    //       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    //         setIsDropdownOpen(false);
+    //       }
+    //     };
+    //     document.addEventListener('mousedown', handleClickOutside);
+    //     return () => document.removeEventListener('mousedown', handleClickOutside);
+    //   }, []);
 
     // events executed when clicked on legend -> toggle visibility of legend entry and line-scatter plot
     const legendEvents = [
@@ -402,6 +468,70 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
             : `${datum.labelName}: ${datum.y}`;
     };
 
+    // Export chart as SVG
+    const exportAsSVG = (filename = 'chart.svg') => {
+        if (!chartRef.current) {
+            alert('Chart not rendered yet!');
+            return;
+        }
+
+        const svgElement = chartRef.current.querySelector('svg');
+        if (!svgElement) {
+            alert('SVG element not found!');
+            return;
+        }
+
+        // Temporarily reset zoom to full range
+        const originalZoom = zoomDomain;
+        setZoomDomain(undefined);
+
+        setTimeout(() => {
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(svgElement);
+            const blob = new Blob([svgString], {
+                type: 'image/svg+xml;charset=utf-8',
+            });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            // Restore original zoom
+            setZoomDomain(originalZoom);
+        }, 10);
+    };
+
+    // Export chart as PNG
+    const exportAsPNG = (filename = 'chart.png') => {
+        if (!chartRef.current) {
+            alert('Chart not rendered yet!');
+            return;
+        }
+
+        const svgElement = chartRef.current.querySelector('svg');
+        if (!svgElement) {
+            alert('SVG element not found!');
+            return;
+        }
+
+        // Temporarily reset zoom to full range
+        const originalZoom = zoomDomain;
+        setZoomDomain(undefined);
+        // Export
+        saveSvgAsPng(svgElement, filename, {
+            scale: 3,
+            backgroundColor: '#fff',
+        });
+        // Wait for re-render
+        setTimeout(() => {
+            // Restore original zoom
+            setZoomDomain(originalZoom);
+        }, 10);
+    };
+
     // helpers for showing standard range
     let standardRangeData: DataSet;
     let standardRangeDataProcessed: DataSet;
@@ -437,15 +567,25 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         mergedDataForLegend = mergeArrays(datasets, standardRangeDataMapped, 2);
     }
 
+    // Toggle dropdown visibility
+    //   const toggleDropdown = () => {
+    //     setIsDropdownOpen((prev) => !prev);
+    //   };
+
     // rendering
     return (
-        <div /*style={{ overflowX: 'auto', overflowY: 'hidden', width: '100%' }}*/
+        <div
+            style={{
+                display: 'flex',
+            }}
+
+            /* style={{ overflowX: 'auto', overflowY: 'hidden', width: '600px' }} */
         >
             {/* <div style={{ width: '1140px' }}> */}
             <VictoryChart
                 width={width}
                 height={height}
-                //containerComponent={<VictoryVoronoiContainer />}
+                // containerComponent={<VictoryVoronoiContainer />}
                 theme={CBIOPORTAL_VICTORY_THEME_PROM}
                 //theme={VictoryTheme.clean}
                 padding={{
@@ -456,16 +596,18 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 }} // padding between chart and other Victory components, e. g. legend, title
                 domainPadding={{ x: 5, y: height / 10 }} // padding between axes and data points (padding around actual plot within the diagram)
                 // events
-                //   containerComponent={
-                //   <VictoryZoomContainer responsive={true}
-                //     zoomDimension="x"
-                //     allowZoom={false}
-                //     zoomDomain={{ x: [1, 6] }}
-                //     //allowPan={true}
-                //     //zoomDomain={this.state.zoomDomain}
-                //     //onZoomDomainChange={this.handleZoom.bind(this)}
-                //   />
-                // }
+                containerComponent={
+                    <VictoryZoomContainer
+                        responsive={true}
+                        zoomDimension="x"
+                        allowZoom={false}
+                        zoomDomain={{ x: zoomDomain }}
+                        allowPan={true}
+                        //zoomDomain={this.state.zoomDomain}
+                        //onZoomDomainChange={this.handleZoom.bind(this)}
+                        containerRef={chartRef}
+                    />
+                }
             >
                 {/* Chart Title */}
                 {/* {title && (
@@ -483,6 +625,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 {/* Y Axis */}
                 <VictoryAxis
                     dependentAxis
+                    invertAxis={invertYAxis}
                     orientation="left"
                     axisComponent={<ArrowAxis />}
                     label={yLabel}
@@ -779,6 +922,73 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 />
             </VictoryChart>
             {/* </div> */}
+
+            <div className="column-download-buttons">
+                {/*   <button onClick={() => exportAsSVG(`${exportFileName}.svg`)}>Export as SVG</button>
+                    <button onClick={() => exportAsPNG(`${exportFileName}.png`)}>Export as PNG</button>
+ */}
+                {/* <DownloadControls
+                        buttons={['PDF', 'PNG', 'SVG']}
+                        filename="timeline"
+                        dontFade={true}
+                        type={'button'}
+                        style={{ marginLeft: 7 }}
+                    /> */}
+
+                {/*  <div ref={dropdownRef}>  */}
+                {/* className */}
+                {/*    <DefaultTooltip
+                            overlay={<span>Export PNG or SVG</span>}
+                            placement='top'
+                        >
+ <button
+          onClick={toggleDropdown}
+          className="btn btn-default btn-xs"
+        >
+          
+                                        <FontAwesome name="cloud-download" />
+                                    
+        </button>
+                        </DefaultTooltip> */}
+
+                {/* {isDropdownOpen && ( */}
+                <React.Fragment>
+                    <div>
+                        {' '}
+                        {/* className */}
+                        <DefaultTooltip
+                            overlay={<span>Download SVG</span>}
+                            placement="right"
+                        >
+                            <button
+                                onClick={() =>
+                                    exportAsSVG(`${exportFileName}.svg`)
+                                }
+                                className="btn btn-default btn-xs download-button"
+                            >
+                                <FontAwesome name="cloud-download" /> SVG
+                            </button>
+                        </DefaultTooltip>
+                    </div>
+                    <div>
+                        <DefaultTooltip
+                            overlay={<span>Download PNG</span>}
+                            placement="right"
+                        >
+                            <button
+                                onClick={() =>
+                                    exportAsPNG(`${exportFileName}.png`)
+                                }
+                                className="btn btn-default btn-xs download-button"
+                            >
+                                <FontAwesome name="cloud-download" /> PNG
+                            </button>
+                        </DefaultTooltip>
+                    </div>
+                </React.Fragment>
+                {/* )} */}
+                {/* </div> */}
+            </div>
         </div>
     );
 };
