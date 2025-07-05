@@ -88,8 +88,8 @@ const InfoTooltip = ({
 
 /**
  * Transforms and pre-processes the data before it will be provided to the chart components
- * @param data ClinicalEvent[] array, the input data for this component
- * @returns
+ * @param data the input data for this component
+ * @returns data for the charts as a tuple of three DataSets
  */
 const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
     // Filter data so that only PROM events are included

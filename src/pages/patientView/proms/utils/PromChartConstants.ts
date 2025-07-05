@@ -54,7 +54,7 @@ export const standardRangeLayoutValues = {
 };
 
 export const referenceValueLayoutValues = {
-    color: '#455a64',
+    color: '#455a64', // blue-grey darken-2
     symbol: 'minus',
 };
 

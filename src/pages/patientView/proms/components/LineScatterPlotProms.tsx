@@ -362,9 +362,9 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     };
 
     /**
-     * Calculates x tick values for a DataSet
+     * Calculates tick values of the x axis for a DataSet
      * @param data DataSet
-     * @returns string array with x tick values
+     * @returns string array with tick values
      */
     const xTickValues = (data: DataSet): Array<string> => {
         const allX: string[] = [];
@@ -394,7 +394,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     /**
      * Defines the text of the tooltip for the scatter points
      * @param datum Datum, the scatter point
-     * @param origData Datum with the original unnormalized y value
+     * @param origData Datum with the original non-normalized y value
      * @returns text for the tooltip
      */
     const displayTooltip = (datum: Datum, origData: Datum[]): string => {
@@ -501,7 +501,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
 
     if (studyReferenceValue && showReferenceLine) {
         referenceValue = studyReferenceValue;
-        // normalize referenceValueif necessary
+        // normalize referenceValue if necessary
         // check heuristically to which range it belongs
         if (
             secondYRange &&
@@ -566,7 +566,7 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
     }[] = [];
 
     if (showStandardRange && standardRange) {
-        // Normalisiere standardRange if necessary
+        // Normalize standardRange if necessary
         // check heuristically to which range it belongs
         if (
             secondYRange &&

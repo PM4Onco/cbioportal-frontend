@@ -3,10 +3,10 @@
  * The data is crucial for correctly displaying and interpreting the results of the EQ-5D-5L questionnaire in the PROMs tab.
  */
 
-// questionnaire identification
+// Questionnaire identification
 export const QUESTIONNAIRE_NAME = 'EQ-5D-5L';
 
-// dataset keys
+// Dataset keys
 export const PROM_KEYS = [
     'MOBILITY',
     'SELF-CARE',
@@ -30,7 +30,7 @@ export const VALUES_ALPHA = ['No', 'Slight', 'Moderate', 'Severe', 'Extreme'];
 export const VALUES_RANGE: [number, number] = [1, 5];
 
 // EQ and VAS
-export const EQ_RANGE: [number, number] = [0, 1];
+export const EQ_RANGE: [number, number] = [0, 1]; // due to normalization, negative values can only be displayed as 0
 export const EQ_VALUES_ALPHA = [
     '(worst health) 0',
     '0.25',
@@ -54,7 +54,7 @@ export const THRESHOLDS_VAS: number[] = []; // e.g., [30, 60], specify between 1
 // for line scatter plot
 export const SHOW_STANDARD_RANGE = false;
 export const SHOW_REFERENCE_LINE = false;
-// for pie plot, EQ and VAS thresholds
+// for pie plot; EQ and VAS thresholds
 export const SHOW_THRESHOLDS = false;
 
 // Texts
