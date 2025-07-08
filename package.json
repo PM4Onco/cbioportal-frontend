@@ -51,7 +51,7 @@
     "testTime": "start_time=`date +%s` && karma start karma.conf.js && echo run time is $(expr `date +%s` - $start_time) s",
     "test": "yarn run testMain",
     "check-env": "echo ",
-    "testMain": "jest $GREP --env=jsdom --runInBand --ci --reporters=default --reporters=jest-junit",
+    "testMain": "cross-env jest $GREP --env=jsdom --runInBand --ci --reporters=default --reporters=jest-junit --passWithNoTests",
     "testPackagesCI": "JEST_JUNIT_UNIQUE_OUTPUT_NAME=true JEST_JUNIT_OUTPUT_DIR=/tmp/junit/module/ JEST_JUNIT_OUTPUT_NAME=unit-test-module yarn run testPackages",
     "testPackages": "lerna run test --ignore=cbioportal-frontend --stream",
     "test:watch": "yarn run testMain:watch",
@@ -69,7 +69,8 @@
     "e2e:local": "export RETRIES=0 && export CBIOPORTAL_URL=http://localhost:8080 && export && export SCREENSHOT_DIRECTORY=/local/screenshots/ && cd end-to-end-test && yarn run test-webdriver-manager-local",
     "e2e:remote": "export RETRIES=0 export CBIOPORTAL_URL=https://www.cbioportal.org && export RETRIES=0 && export SCREENSHOT_DIRECTORY=/remote/screenshots/ &&  rm -r -f end-to-end-test/shared/results && cd end-to-end-test && yarn run test-webdriver-manager-remote",
     "e2e:report": "npx http-server end-to-end-test -o /shared/imageCompare.html -p 8089",
-    "localChromeDriver": "chromedriver"
+    "localChromeDriver": "chromedriver",
+    "clear_jest": "jest --clearCache"
   },
   "engines": {
     "node": "15.2.1",
@@ -346,6 +347,7 @@
     "xml2js": "^0.5.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
     "@types/cheerio": "^0.22.23",
     "@types/react-test-renderer": "^17.0.1",
     "argparse": "^1.0.9",
