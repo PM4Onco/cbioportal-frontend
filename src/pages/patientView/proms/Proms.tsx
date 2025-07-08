@@ -16,6 +16,7 @@ import {
     compareClinicalEvents,
     splitString,
     convertISOToDDMMYYYY,
+    parseDate,
 } from './utils/PromChartHelperFunctions';
 import {
     PROM_KEYS,
@@ -148,19 +149,16 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
             let value = event.attributes.find((item: any) => item.key === key)
                 ?.value;
 
-            let date = event.attributes.find(
-                (item: any) => item.key === DATE_KEY
-            )?.value;
+            let date = event.attributes
+                .find((item: any) => item.key === DATE_KEY)
+                ?.value.trim();
 
             // Check if date is not found or maldefined
-            if (!isAttributeDateValueWellDefined(date)) {
-                return;
-            } else {
+            if (isAttributeDateValueWellDefined(date)) {
                 // format date
-                // date is always non-null
                 const realDate: string = date ? date : '';
-                if (!isNaN(Date.parse(realDate))) {
-                    const parsedDate = new Date(realDate);
+                const parsedDate = parseDate(realDate);
+                if (parsedDate) {
                     const year = parsedDate.getFullYear();
                     const month = parsedDate.getMonth();
                     const day = parsedDate.getDate();
@@ -168,6 +166,8 @@ const useProcessedData = (data: ClinicalEvent[]): DataSet[] => {
                         .toISOString()
                         .split('T')[0];
                 }
+            } else {
+                return;
             }
 
             // Check value (not for AVERAGE since this does not exist yet)

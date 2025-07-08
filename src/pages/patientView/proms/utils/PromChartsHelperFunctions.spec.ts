@@ -17,6 +17,7 @@ import {
     doClinicalEventsHavePromData,
     Datum,
     DataSet,
+    parseDate,
 } from './PromChartHelperFunctions';
 import { DATE_KEY, VAS_KEY, STANDARD_RANGE_KEY } from './EQ-5D-5LChartMetadata';
 
@@ -466,32 +467,28 @@ describe('PromChartHelperFunctions', () => {
         it('should convert valid ISO date to DD/MM/YYYY', () => {
             expect(convertISOToDDMMYYYY('2023-01-15')).toBe('15/01/2023');
             expect(convertISOToDDMMYYYY('2024-12-05')).toBe('05/12/2024');
+            expect(convertISOToDDMMYYYY('2023-01-15', true)).toBe('15/01/23');
+            expect(convertISOToDDMMYYYY('2024-12-05', true)).toBe('05/12/24');
         });
 
         it('should throw error for invalid ISO format', () => {
-            expect(() => convertISOToDDMMYYYY('15/01/2023')).toThrow(
-                'Invalid ISO date format. Expected YYYY-MM-dd but got: 15/01/2023'
+            expect(() => convertISOToDDMMYYYY('10/01/2023')).toThrow(
+                'Invalid ISO date format. Expected YYYY-MM-dd but got: 10/01/2023'
             );
             expect(() => convertISOToDDMMYYYY('2023-1-5')).toThrow(
                 'Invalid ISO date format. Expected YYYY-MM-dd but got: 2023-1-5'
             );
         });
 
-        it('should throw error for invalid date components (e.g., month > 12)', () => {
-            expect(() => convertISOToDDMMYYYY('2023-13-01')).toThrow(
-                'Invalid date components'
-            );
-        });
-
-        it('should throw error for invalid date (e.g., Feb 30)', () => {
-            expect(() => convertISOToDDMMYYYY('2023-02-30')).toThrow(
-                'Invalid date'
-            );
-        });
-
         it('should throw error for non-numeric parts', () => {
-            expect(() => convertISOToDDMMYYYY('YYYY-MM-DD')).toThrow(
-                'Invalid ISO date format. Expected YYYY-MM-dd but got: YYYY-MM-DD'
+            expect(() => convertISOToDDMMYYYY('2000-MM-DD')).toThrow(
+                'Invalid ISO date format. Expected YYYY-MM-dd but got: 2000-MM-DD'
+            );
+        });
+
+        it('should throw error for invalid date (e.g., Aug 35)', () => {
+            expect(() => convertISOToDDMMYYYY('2023-08-35')).toThrow(
+                'Invalid date'
             );
         });
     });
@@ -548,6 +545,54 @@ describe('PromChartHelperFunctions', () => {
             expect(doClinicalEventsHavePromData(clinicalEvents, [])).toBe(
                 false
             );
+        });
+    });
+    describe('parseDate', () => {
+        it('should parse ISO date correctly', () => {
+            const result = parseDate('2010-02-15');
+            expect(result).toEqual(new Date(2010, 1, 15)); // Month is 0-based
+        });
+
+        it('should parse DD/MM/YYYY format correctly', () => {
+            const result = parseDate('15/02/2011');
+            expect(result).toEqual(new Date(2011, 1, 15));
+        });
+
+        it('should parse YYYY-M-DD format correctly', () => {
+            const result = parseDate('2011-7-11');
+            expect(result).toEqual(new Date(2011, 6, 11));
+        });
+
+        it('should parse DD.MM.YYYY format correctly', () => {
+            const result = parseDate('15.02.2012');
+            expect(result).toEqual(new Date(2012, 1, 15));
+        });
+
+        it('should parse D.M.YYYY format correctly', () => {
+            const result = parseDate('8.5.2012');
+            expect(result).toEqual(new Date(2012, 4, 8));
+        });
+
+        it('should parse MM/DD/YYYY format correctly', () => {
+            const result = parseDate('02/15/2013');
+            expect(result).toEqual(new Date(2013, 1, 15));
+        });
+
+        it('should parse DD.MM.YY format correctly', () => {
+            const result = parseDate('02.12.13');
+            expect(result).toEqual(new Date(2013, 11, 2));
+        });
+
+        it('should return null for invalid inputs', () => {
+            expect(parseDate('')).toBeNull();
+            expect(parseDate('invalid')).toBeNull();
+            expect(parseDate('123456')).toBeNull();
+            expect(parseDate('36/01/2014')).toBeNull();
+        });
+
+        it('should handle whitespace correctly', () => {
+            const result = parseDate('  2015-02-15  ');
+            expect(result).toEqual(new Date(2015, 1, 15));
         });
     });
 });

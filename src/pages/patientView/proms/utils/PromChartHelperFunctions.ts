@@ -367,7 +367,7 @@ export const isAttributeDateValueWellDefined = (
         value !== undefined &&
         value !== null &&
         value.length > 0 &&
-        !isNaN(Date.parse(value))
+        parseDate(value) !== null
     );
 };
 
@@ -449,43 +449,36 @@ export const splitString = (text: string, separator: string): string[] => {
 };
 
 /**
- * Converts a date string in ISO format to the format DD/MM/YYYY
+ * Converts a date string in ISO format to the format DD/MM/YYYY or DD/MM/YY
  * @param isoDate string representing an ISO date
- * @returns string representing the date as DD/MM/YYYY
+ * @param showYearAsYY specifies whether the year should be displayed as two (true) or four digits (false)
+ * @returns string representing the date as DD/MM/YYYY or DD/MM/YY, respectively
  */
-export const convertISOToDDMMYYYY = (inputDate: string) => {
+export const convertISOToDDMMYYYY = (
+    inputDate: string,
+    showYearAsYY: boolean = false
+) => {
     // Process input and assure it has valid ISO format
-    inputDate = inputDate.trim();
-    const isoDateAsDate = new Date(inputDate);
-    if (!(isoDateAsDate instanceof Date && !isNaN(isoDateAsDate.getTime()))) {
-        throw new Error('Invalid date');
-    }
-    const isoDate = isoDateAsDate.toISOString().split('T')[0];
+    const trimmedDate = inputDate.trim();
 
     // Check if the input matches the ISO format (YYYY-MM-dd)
     const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!isoRegex.test(isoDate)) {
-        //return isoDate;
+    if (!isoRegex.test(trimmedDate)) {
         throw new Error(
-            'Invalid ISO date format. Expected YYYY-MM-dd but got: ' + isoDate
+            'Invalid ISO date format. Expected YYYY-MM-dd but got: ' +
+                trimmedDate
         );
     }
+    const isoDateAsDate = new Date(trimmedDate);
+    if (!(isoDateAsDate instanceof Date && !isNaN(isoDateAsDate.getTime()))) {
+        throw new Error('Invalid date');
+    }
+
+    // Now everything ok
+    const isoDate = trimmedDate;
 
     // Split the date string into components
     const [year, month, day] = isoDate.split('-').map(Number);
-
-    // Validate date components
-    if (
-        isNaN(year) ||
-        isNaN(month) ||
-        isNaN(day) ||
-        month < 1 ||
-        month > 12 ||
-        day < 1 ||
-        day > 31
-    ) {
-        throw new Error('Invalid date components');
-    }
 
     // Create a Date object to validate the date
     const date = new Date(year, month - 1, day);
@@ -494,13 +487,13 @@ export const convertISOToDDMMYYYY = (inputDate: string) => {
         date.getMonth() + 1 !== month ||
         date.getDate() !== day
     ) {
-        throw new Error('Invalid date');
+        throw new Error('Date calculation was faulty');
     }
 
     // Format the date as dd/MM/YYYY
     return `${day.toString().padStart(2, '0')}/${month
         .toString()
-        .padStart(2, '0')}/${year}`;
+        .padStart(2, '0')}/${year - 2000 * Number(showYearAsYY)}`;
 };
 
 /**
@@ -526,4 +519,154 @@ export const doClinicalEventsHavePromData = (
         }
     }
     return false;
+};
+
+// Methods taken from absolute timeline feature, slightly adapted
+// For tests, see there
+/**
+ * Parses different date formats in a robust way
+ * Supports: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, DD.MM.YYYY, DD.MM.YY ISO strings
+ * @param dateString date string to be parsed
+ * @returns Date object or null if format is invalid
+ */
+export const parseDate = (dateString: string): Date | null => {
+    if (
+        !dateString ||
+        typeof dateString !== 'string' ||
+        dateString.length === 0
+    ) {
+        return null;
+    }
+
+    // Delete white spaces and any information related to hours, minutes etc.
+    const trimmedDate = dateString.trim().split('T')[0];
+
+    // Regex patterns for different formats
+    const patterns = [
+        // YYYY-MM-DD or YYYY/MM/DD
+        {
+            regex: /^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/,
+            format: (match: RegExpMatchArray): [number, number, number] => {
+                const year = parseInt(match[1]);
+                const month = parseInt(match[2]);
+                const day = parseInt(match[3]);
+                return [year, month - 1, day];
+            },
+        },
+        // DD/MM/YYYY or DD.MM.YYYY (German format, for ambiguous cases this is preferred over the American)
+        {
+            regex: /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/,
+            format: (match: RegExpMatchArray): [number, number, number] => {
+                const day = parseInt(match[1]);
+                const month = parseInt(match[2]);
+                const year = parseInt(match[3]);
+                // Simple heuristic to find if American format matches better
+                if (month > 12 && day <= 12) {
+                    return [year, day - 1, month];
+                }
+                return [year, month - 1, day];
+            },
+        },
+        // MM/DD/YYYY (American format)
+        {
+            regex: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
+            format: (match: RegExpMatchArray): [number, number, number] => {
+                const month = parseInt(match[1]);
+                const day = parseInt(match[2]);
+                const year = parseInt(match[3]);
+                // Simple heuristic to find if German format matches better
+                if (month > 12 && day <= 12) {
+                    return [year, day - 1, month];
+                }
+                return [year, month - 1, day];
+            },
+        },
+        // DD.MM.YY (German format)
+        {
+            regex: /^(\d{1,2})[/.](\d{1,2})[/.](\d{2})$/,
+            format: (match: RegExpMatchArray): [number, number, number] => {
+                const day = parseInt(match[1]);
+                const month = parseInt(match[2]);
+                const year = parseInt(match[3]) + 2000;
+                // Simple heuristic to find if American like format matches better
+                if (month > 12 && day <= 12) {
+                    return [year, day - 1, month];
+                }
+                return [year, month - 1, day];
+            },
+        },
+    ];
+
+    // Test against all patterns
+    for (const pattern of patterns) {
+        const match = trimmedDate.match(pattern.regex);
+        if (match) {
+            const dateTuple = pattern.format(match);
+            if (!isValidDayMonthCombination(dateTuple)) {
+                return null;
+            }
+
+            const date = new Date(...dateTuple);
+
+            // Validate result
+            if (!isNaN(date.getTime()) && isValidDate(date)) {
+                return date;
+            }
+        }
+    }
+    return null;
+};
+
+/**
+ * Validates for real date: Does the date object represent a calendar date?
+ * @param [year, month, day] - tuple representing a date
+ * IMPORTANT: year will not be checked here.
+ * IMPORTANT: month must be  greater or equal to 0 and smaller or equal to 11 for a valid date!
+ * @returns true, if the combination of day, month and year is a valid date, otherwise false
+ */
+const isValidDayMonthCombination = ([year, month, day]: [
+    number,
+    number,
+    number
+]): boolean => {
+    // Helper function to check if a year is a leap year
+    const isLeapYear = (year: number): boolean => {
+        return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    };
+    // Validate month
+    if (month < 0 || month > 11) {
+        return false;
+    }
+    // Validate day based on month and year
+    const daysInMonth = [
+        31,
+        isLeapYear(year) ? 29 : 28,
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
+    if (day < 1 || day > daysInMonth[month]) {
+        return false;
+    }
+    return true;
+};
+
+/**
+ * Validation for valid date: Does the date object represent a valid date?
+ * @param date Date object to be validated
+ * @returns true if date is valid, otherwise false
+ */
+const isValidDate = (date: Date): boolean => {
+    return (
+        date instanceof Date &&
+        !isNaN(date.getTime()) &&
+        date.getFullYear() > 1900
+    );
 };

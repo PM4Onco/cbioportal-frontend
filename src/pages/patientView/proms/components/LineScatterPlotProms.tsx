@@ -632,6 +632,9 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
         mergedDataForLegend = datasets;
     }
 
+    // Specify that the short form of the year (YY) should be used for the ticks (instead of YYYY)
+    const displayYearShort = true;
+
     // Rendering
     return (
         <div
@@ -713,7 +716,9 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                     axisComponent={<ArrowAxis />}
                     label={xLabel}
                     tickValues={xTickValues(processedData)}
-                    tickFormat={(t: string) => `${convertISOToDDMMYYYY(t)}`}
+                    tickFormat={(t: string) =>
+                        `${convertISOToDDMMYYYY(t, displayYearShort)}`
+                    }
                     axisLabelComponent={
                         <VictoryLabel
                             dx={0.33 * width - Constants.ARROW_HEIGHT}
