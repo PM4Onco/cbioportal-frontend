@@ -531,6 +531,11 @@ describe('parseFlexibleDate', () => {
         expect(result).toEqual(new Date(2013, 1, 15));
     });
 
+    it('should parse DD.MM.YY format correctly', () => {
+        const result = parseFlexibleDate('02.12.13');
+        expect(result).toEqual(new Date(2013, 11, 2));
+    });
+
     it('should return null for invalid inputs', () => {
         expect(parseFlexibleDate('')).toBeNull();
         expect(parseFlexibleDate('invalid')).toBeNull();

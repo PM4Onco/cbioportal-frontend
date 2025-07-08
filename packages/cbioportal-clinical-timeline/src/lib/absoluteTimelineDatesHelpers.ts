@@ -166,6 +166,20 @@ export const parseFlexibleDate = (dateString: string): Date | null => {
                 return [year, month - 1, day];
             },
         },
+        // DD.MM.YY (German format)
+        {
+            regex: /^(\d{1,2})[/.](\d{1,2})[/.](\d{2})$/,
+            format: (match: RegExpMatchArray): [number, number, number] => {
+                const day = parseInt(match[1]);
+                const month = parseInt(match[2]);
+                const year = parseInt(match[3]) + 2000;
+                // Simple heuristic to find if American like format matches better
+                if (month > 12 && day <= 12) {
+                    return [year, day - 1, month];
+                }
+                return [year, month - 1, day];
+            },
+        },
     ];
 
     // Test against all patterns
