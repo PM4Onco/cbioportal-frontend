@@ -1658,7 +1658,7 @@ export function intervalFiltersDisplayValue(
                     }
                 }}
                 numericOnly={true}
-                allowEmptyValue={true}
+                allowEmptyValue={false}
                 textFieldAppearance={true}
             />
         );
@@ -1688,7 +1688,7 @@ export function intervalFiltersDisplayValue(
                     return true;
                 }}
                 numericOnly={true}
-                allowEmptyValue={true}
+                allowEmptyValue={false}
                 textFieldAppearance={true}
             />
         );
@@ -1710,7 +1710,7 @@ export function intervalFiltersDisplayValue(
                     }
                 }}
                 numericOnly={true}
-                allowEmptyValue={true}
+                allowEmptyValue={false}
                 textFieldAppearance={true}
             />
         );
