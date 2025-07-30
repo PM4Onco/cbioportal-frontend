@@ -1511,7 +1511,10 @@ export class StudyViewPageStore
             chartType === ChartTypeEnum.PATIENT_TREATMENTS_TABLE ||
             chartType === ChartTypeEnum.PATIENT_TREATMENT_GROUPS_TABLE ||
             chartType === ChartTypeEnum.PATIENT_TREATMENT_TARGET_TABLE;
-        const promises = [this.selectedSampleSet, this.sampleTreatments];
+        const promises = [
+            this.selectedSampleSet,
+            this.detailedSampleTreatments,
+        ];
 
         return new Promise<string>(resolve => {
             onMobxPromise<any>(
@@ -10430,6 +10433,23 @@ export class StudyViewPageStore
     // a row represents a list of patients that either have or have not recieved
     // a specific treatment
     public readonly sampleTreatments = remoteData({
+        await: () => [this.shouldDisplaySampleTreatments],
+        invoke: () => {
+            if (this.shouldDisplaySampleTreatments.result) {
+                return internalClient.getAllSampleTreatmentsUsingPOST({
+                    studyViewFilter: this.filters,
+                });
+            }
+            return Promise.resolve([]);
+        },
+    });
+
+    // We need this to create treatments comparison session.
+    // DETAILED projection returns a list of samples in addition to the treatment count.
+    // Samples are needed to properly initiate the comparison session.
+    public readonly detailedSampleTreatments = remoteData<
+        SampleTreatmentRow[] | { treatments: SampleTreatmentRow[] }
+    >({
         await: () => [this.shouldDisplaySampleTreatments],
         invoke: () => {
             if (this.shouldDisplaySampleTreatments.result) {
