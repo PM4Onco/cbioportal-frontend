@@ -79,8 +79,8 @@ export const StudyAgreement: React.FunctionComponent<{}> = function({}) {
                         href="https://cmo.mskcc.org/index.php/msk-impact/"
                         target="_blank"
                     >
-                        MSK-IMPACT Data publication guidelines (intranet/VPN
-                        only)
+                        Memorial Hospital Research Data Governance publication
+                        guidelines
                     </a>
                     .
                 </>,
