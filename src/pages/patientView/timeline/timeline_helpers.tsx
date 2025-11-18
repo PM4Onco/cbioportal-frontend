@@ -9,6 +9,7 @@ import {
     TimelineTrackType,
     ITimelineConfig,
     POINT_COLOR,
+    useDateFormat,
 } from 'cbioportal-clinical-timeline';
 import {
     getEventColor,
@@ -418,6 +419,12 @@ export function buildBaseConfig(
                                 attr => attr.key
                             );
 
+                            // Use Context for date format and day of diagnosis
+                            const {
+                                useAbsoluteDateFormat,
+                                startDate,
+                            } = useDateFormat();
+
                             return (
                                 <table>
                                     <tbody>
@@ -458,7 +465,19 @@ export function buildBaseConfig(
                                         <tr>
                                             <th>START DATE</th>
                                             <td className={'nowrap'}>
-                                                {formatDate(event.start)}
+                                                {formatDate(
+                                                    event.start,
+                                                    startDate,
+                                                    useAbsoluteDateFormat
+                                                )}
+                                                {useAbsoluteDateFormat &&
+                                                    startDate &&
+                                                    ' (' +
+                                                        formatDate(
+                                                            event.start,
+                                                            startDate
+                                                        ) +
+                                                        ')'}
                                             </td>
                                         </tr>
                                     </tbody>
