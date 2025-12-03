@@ -87,6 +87,7 @@ export interface SimilarPatient {
     cancertype: string | undefined;
     mutationData: Mutation[];
     sampleIds: string[];
+    similarityScore?: number;
 }
 
 export interface TaggedMutation extends Mutation {

@@ -27,8 +27,7 @@ import SampleManager from 'pages/patientView/SampleManager';
 import PatientViewPage from 'pages/patientView/PatientViewPage';
 import PatientViewUrlWrapper from 'pages/patientView/PatientViewUrlWrapper';
 import { ClinicalTrialMatchTable } from './clinicalTrialMatch/ClinicalTrialMatchTable';
-import { PatientSimilarityTable } from './patientSimilarity/patientSimilarityTable';
-//import PatientSimilarityTable from './patientSimilarity/patientSimilarityTable';
+import { PatientSimilarityTable } from './patientSimilarity/PatientSimilarityTable';
 import MtbTable from './therapyRecommendation/MtbTable';
 import { CompactVAFPlot } from 'pages/patientView/genomicOverview/CompactVAFPlot';
 import {
@@ -867,7 +866,7 @@ export function tabs(
             <MSKTab
                 key={70}
                 id={PatientViewPageTabs.PatientSimilarity}
-                linkText="Patient similarity"
+                linkText="Patient Similarity"
                 unmountOnHide={false}
             >
                 <PatientSimilarityTable

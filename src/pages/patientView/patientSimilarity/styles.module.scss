@@ -21,3 +21,21 @@
 .MutationSimilarityTable tbody td {
     text-align: right;
 }
+.MutationSimilarityTable {
+}
+.MutationSimilarityTable :global(i),
+.MutationSimilarityTable :global(.oncokb-icon),
+.MutationSimilarityTable :global(svg) {
+    display: inline-block !important;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    vertical-align: text-bottom;
+    pointer-events: auto;
+}
+.MutationSimilarityTable {
+    :global(td),
+    :global(th) {
+        text-align: left !important;
+    }
+}
