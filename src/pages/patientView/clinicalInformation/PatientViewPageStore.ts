@@ -354,6 +354,34 @@ export function filterMutationsByProfiledGene(
  * Transform clinical data from API to clinical data shape as it will be stored
  * in the store
  */
+
+// helper: run async mapper with limited concurrency
+async function mapWithConcurrency<T, R>(
+    items: T[],
+    mapper: (item: T, index: number) => Promise<R>,
+    concurrency: number
+): Promise<R[]> {
+    const result: R[] = [];
+    let currentIndex = 0;
+
+    // worker loop
+    async function worker() {
+        while (true) {
+            const index = currentIndex++;
+            if (index >= items.length) {
+                break;
+            }
+            result[index] = await mapper(items[index], index);
+        }
+    }
+
+    // start workers
+    const workers = Array.from({ length: concurrency }, () => worker());
+    await Promise.all(workers);
+
+    return result;
+}
+
 function transformClinicalInformationToStoreShape(
     patientId: string,
     studyId: string,
@@ -3525,92 +3553,86 @@ export class PatientViewPageStore {
     readonly similarPatients = remoteData<SimilarPatient[]>({
         await: () => [this.allPatients, this.allMolecularProfiles],
         invoke: async () => {
-            const allResults = await Promise.all(
-                this.allPatients.result
-                    .filter(patient => patient.patientId !== this.patientId)
-                    .map(async patient => {
-                        try {
-                            const [
-                                currentClinicalData,
-                                currentSampleObjs,
-                            ] = await Promise.all([
-                                client.getAllClinicalDataOfPatientInStudyUsingGET(
-                                    {
-                                        studyId: patient.studyId,
-                                        patientId: patient.patientId,
-                                    }
-                                ),
-                                fetchSamplesForPatient(
-                                    patient.studyId,
-                                    patient.patientId
-                                ),
-                            ]);
+            // only compare against other patients
+            const patients = this.allPatients.result.filter(
+                patient => patient.patientId !== this.patientId
+            );
 
-                            const clinicalDataDict = clinicalData2Dict(
-                                currentClinicalData
-                            );
-                            const currentSampleIds = currentSampleObjs.map(
-                                el => el.sampleId
-                            );
+            // limit number of patients processed in parallel
+            const CONCURRENCY = 10;
 
-                            const mutationalProfile = findMutationMolecularProfile(
-                                this.allMolecularProfiles,
+            const allResults = await mapWithConcurrency(
+                patients,
+                async patient => {
+                    try {
+                        // fetch patient level data and samples in parallel
+                        const [
+                            currentClinicalData,
+                            currentSampleObjs,
+                        ] = await Promise.all([
+                            client.getAllClinicalDataOfPatientInStudyUsingGET({
+                                studyId: patient.studyId,
+                                patientId: patient.patientId,
+                            }),
+                            fetchSamplesForPatient(
                                 patient.studyId,
-                                AlterationTypeConstants.MUTATION_EXTENDED
-                            );
+                                patient.patientId
+                            ),
+                        ]);
 
-                            const mutationData = await fetchMutationData(
-                                {
-                                    sampleIds: currentSampleIds,
-                                } as MutationFilter,
-                                mutationalProfile?.molecularProfileId
-                            );
-                            //const mutationAnnotations = await fetchVariantAnnotationsIndexedByGenomicLocation(
-                            //    mutationData,
-                            //    [
-                            //        GENOME_NEXUS_ARG_FIELD_ENUM.ANNOTATION_SUMMARY,
-                            //        GENOME_NEXUS_ARG_FIELD_ENUM.HOTSPOTS,
-                            //        GENOME_NEXUS_ARG_FIELD_ENUM.CLINVAR,
-                            //        getServerConfig().show_signal
-                            //            ? GENOME_NEXUS_ARG_FIELD_ENUM.SIGNAL
-                            //            : '',
-                            //    ].filter(f => f),
-                            //    getServerConfig().genomenexus_isoform_override_source,
-                            //    this.genomeNexusClient
-                            //)
+                        const clinicalDataDict = clinicalData2Dict(
+                            currentClinicalData
+                        );
+                        const currentSampleIds = currentSampleObjs.map(
+                            el => el.sampleId
+                        );
 
-                            return {
-                                patient_id: patient.patientId,
-                                study_id: patient.studyId,
-                                age: getOrDefault(
-                                    clinicalDataDict,
-                                    'AGE',
-                                    undefined,
-                                    Number
-                                ),
-                                gender: getOrDefault(
-                                    clinicalDataDict,
-                                    'GENDER'
-                                ),
-                                name: getOrDefault(
-                                    clinicalDataDict,
-                                    'PATIENT_DISPLAY_NAME'
-                                ),
-                                cancertype: getOrDefault(
-                                    clinicalDataDict,
-                                    'DETAILED_CANCER_TYPE'
-                                ),
-                                mutationData,
+                        // get mutation profile for this study
+                        const mutationalProfile = findMutationMolecularProfile(
+                            this.allMolecularProfiles,
+                            patient.studyId,
+                            AlterationTypeConstants.MUTATION_EXTENDED
+                        );
+
+                        // fetch mutation data for all samples
+                        const mutationData = await fetchMutationData(
+                            {
                                 sampleIds: currentSampleIds,
-                            };
-                        } catch (error) {
-                            console.warn(
-                                `⚠️ Fehler bei Patient ${patient.patientId}:`,
-                                error
-                            );
-                            return null;
-                        }
-                    })
+                            } as MutationFilter,
+                            mutationalProfile?.molecularProfileId
+                        );
+
+                        return {
+                            patient_id: patient.patientId,
+                            study_id: patient.studyId,
+                            age: getOrDefault(
+                                clinicalDataDict,
+                                'AGE',
+                                undefined,
+                                Number
+                            ),
+                            gender: getOrDefault(clinicalDataDict, 'GENDER'),
+                            name: getOrDefault(
+                                clinicalDataDict,
+                                'PATIENT_DISPLAY_NAME'
+                            ),
+                            cancertype: getOrDefault(
+                                clinicalDataDict,
+                                'DETAILED_CANCER_TYPE'
+                            ),
+                            mutationData,
+                            sampleIds: currentSampleIds,
+                        } as SimilarPatient;
+                    } catch (error) {
+                        // keep going if one patient fails
+                        console.warn(
+                            `⚠️ Fehler bei Patient ${patient.patientId}:`,
+                            error
+                        );
+                        return null;
+                    }
+                },
+                CONCURRENCY
             );
 
             const result = allResults.filter(Boolean) as SimilarPatient[];
@@ -3619,6 +3641,7 @@ export class PatientViewPageStore {
             console.log(`Patienten geladen: ${result.length}`);
             console.log(result);
             console.groupEnd();
+
             return result;
         },
         default: [],
