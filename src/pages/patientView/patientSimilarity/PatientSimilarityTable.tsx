@@ -91,6 +91,14 @@ export type PatientSimilarityTableState = {
     // State for mutations that are only present in the similar patient
     distinctSimilarMutations: SimilarMutation[];
     showAllDistinct: boolean;
+
+    // weights for similarity score
+    similarityWeightEqual: number;
+    similarityWeightGene: number;
+    similarityWeightPathway: number;
+
+    // ui state for similarity score settings
+    showWeightAdjuster: boolean;
 };
 
 class SimilarPatientTableComponent extends LazyMobXTable<SimilarPatient> {}
@@ -102,6 +110,12 @@ export class PatientSimilarityTable extends React.Component<
     {}
 > {
     private readonly ENTRIES_PER_PAGE = 10;
+
+    // default weights for similarity score
+    private readonly DEFAULT_WEIGHT_EQUAL = 20;
+    private readonly DEFAULT_WEIGHT_GENE = 5;
+    private readonly DEFAULT_WEIGHT_PATHWAY = 1;
+
     private readonly _columns = [
         {
             //name: ColumnKey.STUDY,
@@ -286,14 +300,47 @@ export class PatientSimilarityTable extends React.Component<
 
             distinctSimilarMutations: [],
             showAllDistinct: false,
+
+            similarityWeightEqual: this.DEFAULT_WEIGHT_EQUAL,
+            similarityWeightGene: this.DEFAULT_WEIGHT_GENE,
+            similarityWeightPathway: this.DEFAULT_WEIGHT_PATHWAY,
+            showWeightAdjuster: false,
         };
     }
 
     componentDidMount() {
         // no initial patient --> start in similar patient list
         //this.selectPatient(0);
-        const patientsWithScore = this.state.currentSimilarPatients.map(p => {
-            const score = this.calculateSimilarityScore(p);
+        this.setState({
+            currentSimilarPatients: this.withSimilarityScores(
+                this.state.currentSimilarPatients
+            ),
+        });
+    }
+
+    private withSimilarityScores(
+        patients: SimilarPatient[],
+        weights?: { equal: number; gene: number; pathway: number }
+    ): SimilarPatient[] {
+        const equalWeight =
+            weights?.equal ??
+            this.state.similarityWeightEqual ??
+            this.DEFAULT_WEIGHT_EQUAL;
+        const geneWeight =
+            weights?.gene ??
+            this.state.similarityWeightGene ??
+            this.DEFAULT_WEIGHT_GENE;
+        const pathwayWeight =
+            weights?.pathway ??
+            this.state.similarityWeightPathway ??
+            this.DEFAULT_WEIGHT_PATHWAY;
+
+        const patientsWithScore = patients.map(p => {
+            const score = this.calculateSimilarityScore(p, {
+                equal: equalWeight,
+                gene: geneWeight,
+                pathway: pathwayWeight,
+            });
             return { ...p, similarityScore: score };
         });
 
@@ -301,9 +348,7 @@ export class PatientSimilarityTable extends React.Component<
             (a, b) => (b.similarityScore ?? 0) - (a.similarityScore ?? 0)
         );
 
-        this.setState({
-            currentSimilarPatients: patientsWithScore,
-        });
+        return patientsWithScore;
     }
 
     startSearch() {
@@ -368,13 +413,7 @@ export class PatientSimilarityTable extends React.Component<
             }
         }
 
-        newSimilarPatients = newSimilarPatients.map(p => {
-            const score = this.calculateSimilarityScore(p);
-            return { ...p, similarityScore: score };
-        });
-        newSimilarPatients.sort(
-            (a, b) => (b.similarityScore ?? 0) - (a.similarityScore ?? 0)
-        );
+        newSimilarPatients = this.withSimilarityScores(newSimilarPatients);
 
         this.setState({
             currentSimilarPatients: newSimilarPatients,
@@ -427,7 +466,10 @@ export class PatientSimilarityTable extends React.Component<
         return false;
     }
 
-    private calculateSimilarityScore(similarPatient: SimilarPatient): number {
+    private calculateSimilarityScore(
+        similarPatient: SimilarPatient,
+        weights?: { equal: number; gene: number; pathway: number }
+    ): number {
         const referenceMutations = this.props.store.mergedMutationData;
         const targetMutations = mergeMutations(similarPatient.mutationData);
 
@@ -442,19 +484,32 @@ export class PatientSimilarityTable extends React.Component<
             'gene',
         ]);
 
+        const equalWeight =
+            weights?.equal ??
+            this.state.similarityWeightEqual ??
+            this.DEFAULT_WEIGHT_EQUAL;
+        const geneWeight =
+            weights?.gene ??
+            this.state.similarityWeightGene ??
+            this.DEFAULT_WEIGHT_GENE;
+        const pathwayWeight =
+            weights?.pathway ??
+            this.state.similarityWeightPathway ??
+            this.DEFAULT_WEIGHT_PATHWAY;
+
         let score = 0;
 
         for (const mutation of filtered) {
             switch (mutation.similarityTag) {
                 case 'equal':
-                    score += 20;
+                    score += equalWeight;
                     break;
                 case 'gene':
-                    score += 5;
+                    score += geneWeight;
                     break;
                 case 'pathway':
                     if (this.hasCleanPathwayOverlap(mutation)) {
-                        score += 1;
+                        score += pathwayWeight;
                     }
                     break;
                 default:
@@ -653,6 +708,7 @@ export class PatientSimilarityTable extends React.Component<
             return (
                 <div>
                     <div style={{ padding: '3px' }}>
+                        {/* obere Zeile: Mutations links, Filter+Adjust rechts */}
                         <div
                             style={{
                                 display: 'flex',
@@ -661,138 +717,464 @@ export class PatientSimilarityTable extends React.Component<
                                 marginBottom: '20px',
                             }}
                         >
-                            <div>
+                            {/* Mutations-Select */}
+                            <div style={{ minWidth: '420px' }}>
                                 <b>Mutations:</b>
-                                <MutationSelect
-                                    mutations={
-                                        this.props.store.mutationData.result
-                                    }
-                                    cna={
-                                        this.props.store.discreteCNAData.result
-                                    }
-                                    data={[]}
-                                    indexedVariantAnnotations={
-                                        this.props.store
-                                            .indexedVariantAnnotations.result
-                                    }
-                                    indexedMyVariantInfoAnnotations={
-                                        this.props.store
-                                            .indexedMyVariantInfoAnnotations
-                                            .result
-                                    }
-                                    onChange={(
-                                        selectedOptions: IGeneticAlteration[]
-                                    ) => {
-                                        this.setState(
-                                            prevState => {
-                                                const wasEmpty =
-                                                    prevState.selectedMutations
-                                                        .length === 0;
-                                                const newThreshold = wasEmpty
-                                                    ? 0
-                                                    : Math.min(
-                                                          prevState.coverageThreshold,
-                                                          selectedOptions.length
-                                                      );
-                                                return {
-                                                    selectedMutations: selectedOptions,
-                                                    coverageThreshold: newThreshold,
-                                                };
-                                            },
-                                            () => {
-                                                this.startSearch();
-                                            }
-                                        );
-                                    }}
-                                    sampleManager={this.props.sampleManager}
-                                />
+                                <div style={{ width: '420px' }}>
+                                    <MutationSelect
+                                        mutations={
+                                            this.props.store.mutationData.result
+                                        }
+                                        cna={
+                                            this.props.store.discreteCNAData
+                                                .result
+                                        }
+                                        data={[]}
+                                        indexedVariantAnnotations={
+                                            this.props.store
+                                                .indexedVariantAnnotations
+                                                .result
+                                        }
+                                        indexedMyVariantInfoAnnotations={
+                                            this.props.store
+                                                .indexedMyVariantInfoAnnotations
+                                                .result
+                                        }
+                                        onChange={(
+                                            selectedOptions: IGeneticAlteration[]
+                                        ) => {
+                                            this.setState(
+                                                prevState => {
+                                                    const wasEmpty =
+                                                        prevState
+                                                            .selectedMutations
+                                                            .length === 0;
+                                                    const newThreshold = wasEmpty
+                                                        ? 0
+                                                        : Math.min(
+                                                              prevState.coverageThreshold,
+                                                              selectedOptions.length
+                                                          );
+                                                    return {
+                                                        selectedMutations: selectedOptions,
+                                                        coverageThreshold: newThreshold,
+                                                    };
+                                                },
+                                                () => {
+                                                    this.startSearch();
+                                                }
+                                            );
+                                        }}
+                                        sampleManager={this.props.sampleManager}
+                                    />
+                                </div>
                             </div>
+
                             <div
                                 style={{
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: '8px',
+                                    gap: '10px',
+                                    minWidth: '360px',
                                 }}
                             >
-                                <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            this.state.filterSameCancerType
-                                        }
-                                        onChange={e =>
-                                            this.setState(
-                                                {
-                                                    filterSameCancerType:
-                                                        e.target.checked,
-                                                },
-                                                () => this.startSearch()
-                                            )
-                                        }
-                                        style={{ marginRight: '8px' }}
-                                    />
-                                    Limit to same Cancer Type
-                                </label>
-
-                                <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            this.state.limitToProteinChange
-                                        }
-                                        onChange={e =>
-                                            this.setState(
-                                                {
-                                                    limitToProteinChange:
-                                                        e.target.checked,
-                                                },
-                                                () => this.startSearch()
-                                            )
-                                        }
-                                        style={{ marginRight: '8px' }}
-                                    />
-                                    Limit to same Protein Changes
-                                </label>
-                            </div>
-
-                            {this.state.selectedMutations.length > 0 && (
+                                {/* obere Zeile: Checkboxen links, Adjust + Menü rechts daneben */}
                                 <div
                                     style={{
                                         display: 'flex',
-                                        flexDirection: 'column',
-                                        marginTop: '5px',
+                                        alignItems: 'flex-start',
+                                        gap: '16px',
                                     }}
                                 >
-                                    <label>
-                                        <b>Coverage Rate ≥</b>{' '}
-                                        {this.state.coverageThreshold}
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max={
-                                            this.state.selectedMutations.length
-                                        }
-                                        value={this.state.coverageThreshold}
-                                        onChange={e =>
-                                            this.setState(
-                                                {
-                                                    coverageThreshold: Number(
-                                                        e.target.value
-                                                    ),
-                                                },
-                                                () => this.startSearch()
-                                            )
-                                        }
+                                    {/* Checkboxen links */}
+                                    <div
                                         style={{
-                                            width: '150px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '8px',
+                                        }}
+                                    >
+                                        <label>
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    this.state
+                                                        .filterSameCancerType
+                                                }
+                                                onChange={e =>
+                                                    this.setState(
+                                                        {
+                                                            filterSameCancerType:
+                                                                e.target
+                                                                    .checked,
+                                                        },
+                                                        () => this.startSearch()
+                                                    )
+                                                }
+                                                style={{ marginRight: '8px' }}
+                                            />
+                                            Limit to same Cancer Type
+                                        </label>
+
+                                        {this.state.selectedMutations.length >
+                                            0 && (
+                                            <label>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        this.state
+                                                            .limitToProteinChange
+                                                    }
+                                                    onChange={e =>
+                                                        this.setState(
+                                                            {
+                                                                limitToProteinChange:
+                                                                    e.target
+                                                                        .checked,
+                                                            },
+                                                            () =>
+                                                                this.startSearch()
+                                                        )
+                                                    }
+                                                    style={{
+                                                        marginRight: '8px',
+                                                    }}
+                                                />
+                                                Limit to same Protein Changes
+                                            </label>
+                                        )}
+                                    </div>
+
+                                    {/* rechts: Adjust-Button mit Menü daneben */}
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '8px',
+                                            flexWrap: 'nowrap',
+                                        }}
+                                    >
+                                        {/* kleine Box nur um den Adjust-Button */}
+                                        <div
+                                            style={{
+                                                border: '1px solid #bbb',
+                                                borderRadius: '4px',
+                                                padding: '6px 10px',
+                                                backgroundColor: '#ffffff',
+                                                cursor: 'pointer',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            <Button
+                                                bsStyle="link"
+                                                style={{
+                                                    padding: 0,
+                                                    textDecoration: 'none',
+                                                }}
+                                                onClick={() =>
+                                                    this.setState(
+                                                        prevState => ({
+                                                            showWeightAdjuster: !prevState.showWeightAdjuster,
+                                                        })
+                                                    )
+                                                }
+                                            >
+                                                Adjust Similarity Score
+                                                Weighting
+                                            </Button>
+                                        </div>
+
+                                        {/* Menü direkt rechts daneben */}
+                                        <Collapse
+                                            in={this.state.showWeightAdjuster}
+                                        >
+                                            <div
+                                                style={{
+                                                    border: '1px solid #ddd',
+                                                    borderRadius: '4px',
+                                                    padding: '8px 10px',
+                                                    backgroundColor: '#fdfdfd',
+                                                    maxWidth: '520px',
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        display: 'flex',
+                                                        gap: '12px',
+                                                        marginBottom: '8px',
+                                                        flexWrap: 'wrap',
+                                                    }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            flex: 1,
+                                                            minWidth: '140px',
+                                                        }}
+                                                    >
+                                                        <label>
+                                                            Equal mutation
+                                                            weight
+                                                        </label>
+                                                        <div
+                                                            style={{
+                                                                fontSize:
+                                                                    '11px',
+                                                                color: '#666',
+                                                            }}
+                                                        >
+                                                            Exact identical
+                                                            mutations
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            step={1}
+                                                            value={
+                                                                this.state
+                                                                    .similarityWeightEqual
+                                                            }
+                                                            onChange={e => {
+                                                                const raw =
+                                                                    e.target
+                                                                        .value;
+                                                                // führende Nullen entfernen, aber "0" selbst erlauben
+                                                                const cleaned = raw.replace(
+                                                                    /^0+(?=\d)/,
+                                                                    ''
+                                                                );
+                                                                this.setState({
+                                                                    similarityWeightEqual:
+                                                                        cleaned ===
+                                                                        ''
+                                                                            ? 0
+                                                                            : Number(
+                                                                                  cleaned
+                                                                              ),
+                                                                });
+                                                            }}
+                                                            className="form-control"
+                                                        />
+                                                    </div>
+
+                                                    <div
+                                                        style={{
+                                                            flex: 1,
+                                                            minWidth: '140px',
+                                                        }}
+                                                    >
+                                                        <label>
+                                                            Gene match weight
+                                                        </label>
+                                                        <div
+                                                            style={{
+                                                                fontSize:
+                                                                    '11px',
+                                                                color: '#666',
+                                                            }}
+                                                        >
+                                                            Same gene, different
+                                                            mutation
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            step={1}
+                                                            value={
+                                                                this.state
+                                                                    .similarityWeightGene
+                                                            }
+                                                            onChange={e => {
+                                                                const raw =
+                                                                    e.target
+                                                                        .value;
+                                                                const cleaned = raw.replace(
+                                                                    /^0+(?=\d)/,
+                                                                    ''
+                                                                );
+                                                                this.setState({
+                                                                    similarityWeightGene:
+                                                                        cleaned ===
+                                                                        ''
+                                                                            ? 0
+                                                                            : Number(
+                                                                                  cleaned
+                                                                              ),
+                                                                });
+                                                            }}
+                                                            className="form-control"
+                                                        />
+                                                    </div>
+
+                                                    <div
+                                                        style={{
+                                                            flex: 1,
+                                                            minWidth: '140px',
+                                                        }}
+                                                    >
+                                                        <label>
+                                                            Pathway match weight
+                                                        </label>
+                                                        <div
+                                                            style={{
+                                                                fontSize:
+                                                                    '11px',
+                                                                color: '#666',
+                                                            }}
+                                                        >
+                                                            Overlap on cleaned
+                                                            pathways
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            step={1}
+                                                            value={
+                                                                this.state
+                                                                    .similarityWeightPathway
+                                                            }
+                                                            onChange={e => {
+                                                                const raw =
+                                                                    e.target
+                                                                        .value;
+                                                                const cleaned = raw.replace(
+                                                                    /^0+(?=\d)/,
+                                                                    ''
+                                                                );
+                                                                this.setState({
+                                                                    similarityWeightPathway:
+                                                                        cleaned ===
+                                                                        ''
+                                                                            ? 0
+                                                                            : Number(
+                                                                                  cleaned
+                                                                              ),
+                                                                });
+                                                            }}
+                                                            className="form-control"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div
+                                                    style={{
+                                                        display: 'flex',
+                                                        gap: '8px',
+                                                        marginTop: '5px',
+                                                        flexWrap: 'wrap',
+                                                    }}
+                                                >
+                                                    <Button
+                                                        bsStyle="primary"
+                                                        onClick={() => {
+                                                            const weights = {
+                                                                equal: this
+                                                                    .state
+                                                                    .similarityWeightEqual,
+                                                                gene: this.state
+                                                                    .similarityWeightGene,
+                                                                pathway: this
+                                                                    .state
+                                                                    .similarityWeightPathway,
+                                                            };
+                                                            this.setState(
+                                                                prevState => ({
+                                                                    currentSimilarPatients: this.withSimilarityScores(
+                                                                        prevState.currentSimilarPatients,
+                                                                        weights
+                                                                    ),
+                                                                    showWeightAdjuster: false,
+                                                                })
+                                                            );
+                                                        }}
+                                                    >
+                                                        Submit
+                                                    </Button>
+                                                    <Button
+                                                        bsStyle="default"
+                                                        onClick={() => {
+                                                            const defaultWeights = {
+                                                                equal: this
+                                                                    .DEFAULT_WEIGHT_EQUAL,
+                                                                gene: this
+                                                                    .DEFAULT_WEIGHT_GENE,
+                                                                pathway: this
+                                                                    .DEFAULT_WEIGHT_PATHWAY,
+                                                            };
+                                                            this.setState(
+                                                                prevState => ({
+                                                                    similarityWeightEqual:
+                                                                        defaultWeights.equal,
+                                                                    similarityWeightGene:
+                                                                        defaultWeights.gene,
+                                                                    similarityWeightPathway:
+                                                                        defaultWeights.pathway,
+                                                                    currentSimilarPatients: this.withSimilarityScores(
+                                                                        prevState.currentSimilarPatients,
+                                                                        defaultWeights
+                                                                    ),
+                                                                    showWeightAdjuster: false,
+                                                                })
+                                                            );
+                                                        }}
+                                                    >
+                                                        Reset to default
+                                                    </Button>
+                                                    <Button
+                                                        bsStyle="link"
+                                                        onClick={() =>
+                                                            this.setState({
+                                                                showWeightAdjuster: false,
+                                                            })
+                                                        }
+                                                    >
+                                                        Back
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Collapse>
+                                    </div>
+                                </div>
+
+                                {/* Coverage-Slider bleibt darunter */}
+                                {this.state.selectedMutations.length > 0 && (
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
                                             marginTop: '5px',
                                         }}
-                                    />
-                                </div>
-                            )}
+                                    >
+                                        <label>
+                                            <b>Coverage Rate ≥</b>{' '}
+                                            {this.state.coverageThreshold}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max={
+                                                this.state.selectedMutations
+                                                    .length
+                                            }
+                                            value={this.state.coverageThreshold}
+                                            onChange={e =>
+                                                this.setState(
+                                                    {
+                                                        coverageThreshold: Number(
+                                                            e.target.value
+                                                        ),
+                                                    },
+                                                    () => this.startSearch()
+                                                )
+                                            }
+                                            style={{
+                                                width: '150px',
+                                                marginTop: '5px',
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-
                         <div>
                             <SimilarPatientTableComponent
                                 showCopyDownload={false}
@@ -952,6 +1334,11 @@ export class PatientSimilarityTable extends React.Component<
                         selectedPatientName={
                             this.state.selectedSimilarPatient?.name ?? '—'
                         }
+                        showCountHeader={false}
+                        paginationProps={{
+                            textBeforeButtons: '',
+                            textBetweenButtons: '',
+                        }}
                     />
 
                     <div style={{ height: '2.5cm' }} />
@@ -1072,6 +1459,11 @@ export class PatientSimilarityTable extends React.Component<
                                                 )?.value ?? 'Reference Patient'
                                             }
                                             selectedPatientName={p.name ?? '—'}
+                                            showCountHeader={false}
+                                            paginationProps={{
+                                                textBeforeButtons: '',
+                                                textBetweenButtons: '',
+                                            }}
                                         />
                                     </div>
 
