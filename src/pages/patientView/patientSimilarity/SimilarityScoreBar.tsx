@@ -89,56 +89,13 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 marginBottom: '10px',
+                marginTop: '18px',
                 width: '100%',
             }}
         >
-            {/* Left column: vertically aligned slider + numeric input */}
             <div
-                style={{
-                    position: 'relative',
-                    width: '80px',
-                    height: '100px',
-                    marginRight: '10px',
-                }}
+                style={{ width: '85%', height: '100px', position: 'relative' }}
             >
-                {axisY !== null && (
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: axisY - 10, // vertically align slider with chart axis
-                            left: '10px',
-                        }}
-                    >
-                        <input
-                            type="range"
-                            min={0}
-                            max={rawMaxScore}
-                            value={minSimilarity}
-                            step={1}
-                            onChange={e =>
-                                setMinSimilarity(parseInt(e.target.value))
-                            }
-                            style={{ width: '80px' }}
-                        />
-                        <div style={{ marginTop: '8px', textAlign: 'center' }}>
-                            <input
-                                type="number"
-                                min={0}
-                                max={rawMaxScore}
-                                step={1}
-                                value={minSimilarity}
-                                onChange={e =>
-                                    setMinSimilarity(parseInt(e.target.value))
-                                }
-                                style={{ width: '50px' }}
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Right column: similarity chart */}
-            <div style={{ width: '85%', height: '100px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <ScatterChart
                         margin={{ top: 30, bottom: 40, left: 20, right: 10 }}
@@ -154,8 +111,8 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                             tickLine={{ stroke: '#000', strokeWidth: 3 }}
                             tickSize={15}
                         />
-                        {/* Y axis is hidden; constant y=0 line is used*/}
                         <YAxis type="number" domain={[0, 10]} hide />
+
                         <Tooltip
                             content={({
                                 active,
@@ -180,6 +137,7 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                             }}
                             cursor={false}
                         />
+
                         <Customized
                             component={(props: any) => {
                                 const xAxisMap = props.xAxisMap;
@@ -202,7 +160,6 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
 
                                 return (
                                     <g>
-                                        {/* Right bound marker of the score range */}
                                         <rect
                                             x={maxX - rectWidth / 2}
                                             y={yPos - rectHeight / 2}
@@ -212,7 +169,6 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                                             ry={cornerRadius}
                                             fill="black"
                                         />
-                                        {/* Left bound marker of the score range */}
                                         <rect
                                             x={minX - rectWidth / 2}
                                             y={yPos - rectHeight / 2}
@@ -223,7 +179,6 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                                             fill="black"
                                         />
 
-                                        {/* Interactive patient markers */}
                                         {displayData.map(point => {
                                             const cx = xAxis.scale(point.x);
                                             const tooltipOffsetY = -40;
@@ -255,7 +210,6 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                                                         pointerEvents: 'all',
                                                     }}
                                                 >
-                                                    {/* Outer circle: marks patient position; red if selected */}
                                                     <circle
                                                         cx={cx}
                                                         cy={yPos}
@@ -266,7 +220,6 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                                                                 : 'black'
                                                         }
                                                     />
-                                                    {/* Inner circle: visual contrast*/}
                                                     <circle
                                                         cx={cx}
                                                         cy={yPos}
@@ -283,7 +236,24 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                     </ScatterChart>
                 </ResponsiveContainer>
 
-                {/* Fixed-position tooltip showing detailed patient info */}
+                {axisY !== null && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: axisY - 6,
+                            left: '8px',
+                            color: '#000',
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                            pointerEvents: 'none',
+                            zIndex: 2,
+                            transform: 'translateY(-100%) translateY(-8px)',
+                        }}
+                    >
+                        Similarity Score Landscape
+                    </div>
+                )}
 
                 {hoveredPatient && (
                     <div
@@ -312,6 +282,76 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                             {hoveredPatient.similarityScore}
                         </div>
                     </div>
+                )}
+            </div>
+            <div
+                style={{
+                    position: 'relative',
+                    width: '80px',
+                    height: '100px',
+                    marginLeft: '10px',
+                }}
+            >
+                {axisY !== null && (
+                    <>
+                        <div
+                            style={{
+                                position: 'absolute',
+                                top: axisY - 6,
+                                left: '0px',
+                                color: '#000',
+                                fontSize: '16px',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                pointerEvents: 'none',
+                                zIndex: 2,
+                                transform: 'translateY(-100%) translateY(-8px)',
+                            }}
+                        >
+                            Zoom
+                        </div>
+                        <div
+                            style={{
+                                position: 'absolute',
+                                top: axisY - 6,
+                                left: '0px',
+                                width: '80px',
+                            }}
+                        >
+                            <input
+                                type="range"
+                                min={0}
+                                max={rawMaxScore}
+                                value={minSimilarity}
+                                step={1}
+                                onChange={e =>
+                                    setMinSimilarity(parseInt(e.target.value))
+                                }
+                                style={{ width: '80px' }}
+                            />
+
+                            <div
+                                style={{
+                                    marginTop: '8px',
+                                    textAlign: 'center',
+                                }}
+                            >
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={rawMaxScore}
+                                    step={1}
+                                    value={minSimilarity}
+                                    onChange={e =>
+                                        setMinSimilarity(
+                                            parseInt(e.target.value)
+                                        )
+                                    }
+                                    style={{ width: '50px' }}
+                                />
+                            </div>
+                        </div>
+                    </>
                 )}
             </div>
         </div>

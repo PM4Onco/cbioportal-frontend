@@ -44,7 +44,14 @@ import SimilarityScoreBar from './SimilarityScoreBar';
 import { fetchMtbsUsingGET } from 'shared/api/TherapyRecommendationAPI';
 import MtbTherapyRecommendationTable from '../therapyRecommendation/MtbTherapyRecommendationTable';
 import WindowStore from 'shared/components/window/WindowStore';
-// Extract OncoTree tumor code from labels like "Pancreatoblastoma (PB)".
+import MtbTherapyRecommendationTableNoAddButtons from './MtbTherapyRecommendationTableNoAddButtons';
+
+const sectionTitleStyle = {
+    color: '#000',
+    fontSize: '16px',
+    fontWeight: 600,
+    margin: '12px 0 8px',
+};
 
 function toOncoTreeCode(v?: string): string | undefined {
     if (!v) return undefined;
@@ -1269,6 +1276,10 @@ export class PatientSimilarityTable extends React.Component<
                             </Button>
                         </div>
                     </div>
+                    <div style={sectionTitleStyle}>
+                        Shared Mutations between Reference Patient and Selected
+                        Similar Patient
+                    </div>
 
                     <PatientSimilarityMutationTable
                         data={this.state.similarMutations}
@@ -1334,6 +1345,12 @@ export class PatientSimilarityTable extends React.Component<
                         selectedPatientName={
                             this.state.selectedSimilarPatient?.name ?? '—'
                         }
+                        selectedPatientId={
+                            this.state.selectedSimilarPatient?.patient_id ?? ''
+                        }
+                        selectedPatientStudyId={
+                            this.state.selectedSimilarPatient?.study_id ?? ''
+                        }
                         showCountHeader={false}
                         paginationProps={{
                             textBeforeButtons: '',
@@ -1357,15 +1374,15 @@ export class PatientSimilarityTable extends React.Component<
                                 <div
                                     style={{
                                         display: 'flex',
-                                        gap: 20,
+                                        gap: '40px',
                                         marginTop: 20,
                                     }}
                                 >
-                                    <div style={{ flex: 1 }}>
-                                        <h3>
-                                            Distinct mutations in selected
-                                            patient
-                                        </h3>
+                                    <div style={{ flex: 0.5, minWidth: 0 }}>
+                                        <div style={sectionTitleStyle}>
+                                            Distinct Mutations in Selected
+                                            Patient
+                                        </div>
                                         <PatientSimilarityMutationTable
                                             data={
                                                 this.state
@@ -1459,6 +1476,16 @@ export class PatientSimilarityTable extends React.Component<
                                                 )?.value ?? 'Reference Patient'
                                             }
                                             selectedPatientName={p.name ?? '—'}
+                                            selectedPatientId={
+                                                this.state
+                                                    .selectedSimilarPatient
+                                                    ?.patient_id ?? ''
+                                            }
+                                            selectedPatientStudyId={
+                                                this.state
+                                                    .selectedSimilarPatient
+                                                    ?.study_id ?? ''
+                                            }
                                             showCountHeader={false}
                                             paginationProps={{
                                                 textBeforeButtons: '',
@@ -1466,10 +1493,14 @@ export class PatientSimilarityTable extends React.Component<
                                             }}
                                         />
                                     </div>
-
-                                    <div style={{ flex: 1 }}>
-                                        <h3>Therapy Recommendations (MTB)</h3>
-                                        <MtbTherapyRecommendationTable
+                                    <div
+                                        className="followUp-table"
+                                        style={{ flex: 0.5, minWidth: 0 }}
+                                    >
+                                        <div style={sectionTitleStyle}>
+                                            Therapy Recommendations (MTB)
+                                        </div>
+                                        <MtbTherapyRecommendationTableNoAddButtons
                                             patientId={p.patient_id}
                                             mutations={p.mutationData}
                                             indexedVariantAnnotations={

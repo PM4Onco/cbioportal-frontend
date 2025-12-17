@@ -90,6 +90,9 @@ import {
     fetchOncoKbData,
     ONCOKB_DEFAULT,
 } from 'shared/lib/StoreUtils';
+
+import { getPatientViewUrl } from 'shared/api/urls';
+
 declare const require: any;
 
 enum OncokbTabs {
@@ -98,6 +101,24 @@ enum OncokbTabs {
     DIAGNOSTIC_LEVELS = 'Diagnostic Levels',
     PROGNOSTIC_LEVELS = 'Prognostic Levels',
 }
+const getSelectedPatientGroup = (props: IPatientSimilarityMutationTableProps) =>
+    props.selectedPatientId && props.selectedPatientStudyId ? (
+        <>
+            Selected Similar Patient{' '}
+            <a
+                href={getPatientViewUrl(
+                    props.selectedPatientStudyId,
+                    props.selectedPatientId
+                )}
+                target="_blank"
+                rel="noreferrer"
+            >
+                {props.selectedPatientName}
+            </a>
+        </>
+    ) : (
+        `Selected Similar Patient ${props.selectedPatientName}`
+    );
 
 const oncokbData: Record<string, LegendDescription[]> = {
     [OncokbTabs.ONCOGENIC]: ([
@@ -205,6 +226,8 @@ export interface IPatientSimilarityMutationTableProps
     genePanelIdToEntrezGeneIds2: { [genePanelId: string]: number[] };
     sampleIds2?: string[];
     selectedPatientName: string;
+    selectedPatientId?: string;
+    selectedPatientStudyId?: string;
 
     // annotations
     hotspotData?: RemoteData<IHotspotIndex | undefined>;
@@ -1067,6 +1090,8 @@ export class PatientSimilarityMutationTable extends React.Component<
     }
 
     protected generateColumns() {
+        const referencePatientGroup = `Reference Patient ${this.props.referencePatientName}`;
+        const selectedPatientGroup = getSelectedPatientGroup(this.props) as any;
         this._columns[SimilarMutationColumnType.ANNOTATION] = {
             name: SimilarMutationColumnType.ANNOTATION,
             headerRender: () => this.getAnnotationHeader(),
@@ -1076,7 +1101,7 @@ export class PatientSimilarityMutationTable extends React.Component<
                     | undefined;
                 return this.renderOncoKbLibIcon(muts, 'REF', rowIndex);
             },
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
             visible: true,
             align: 'left',
         };
@@ -1093,7 +1118,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             sortBy: (row: SimilarMutation) =>
                 this.getOncoKbSortCategoryForSimilar(row),
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
             visible: true,
             align: 'left',
         };
@@ -1130,7 +1155,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };
         this._columns[SimilarMutationColumnType.START] = {
             name: SimilarMutationColumnType.START,
@@ -1147,7 +1172,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };
         /*this._columns[SimilarMutationColumnType.REF] = {
             name: SimilarMutationColumnType.REF,
@@ -1164,7 +1189,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'left',
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };
         this._columns[SimilarMutationColumnType.ALT] = {
             name: SimilarMutationColumnType.ALT,
@@ -1181,7 +1206,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'left',
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };*/
         this._columns[SimilarMutationColumnType.CHGVS] = {
             name: SimilarMutationColumnType.CHGVS,
@@ -1198,7 +1223,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };
         this._columns[SimilarMutationColumnType.PHGVS] = {
             name: SimilarMutationColumnType.PHGVS,
@@ -1215,7 +1240,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'left',
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };
         this._columns[SimilarMutationColumnType.TRANSCRIPT] = {
             name: SimilarMutationColumnType.TRANSCRIPT,
@@ -1232,7 +1257,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };
         this._columns[SimilarMutationColumnType.GENE] = {
             name: SimilarMutationColumnType.GENE,
@@ -1249,7 +1274,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'left',
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };
         this._columns[SimilarMutationColumnType.PATHWAYS] = {
             name: SimilarMutationColumnType.PATHWAYS,
@@ -1275,7 +1300,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'left',
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };
 
         this._columns[SimilarMutationColumnType.ALLELFREQ] = {
@@ -1298,7 +1323,7 @@ export class PatientSimilarityMutationTable extends React.Component<
                 this.getAlleleFrequencyDownloadValue(row, 'mutations1'),
             visible: true,
             align: 'left',
-            group: `Reference Patient ${this.props.referencePatientName}`,
+            group: referencePatientGroup,
         };
 
         // comparison mutation
@@ -1313,7 +1338,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
 
         this._columns[SimilarMutationColumnType.COMPSTART] = {
@@ -1331,7 +1356,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
         this._columns[SimilarMutationColumnType.COMPREF] = {
             name: SimilarMutationColumnType.COMPREF,
@@ -1348,7 +1373,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
         this._columns[SimilarMutationColumnType.COMPALT] = {
             name: SimilarMutationColumnType.COMPALT,
@@ -1365,7 +1390,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
         this._columns[SimilarMutationColumnType.COMPCHGVS] = {
             name: SimilarMutationColumnType.COMPCHGVS,
@@ -1382,7 +1407,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
         this._columns[SimilarMutationColumnType.COMPPHGVS] = {
             name: SimilarMutationColumnType.COMPPHGVS,
@@ -1399,7 +1424,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
         this._columns[SimilarMutationColumnType.COMPTRANSCRIPT] = {
             name: SimilarMutationColumnType.COMPTRANSCRIPT,
@@ -1416,7 +1441,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: false,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
         this._columns[SimilarMutationColumnType.COMPGENE] = {
             name: SimilarMutationColumnType.COMPGENE,
@@ -1434,7 +1459,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
         this._columns[SimilarMutationColumnType.COMPPATHWAYS] = {
             name: SimilarMutationColumnType.COMPPATHWAYS,
@@ -1460,7 +1485,7 @@ export class PatientSimilarityMutationTable extends React.Component<
             },
             visible: true,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
 
         this._columns[SimilarMutationColumnType.COMPALLELFREQ] = {
@@ -1483,7 +1508,7 @@ export class PatientSimilarityMutationTable extends React.Component<
                 this.getAlleleFrequencyDownloadValue(row, 'mutations2'),
             visible: true,
             align: 'left',
-            group: `Selected Similar Patient ${this.props.selectedPatientName}`,
+            group: selectedPatientGroup,
         };
 
         // order columns
