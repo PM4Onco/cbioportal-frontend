@@ -50,7 +50,7 @@ const sectionTitleStyle = {
     color: '#000',
     fontSize: '16px',
     fontWeight: 600,
-    margin: '12px 0 8px',
+    margin: '12px 0 -5px',
 };
 
 function toOncoTreeCode(v?: string): string | undefined {
@@ -124,15 +124,6 @@ export class PatientSimilarityTable extends React.Component<
     private readonly DEFAULT_WEIGHT_PATHWAY = 1;
 
     private readonly _columns = [
-        {
-            //name: ColumnKey.STUDY,
-            name: 'Study',
-            render: (patient: SimilarPatient, i: any) => (
-                <div>{patient.study_id}</div>
-            ),
-            width: 250,
-            resizable: true,
-        },
         {
             name: 'Similarity Score',
             render: (patient: SimilarPatient) => (
@@ -253,6 +244,15 @@ export class PatientSimilarityTable extends React.Component<
                 );
             },
             width: 350,
+            resizable: true,
+        },
+        {
+            //name: ColumnKey.STUDY,
+            name: 'Study',
+            render: (patient: SimilarPatient, i: any) => (
+                <div>{patient.study_id}</div>
+            ),
+            width: 250,
             resizable: true,
         },
     ];
@@ -715,7 +715,6 @@ export class PatientSimilarityTable extends React.Component<
             return (
                 <div>
                     <div style={{ padding: '3px' }}>
-                        {/* obere Zeile: Mutations links, Filter+Adjust rechts */}
                         <div
                             style={{
                                 display: 'flex',
@@ -757,11 +756,15 @@ export class PatientSimilarityTable extends React.Component<
                                                             .selectedMutations
                                                             .length === 0;
                                                     const newThreshold = wasEmpty
-                                                        ? 0
+                                                        ? selectedOptions.length >
+                                                          0
+                                                            ? 1
+                                                            : 0
                                                         : Math.min(
                                                               prevState.coverageThreshold,
                                                               selectedOptions.length
                                                           );
+
                                                     return {
                                                         selectedMutations: selectedOptions,
                                                         coverageThreshold: newThreshold,
@@ -785,7 +788,6 @@ export class PatientSimilarityTable extends React.Component<
                                     minWidth: '360px',
                                 }}
                             >
-                                {/* obere Zeile: Checkboxen links, Adjust + Menü rechts daneben */}
                                 <div
                                     style={{
                                         display: 'flex',
@@ -823,32 +825,83 @@ export class PatientSimilarityTable extends React.Component<
                                             Limit to same Cancer Type
                                         </label>
 
+                                        {/* 2. Zeile: Coverage-Slider + Limit to same Protein Change nebeneinander */}
                                         {this.state.selectedMutations.length >
                                             0 && (
-                                            <label>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={
-                                                        this.state
-                                                            .limitToProteinChange
-                                                    }
-                                                    onChange={e =>
-                                                        this.setState(
-                                                            {
-                                                                limitToProteinChange:
-                                                                    e.target
-                                                                        .checked,
-                                                            },
-                                                            () =>
-                                                                this.startSearch()
-                                                        )
-                                                    }
+                                            <>
+                                                <label>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={
+                                                            this.state
+                                                                .limitToProteinChange
+                                                        }
+                                                        onChange={e =>
+                                                            this.setState(
+                                                                {
+                                                                    limitToProteinChange:
+                                                                        e.target
+                                                                            .checked,
+                                                                },
+                                                                () =>
+                                                                    this.startSearch()
+                                                            )
+                                                        }
+                                                        style={{
+                                                            marginRight: '8px',
+                                                        }}
+                                                    />
+                                                    Limit to same Protein
+                                                    Changes
+                                                </label>
+
+                                                {/* Coverage-Slider direkt unter Limit to same Protein Changes */}
+                                                <div
                                                     style={{
-                                                        marginRight: '8px',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        marginLeft: '24px', // leicht eingerückt, optional
+                                                        marginTop: '4px',
                                                     }}
-                                                />
-                                                Limit to same Protein Changes
-                                            </label>
+                                                >
+                                                    <label>
+                                                        <b>Coverage Rate ≥</b>{' '}
+                                                        {
+                                                            this.state
+                                                                .coverageThreshold
+                                                        }
+                                                    </label>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max={
+                                                            this.state
+                                                                .selectedMutations
+                                                                .length
+                                                        }
+                                                        value={
+                                                            this.state
+                                                                .coverageThreshold
+                                                        }
+                                                        onChange={e =>
+                                                            this.setState(
+                                                                {
+                                                                    coverageThreshold: Number(
+                                                                        e.target
+                                                                            .value
+                                                                    ),
+                                                                },
+                                                                () =>
+                                                                    this.startSearch()
+                                                            )
+                                                        }
+                                                        style={{
+                                                            width: '150px',
+                                                            marginTop: '5px',
+                                                        }}
+                                                    />
+                                                </div>
+                                            </>
                                         )}
                                     </div>
 
@@ -862,34 +915,17 @@ export class PatientSimilarityTable extends React.Component<
                                         }}
                                     >
                                         {/* kleine Box nur um den Adjust-Button */}
-                                        <div
-                                            style={{
-                                                border: '1px solid #bbb',
-                                                borderRadius: '4px',
-                                                padding: '6px 10px',
-                                                backgroundColor: '#ffffff',
-                                                cursor: 'pointer',
-                                                whiteSpace: 'nowrap',
-                                            }}
+                                        <Button
+                                            bsStyle="primary"
+                                            style={{ whiteSpace: 'nowrap' }}
+                                            onClick={() =>
+                                                this.setState(prevState => ({
+                                                    showWeightAdjuster: !prevState.showWeightAdjuster,
+                                                }))
+                                            }
                                         >
-                                            <Button
-                                                bsStyle="link"
-                                                style={{
-                                                    padding: 0,
-                                                    textDecoration: 'none',
-                                                }}
-                                                onClick={() =>
-                                                    this.setState(
-                                                        prevState => ({
-                                                            showWeightAdjuster: !prevState.showWeightAdjuster,
-                                                        })
-                                                    )
-                                                }
-                                            >
-                                                Adjust Similarity Score
-                                                Weighting
-                                            </Button>
-                                        </div>
+                                            Adjust Similarity Score Weighting
+                                        </Button>
 
                                         {/* Menü direkt rechts daneben */}
                                         <Collapse
@@ -1141,45 +1177,6 @@ export class PatientSimilarityTable extends React.Component<
                                         </Collapse>
                                     </div>
                                 </div>
-
-                                {/* Coverage-Slider bleibt darunter */}
-                                {this.state.selectedMutations.length > 0 && (
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            marginTop: '5px',
-                                        }}
-                                    >
-                                        <label>
-                                            <b>Coverage Rate ≥</b>{' '}
-                                            {this.state.coverageThreshold}
-                                        </label>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max={
-                                                this.state.selectedMutations
-                                                    .length
-                                            }
-                                            value={this.state.coverageThreshold}
-                                            onChange={e =>
-                                                this.setState(
-                                                    {
-                                                        coverageThreshold: Number(
-                                                            e.target.value
-                                                        ),
-                                                    },
-                                                    () => this.startSearch()
-                                                )
-                                            }
-                                            style={{
-                                                width: '150px',
-                                                marginTop: '5px',
-                                            }}
-                                        />
-                                    </div>
-                                )}
                             </div>
                         </div>
                         <div>
@@ -1211,7 +1208,14 @@ export class PatientSimilarityTable extends React.Component<
                             alignItems: 'flex-start',
                         }}
                     >
-                        <div style={{ flex: 0.85 }}>
+                        <div
+                            style={{
+                                flex: 0.85,
+                                position: 'relative',
+                                zIndex: 999,
+                                overflow: 'visible',
+                            }}
+                        >
                             <SimilarityScoreBar
                                 patients={this.state.currentSimilarPatients}
                                 selectedPatientId={
@@ -1272,6 +1276,7 @@ export class PatientSimilarityTable extends React.Component<
                                     width: '290px', // 2 × 140 + 10 gap
                                 }}
                             >
+                                <span style={{ marginRight: 6 }}>⟵</span>
                                 Back to overview table
                             </Button>
                         </div>
@@ -1280,85 +1285,98 @@ export class PatientSimilarityTable extends React.Component<
                         Shared Mutations between Reference Patient and Selected
                         Similar Patient
                     </div>
-
-                    <PatientSimilarityMutationTable
-                        data={this.state.similarMutations}
-                        sampleManager1={this.props.sampleManager}
-                        sampleToGenePanelId1={
-                            this.props.store.sampleToMutationGenePanelId.result
-                        }
-                        genePanelIdToEntrezGeneIds1={
-                            this.props.store.genePanelIdToEntrezGeneIds.result
-                        }
-                        sampleIds1={this.props.store.sampleIds}
-                        sampleManager2={this.props.sampleManager}
-                        sampleToGenePanelId2={
-                            this.props.store.sampleToMutationGenePanelId.result
-                        }
-                        genePanelIdToEntrezGeneIds2={
-                            this.props.store.genePanelIdToEntrezGeneIds.result
-                        }
-                        sampleIds2={this.props.store.sampleIds}
-                        columnVisibility={this.getVisibleColumns()}
-                        oncoKbData={this.props.store.oncoKbData}
-                        oncoKbCancerGenes={this.props.store.oncoKbCancerGenes}
-                        hotspotData={this.props.store.indexedHotspotData}
-                        myCancerGenomeData={this.props.store.myCancerGenomeData}
-                        civicGenes={this.props.store.civicGenes}
-                        civicVariants={this.props.store.civicVariants}
-                        indexedVariantAnnotations={
-                            this.props.store.indexedVariantAnnotations
-                        }
-                        pubMedCache={this.props.store.pubMedCache}
-                        usingPublicOncoKbInstance={
-                            this.props.store.usingPublicOncoKbInstance
-                        }
-                        studyIdToStudy={this.props.store.studyIdToStudy.result}
-                        uniqueSampleKeyToTumorType={{
-                            ...this.props.store.uniqueSampleKeyToTumorType,
-                            ...(this.state.tumorTypeMapOverride ?? {}),
-                        }}
-                        rowColorFunc={(d: SimilarMutation) => {
-                            switch (d.similarityTag) {
-                                case 'equal':
-                                    return styles.bg_comparisonEqual;
-                                case 'gene':
-                                    return styles.bg_comparisonGene;
-                                case 'pathway':
-                                    return styles.bg_comparisonPathway;
-                                case 'phgvs':
-                                    return styles.bg_comparisonPhgvs;
-                                default:
-                                    return styles.bg_comparisonUnequal;
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                        <PatientSimilarityMutationTable
+                            data={this.state.similarMutations}
+                            sampleManager1={this.props.sampleManager}
+                            sampleToGenePanelId1={
+                                this.props.store.sampleToMutationGenePanelId
+                                    .result
                             }
-                        }}
-                        initialSortColumn={
-                            SimilarMutationColumnType.SIMILARITYTAG
-                        }
-                        referencePatientName={
-                            this.props.store.clinicalDataPatient.result.find(
-                                e =>
-                                    e.clinicalAttributeId ===
-                                    'PATIENT_DISPLAY_NAME'
-                            )?.value ?? 'Reference Patient'
-                        }
-                        selectedPatientName={
-                            this.state.selectedSimilarPatient?.name ?? '—'
-                        }
-                        selectedPatientId={
-                            this.state.selectedSimilarPatient?.patient_id ?? ''
-                        }
-                        selectedPatientStudyId={
-                            this.state.selectedSimilarPatient?.study_id ?? ''
-                        }
-                        showCountHeader={false}
-                        paginationProps={{
-                            textBeforeButtons: '',
-                            textBetweenButtons: '',
-                        }}
-                    />
+                            genePanelIdToEntrezGeneIds1={
+                                this.props.store.genePanelIdToEntrezGeneIds
+                                    .result
+                            }
+                            sampleIds1={this.props.store.sampleIds}
+                            sampleManager2={this.props.sampleManager}
+                            sampleToGenePanelId2={
+                                this.props.store.sampleToMutationGenePanelId
+                                    .result
+                            }
+                            genePanelIdToEntrezGeneIds2={
+                                this.props.store.genePanelIdToEntrezGeneIds
+                                    .result
+                            }
+                            sampleIds2={this.props.store.sampleIds}
+                            columnVisibility={this.getVisibleColumns()}
+                            oncoKbData={this.props.store.oncoKbData}
+                            oncoKbCancerGenes={
+                                this.props.store.oncoKbCancerGenes
+                            }
+                            hotspotData={this.props.store.indexedHotspotData}
+                            myCancerGenomeData={
+                                this.props.store.myCancerGenomeData
+                            }
+                            civicGenes={this.props.store.civicGenes}
+                            civicVariants={this.props.store.civicVariants}
+                            indexedVariantAnnotations={
+                                this.props.store.indexedVariantAnnotations
+                            }
+                            pubMedCache={this.props.store.pubMedCache}
+                            usingPublicOncoKbInstance={
+                                this.props.store.usingPublicOncoKbInstance
+                            }
+                            studyIdToStudy={
+                                this.props.store.studyIdToStudy.result
+                            }
+                            uniqueSampleKeyToTumorType={{
+                                ...this.props.store.uniqueSampleKeyToTumorType,
+                                ...(this.state.tumorTypeMapOverride ?? {}),
+                            }}
+                            rowColorFunc={(d: SimilarMutation) => {
+                                switch (d.similarityTag) {
+                                    case 'equal':
+                                        return styles.bg_comparisonEqual;
+                                    case 'gene':
+                                        return styles.bg_comparisonGene;
+                                    case 'pathway':
+                                        return styles.bg_comparisonPathway;
+                                    case 'phgvs':
+                                        return styles.bg_comparisonPhgvs;
+                                    default:
+                                        return styles.bg_comparisonUnequal;
+                                }
+                            }}
+                            initialSortColumn={
+                                SimilarMutationColumnType.SIMILARITYTAG
+                            }
+                            referencePatientName={
+                                this.props.store.clinicalDataPatient.result.find(
+                                    e =>
+                                        e.clinicalAttributeId ===
+                                        'PATIENT_DISPLAY_NAME'
+                                )?.value ?? 'Reference Patient'
+                            }
+                            selectedPatientName={
+                                this.state.selectedSimilarPatient?.name ?? '—'
+                            }
+                            selectedPatientId={
+                                this.state.selectedSimilarPatient?.patient_id ??
+                                ''
+                            }
+                            selectedPatientStudyId={
+                                this.state.selectedSimilarPatient?.study_id ??
+                                ''
+                            }
+                            showCountHeader={false}
+                            paginationProps={{
+                                textBeforeButtons: '',
+                                textBetweenButtons: '',
+                            }}
+                        />
+                    </div>
 
-                    <div style={{ height: '2.5cm' }} />
+                    <div style={{ height: '1.0cm' }} />
 
                     {this.state.selectedSimilarPatient &&
                         (() => {

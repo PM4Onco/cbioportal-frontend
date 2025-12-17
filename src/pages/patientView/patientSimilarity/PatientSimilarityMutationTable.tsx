@@ -101,9 +101,14 @@ enum OncokbTabs {
     DIAGNOSTIC_LEVELS = 'Diagnostic Levels',
     PROGNOSTIC_LEVELS = 'Prognostic Levels',
 }
+const patientGroupHeaderStyle: React.CSSProperties = {
+    fontSize: '14px',
+    fontWeight: 600,
+};
+
 const getSelectedPatientGroup = (props: IPatientSimilarityMutationTableProps) =>
     props.selectedPatientId && props.selectedPatientStudyId ? (
-        <>
+        <span style={patientGroupHeaderStyle}>
             Selected Similar Patient{' '}
             <a
                 href={getPatientViewUrl(
@@ -115,9 +120,11 @@ const getSelectedPatientGroup = (props: IPatientSimilarityMutationTableProps) =>
             >
                 {props.selectedPatientName}
             </a>
-        </>
+        </span>
     ) : (
-        `Selected Similar Patient ${props.selectedPatientName}`
+        <span style={patientGroupHeaderStyle}>
+            Selected Similar Patient {props.selectedPatientName}
+        </span>
     );
 
 const oncokbData: Record<string, LegendDescription[]> = {
@@ -447,13 +454,39 @@ export class PatientSimilarityMutationTable extends React.Component<
             this.setState({ x: e.clientX + 10, y: e.clientY - 10 });
         };
     };
+    // work-around for bigger header font size (for not changing it in mobx-table globally)
+    private stylePatientGroupHeaders = (): void => {
+        const root = this.rootRef.current;
+        if (!root) return;
+
+        const candidates: NodeListOf<HTMLElement> = root.querySelectorAll(
+            'th, .group-header, .rt-th, .header, .table-header'
+        );
+
+        candidates.forEach(el => {
+            // normalisieren: mehrere Whitespaces/Zeilenumbrüche zu einem Space
+            const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+
+            const isWantedHeader =
+                txt.includes('Selected Similar Patient') ||
+                txt.includes('Reference Patient') ||
+                txt.includes('Mutation Matching Tag');
+
+            if (isWantedHeader) {
+                el.style.fontSize = '15px';
+                el.style.fontWeight = '600';
+            }
+        });
+    };
 
     public componentDidMount(): void {
         this.wireMutationMatchingGroupHeader();
+        this.stylePatientGroupHeaders();
     }
 
     public componentDidUpdate(): void {
         this.wireMutationMatchingGroupHeader();
+        this.stylePatientGroupHeaders();
     }
 
     @autobind
