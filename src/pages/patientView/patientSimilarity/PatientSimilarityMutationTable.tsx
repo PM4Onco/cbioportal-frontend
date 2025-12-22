@@ -95,6 +95,18 @@ import { getPatientViewUrl } from 'shared/api/urls';
 
 declare const require: any;
 
+const tcga10PathwaysPaperUrl = 'https://doi.org/10.1016/j.cell.2018.03.035';
+const tcga10PathwaysHeaderTooltip = (
+    <div style={{ maxWidth: 340 }}>
+        Only pathways from the 10 TCGA cancer signaling pathways (Sanchez-Vega
+        et al., Cell 2018) were used for comparison.{` `}
+        <a href={tcga10PathwaysPaperUrl} target="_blank" rel="noreferrer">
+            View paper
+        </a>
+        .
+    </div>
+);
+
 enum OncokbTabs {
     ONCOGENIC = 'Oncogenic',
     THERAPEUTIC_LEVELS = 'Therapeutic Levels',
@@ -1311,6 +1323,16 @@ export class PatientSimilarityMutationTable extends React.Component<
         };
         this._columns[SimilarMutationColumnType.PATHWAYS] = {
             name: SimilarMutationColumnType.PATHWAYS,
+            headerRender: () => (
+                <DefaultTooltip
+                    placement="top"
+                    overlay={tcga10PathwaysHeaderTooltip}
+                    trigger={['hover', 'focus']}
+                    destroyTooltipOnHide={false}
+                >
+                    <span>Pathways</span>
+                </DefaultTooltip>
+            ),
             render: (d: SimilarMutation) => {
                 const muts = this.getMutationData(d, 'mutations1') || [];
                 const all: string[] = [];
@@ -1496,6 +1518,16 @@ export class PatientSimilarityMutationTable extends React.Component<
         };
         this._columns[SimilarMutationColumnType.COMPPATHWAYS] = {
             name: SimilarMutationColumnType.COMPPATHWAYS,
+            headerRender: () => (
+                <DefaultTooltip
+                    placement="top"
+                    overlay={tcga10PathwaysHeaderTooltip}
+                    trigger={['hover', 'focus']}
+                    destroyTooltipOnHide={false}
+                >
+                    <span>Pathways</span>
+                </DefaultTooltip>
+            ),
             render: (d: SimilarMutation) => {
                 const muts = this.getMutationData(d, 'mutations2') || [];
                 const all: string[] = [];

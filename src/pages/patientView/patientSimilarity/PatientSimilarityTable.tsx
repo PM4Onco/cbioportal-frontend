@@ -4,7 +4,9 @@ import { PatientViewPageStore } from '../clinicalInformation/PatientViewPageStor
 import { observer } from 'mobx-react';
 import { Link } from 'react-router-dom';
 import { Collapse } from 'react-bootstrap';
-import LazyMobXTable from 'shared/components/lazyMobXTable/LazyMobXTable';
+import LazyMobXTable, {
+    Column,
+} from 'shared/components/lazyMobXTable/LazyMobXTable';
 import LoadingIndicator from 'shared/components/loadingIndicator/LoadingIndicator';
 import { DefaultTooltip } from 'cbioportal-frontend-commons';
 import { Button } from 'react-bootstrap';
@@ -50,7 +52,7 @@ const sectionTitleStyle = {
     color: '#000',
     fontSize: '16px',
     fontWeight: 600,
-    margin: '12px 0 -5px',
+    margin: '12px 0 -10px',
 };
 
 function toOncoTreeCode(v?: string): string | undefined {
@@ -123,15 +125,34 @@ export class PatientSimilarityTable extends React.Component<
     private readonly DEFAULT_WEIGHT_GENE = 5;
     private readonly DEFAULT_WEIGHT_PATHWAY = 1;
 
-    private readonly _columns = [
+    private readonly _columns: Column<SimilarPatient>[] = [
         {
             name: 'Similarity Score',
+            headerRender: () => (
+                <DefaultTooltip
+                    placement="top"
+                    overlay={
+                        <div style={{ maxWidth: 360 }}>
+                            The Similarity Score is computed as a weighted sum
+                            of matched alterations between the reference patient
+                            and the selected similar patient (exact match, same
+                            gene, and pathway overlap). You can adjust these
+                            weights via “Adjust Similarity Score Weighting”.
+                        </div>
+                    }
+                    trigger={['hover', 'focus']}
+                    destroyTooltipOnHide={false}
+                >
+                    <span>Similarity Score</span>
+                </DefaultTooltip>
+            ),
             render: (patient: SimilarPatient) => (
                 <div>{patient.similarityScore ?? '–'}</div>
             ),
             width: 150,
             resizable: true,
         },
+
         {
             //name: ColumnKey.NAME,
             name: 'Name',
@@ -1376,7 +1397,7 @@ export class PatientSimilarityTable extends React.Component<
                         />
                     </div>
 
-                    <div style={{ height: '1.0cm' }} />
+                    <div style={{ height: '1.2cm' }} />
 
                     {this.state.selectedSimilarPatient &&
                         (() => {
