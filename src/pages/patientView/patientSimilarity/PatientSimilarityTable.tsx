@@ -25,6 +25,9 @@ import {
 import {
     getSimilarMutations,
     filterSimilarMutations,
+    getCleanPathwaysForMutation,
+    haveCleanPathwayOverlap,
+    isTSGForMutation,
 } from './PatientSimilarityUtils';
 
 import { remoteData } from 'cbioportal-frontend-commons';
@@ -108,6 +111,7 @@ export type PatientSimilarityTableState = {
 
     // ui state for similarity score settings
     showWeightAdjuster: boolean;
+    weightTSGAsEqual: boolean;
 };
 
 class SimilarPatientTableComponent extends LazyMobXTable<SimilarPatient> {}
@@ -333,6 +337,7 @@ export class PatientSimilarityTable extends React.Component<
             similarityWeightGene: this.DEFAULT_WEIGHT_GENE,
             similarityWeightPathway: this.DEFAULT_WEIGHT_PATHWAY,
             showWeightAdjuster: false,
+            weightTSGAsEqual: false,
         };
     }
 
@@ -449,49 +454,17 @@ export class PatientSimilarityTable extends React.Component<
     }
 
     private extractCleanPathwaysFromMutation(m: any): string[] {
-        const ns = m?.namespaceColumns?.['sim'];
-        const raw = ns?.['Pathways'];
-
-        const list: string[] = Array.isArray(raw)
-            ? raw.map((s: any) => String(s).trim())
-            : typeof raw === 'string'
-            ? raw.split(/[,;|]/).map(s => s.trim())
-            : [];
-
-        return list
-            .filter(p => p && p.toLowerCase() !== 'none')
-            .filter((v, i, arr) => arr.indexOf(v) === i);
+        return getCleanPathwaysForMutation(m);
     }
 
     private hasCleanPathwayOverlap(sim: SimilarMutation): boolean {
-        // Compare the union of all pathways on each side
         const leftAll: any[] = Array.isArray(sim.mutations1)
             ? sim.mutations1
             : [];
         const rightAll: any[] = Array.isArray(sim.mutations2)
             ? sim.mutations2
             : [];
-
-        const leftUnion = new Set<string>();
-        for (const m of leftAll) {
-            this.extractCleanPathwaysFromMutation(m).forEach(p =>
-                leftUnion.add(p)
-            );
-        }
-
-        const rightUnion = new Set<string>();
-        for (const m of rightAll) {
-            this.extractCleanPathwaysFromMutation(m).forEach(p =>
-                rightUnion.add(p)
-            );
-        }
-
-        if (leftUnion.size === 0 || rightUnion.size === 0) return false;
-
-        for (const p of leftUnion) {
-            if (rightUnion.has(p)) return true;
-        }
-        return false;
+        return haveCleanPathwayOverlap(leftAll, rightAll);
     }
 
     private calculateSimilarityScore(
@@ -533,7 +506,15 @@ export class PatientSimilarityTable extends React.Component<
                     score += equalWeight;
                     break;
                 case 'gene':
-                    score += geneWeight;
+                    // treat TSG gene-level matches as equal-weight if enabled
+                    if (
+                        this.state.weightTSGAsEqual &&
+                        this.isTSGSimilarityMutation(mutation)
+                    ) {
+                        score += equalWeight;
+                    } else {
+                        score += geneWeight;
+                    }
                     break;
                 case 'pathway':
                     if (this.hasCleanPathwayOverlap(mutation)) {
@@ -554,6 +535,14 @@ export class PatientSimilarityTable extends React.Component<
         if (g && g.hugoGeneSymbol) return g.hugoGeneSymbol;
         if ((m as any).hugoGeneSymbol) return (m as any).hugoGeneSymbol;
         return undefined;
+    }
+
+    private isTSGSimilarityMutation(sim: SimilarMutation): boolean {
+        const muts: any[] = Array.isArray((sim as any).mutations1)
+            ? ((sim as any).mutations1 as any[])
+            : [];
+        const first = muts.length ? muts[0] : undefined;
+        return first ? isTSGForMutation(first) : false;
     }
 
     // Mutations whose genes are not present in the reference patient
@@ -1194,6 +1183,97 @@ export class PatientSimilarityTable extends React.Component<
                                                         Back
                                                     </Button>
                                                 </div>
+                                                {/* TSG weighting option */}
+                                                <div style={{ marginTop: 10 }}>
+                                                    <DefaultTooltip
+                                                        placement="top"
+                                                        overlay={
+                                                            <div
+                                                                style={{
+                                                                    maxWidth: 420,
+                                                                }}
+                                                            >
+                                                                Tumor suppressor
+                                                                genes (TSGs) are
+                                                                classified based
+                                                                on the OncoKB
+                                                                “Cancer Genes”
+                                                                curation{' '}
+                                                                <a
+                                                                    href="https://www.oncokb.org/cancer-genes"
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                >
+                                                                    https://www.oncokb.org/cancer-genes
+                                                                </a>
+                                                                . In TSGs,
+                                                                diverse variants
+                                                                can converge on
+                                                                loss-of-function
+                                                                effects;
+                                                                therefore, the
+                                                                exact mutated
+                                                                position is
+                                                                often less
+                                                                informative than
+                                                                for activating
+                                                                hotspot
+                                                                mutations in
+                                                                oncogenes. When
+                                                                enabled, this
+                                                                option treats
+                                                                gene-level
+                                                                matches in TSGs
+                                                                as equal-weight
+                                                                matches in the
+                                                                similarity
+                                                                score.
+                                                            </div>
+                                                        }
+                                                        trigger={[
+                                                            'hover',
+                                                            'focus',
+                                                        ]}
+                                                        destroyTooltipOnHide={
+                                                            false
+                                                        }
+                                                    >
+                                                        <label
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems:
+                                                                    'center',
+                                                                gap: 8,
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={
+                                                                    this.state
+                                                                        .weightTSGAsEqual
+                                                                }
+                                                                onChange={e =>
+                                                                    this.setState(
+                                                                        {
+                                                                            weightTSGAsEqual:
+                                                                                e
+                                                                                    .target
+                                                                                    .checked,
+                                                                        }
+                                                                    )
+                                                                }
+                                                            />
+                                                            <span>
+                                                                Weight mutations
+                                                                in tumor
+                                                                suppressor genes
+                                                                as equal
+                                                            </span>
+                                                        </label>
+                                                    </DefaultTooltip>
+                                                </div>
                                             </div>
                                         </Collapse>
                                     </div>
@@ -1309,6 +1389,7 @@ export class PatientSimilarityTable extends React.Component<
                     <div style={{ position: 'relative', zIndex: 1 }}>
                         <PatientSimilarityMutationTable
                             data={this.state.similarMutations}
+                            weightTSGAsEqual={this.state.weightTSGAsEqual}
                             sampleManager1={this.props.sampleManager}
                             sampleToGenePanelId1={
                                 this.props.store.sampleToMutationGenePanelId

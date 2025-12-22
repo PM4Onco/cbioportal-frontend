@@ -58,6 +58,8 @@ import AnnotationColumnFormatter, {
 
 import { DEFAULT_ONCOKB_CONTENT_WIDTH } from 'shared/lib/AnnotationColumnUtils';
 
+import { unionCleanPathwaysForMutations } from './PatientSimilarityUtils';
+
 import {
     RemoteData,
     IOncoKbData,
@@ -92,6 +94,8 @@ import {
 } from 'shared/lib/StoreUtils';
 
 import { getPatientViewUrl } from 'shared/api/urls';
+
+import { isTSGForMutation } from './PatientSimilarityUtils';
 
 declare const require: any;
 
@@ -265,7 +269,7 @@ export interface IPatientSimilarityMutationTableProps
     enableRevue?: boolean;
     sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 
-    // misc
+    weightTSGAsEqual?: boolean;
 
     studyIdToStudy?: { [studyId: string]: any };
     uniqueSampleKeyToTumorType?: { [uniqueKey: string]: string };
@@ -1087,25 +1091,8 @@ export class PatientSimilarityMutationTable extends React.Component<
         row: SimilarMutation,
         mutationsKey: 'mutations1' | 'mutations2'
     ): string[] {
-        const muts = this.getMutationData(row, mutationsKey) || [];
-        const all: string[] = [];
-
-        for (const m of muts) {
-            const ns = (m as any)?.namespaceColumns?.['sim'];
-            const raw = ns?.['Pathways'];
-            const parts = Array.isArray(raw)
-                ? raw.map((x: any) => String(x).trim())
-                : typeof raw === 'string'
-                ? raw.split(/[,;|]/).map(s => s.trim())
-                : [];
-            for (const p of parts) {
-                if (p && p.toLowerCase() !== 'none') {
-                    all.push(p);
-                }
-            }
-        }
-
-        return Array.from(new Set(all));
+        const muts = (this.getMutationData(row, mutationsKey) || []) as any[];
+        return unionCleanPathwaysForMutations(muts);
     }
 
     private getOncoKbSortCategoryForSimilar(row: SimilarMutation): number {
@@ -1170,11 +1157,61 @@ export class PatientSimilarityMutationTable extends React.Component<
 
         this._columns[SimilarMutationColumnType.SIMILARITYTAG] = {
             name: SimilarMutationColumnType.SIMILARITYTAG,
-            render: d => (
-                <div style={{ textAlign: 'left' }}>
-                    {d.similarityTag ?? '—'}
-                </div>
-            ),
+            render: d => {
+                const isGeneTag = d.similarityTag === 'gene';
+                const muts: any[] = Array.isArray((d as any).mutations1)
+                    ? ((d as any).mutations1 as any[])
+                    : [];
+                const first = muts.length ? muts[0] : undefined;
+                const isTSG = first ? isTSGForMutation(first) : false;
+
+                const showTsgDot =
+                    Boolean(this.props.weightTSGAsEqual) && isGeneTag && isTSG;
+
+                return (
+                    <div
+                        style={{
+                            textAlign: 'left',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                        }}
+                    >
+                        <span>{d.similarityTag ?? '—'}</span>
+
+                        {showTsgDot && (
+                            <DefaultTooltip
+                                placement="top"
+                                overlay={
+                                    <div style={{ maxWidth: 340 }}>
+                                        Tumor suppressor gene (TSG). With the
+                                        corresponding option enabled, gene-level
+                                        matches in TSGs are weighted as exact
+                                        matches in the similarity score,
+                                        reflecting that loss-of- function
+                                        alterations in tumor suppressors are
+                                        often less dependent on the precise
+                                        mutational position.
+                                    </div>
+                                }
+                                trigger={['hover', 'focus']}
+                                destroyTooltipOnHide={false}
+                            >
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: '50%',
+                                        backgroundColor: '#d9534f',
+                                        cursor: 'help',
+                                    }}
+                                />
+                            </DefaultTooltip>
+                        )}
+                    </div>
+                );
+            },
             sortBy: d => {
                 const rank: Record<string, number> = {
                     equal: 2,
@@ -1334,23 +1371,10 @@ export class PatientSimilarityMutationTable extends React.Component<
                 </DefaultTooltip>
             ),
             render: (d: SimilarMutation) => {
-                const muts = this.getMutationData(d, 'mutations1') || [];
-                const all: string[] = [];
-
-                for (const m of muts) {
-                    const ns = (m as any)?.namespaceColumns?.['sim'];
-                    const raw = ns?.['Pathways'];
-                    const parts = Array.isArray(raw)
-                        ? raw.map((x: any) => String(x).trim())
-                        : typeof raw === 'string'
-                        ? raw.split(/[,;|]/).map(s => s.trim())
-                        : [];
-                    for (const p of parts) {
-                        if (p && p.toLowerCase() !== 'none') all.push(p);
-                    }
-                }
-
-                const unique = Array.from(new Set(all));
+                const unique = this.extractPathwaysFromMutationsKey(
+                    d,
+                    'mutations1'
+                );
                 return unique.length ? <div>{unique.join(', ')}</div> : <div />;
             },
             visible: true,
@@ -1529,23 +1553,10 @@ export class PatientSimilarityMutationTable extends React.Component<
                 </DefaultTooltip>
             ),
             render: (d: SimilarMutation) => {
-                const muts = this.getMutationData(d, 'mutations2') || [];
-                const all: string[] = [];
-
-                for (const m of muts) {
-                    const ns = (m as any)?.namespaceColumns?.['sim'];
-                    const raw = ns?.['Pathways'];
-                    const parts = Array.isArray(raw)
-                        ? raw.map((x: any) => String(x).trim())
-                        : typeof raw === 'string'
-                        ? raw.split(/[,;|]/).map(s => s.trim())
-                        : [];
-                    for (const p of parts) {
-                        if (p && p.toLowerCase() !== 'none') all.push(p);
-                    }
-                }
-
-                const unique = Array.from(new Set(all));
+                const unique = this.extractPathwaysFromMutationsKey(
+                    d,
+                    'mutations2'
+                );
                 return unique.length ? <div>{unique.join(', ')}</div> : <div />;
             },
             visible: true,
