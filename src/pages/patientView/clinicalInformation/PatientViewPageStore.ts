@@ -247,7 +247,10 @@ import {
     fetchFollowUpsByAlterationsUsingPOST as fetchLocalFollowUpsUsingPOST,
     fetchFollowUpsByAlterationsUsingPOST,
 } from 'shared/api/TherapyRecommendationAPI';
-import { RecruitingStatus } from 'shared/enums/ClinicalTrialsGovRecruitingStatus';
+import {
+    RecruitingStatus,
+    recruitingStatusLabel,
+} from 'shared/enums/ClinicalTrialsGovRecruitingStatus';
 import { ageAsNumber } from '../clinicalTrialMatch/utils/AgeSexConverter';
 import { City } from '../clinicalTrialMatch/ClinicalTrialMatchSelectUtil';
 import {
@@ -1037,12 +1040,17 @@ export class PatientViewPageStore {
             .filter(item => item.sampleId === sampleToFilter)
             .map(item => item.uniqueSampleKey);
     }
-    @computed get samplesWithCountDataAvailable(): string[] {
+
+    @computed get samplesWithDataAvailable(): string[] {
         return this.fetchAllMutationalSignatureData.result
-            .filter(data =>
-                data.molecularProfileId.includes(
-                    MutationalSignatureStableIdKeyWord.MutationalSignatureCountKeyWord
-                )
+            .filter(
+                data =>
+                    data.molecularProfileId.includes(
+                        MutationalSignatureStableIdKeyWord.MutationalSignatureCountKeyWord
+                    ) ||
+                    data.molecularProfileId.includes(
+                        MutationalSignatureStableIdKeyWord.MutationalSignatureContributionKeyWord
+                    )
             )
             .map(sample => sample.sampleId)
             .filter((value, index, self) => self.indexOf(value) === index);
@@ -1053,7 +1061,7 @@ export class PatientViewPageStore {
             sample => sample.sampleId
         );
         return allSamples.filter(
-            element => !this.samplesWithCountDataAvailable.includes(element)
+            element => !this.samplesWithDataAvailable.includes(element)
         );
     }
 
@@ -3112,14 +3120,13 @@ export class PatientViewPageStore {
                     }
 
                     for (let i = 0; i < locationModule.length; i++) {
-                        let location: Location = locationModule[i];
-                        loc.push(
-                            location.LocationCity +
-                                ': ' +
-                                location.LocationFacility +
-                                ': ' +
-                                location.LocationState
-                        );
+                        const location: Location = locationModule[i];
+                        const parts = [
+                            location.LocationFacility,
+                            location.LocationCity,
+                            location.LocationCountry,
+                        ].filter(part => !!part && part.length > 0);
+                        loc.push(parts.join(' | '));
                     }
 
                     for (let i = 0; i < interventionModule.length; i++) {
@@ -3139,8 +3146,10 @@ export class PatientViewPageStore {
                                 .BriefTitle,
                         nct: std.getStudy().ProtocolSection.IdentificationModule
                             .NCTId,
-                        status: std.getStudy().ProtocolSection.StatusModule
-                            .OverallStatus,
+                        status: recruitingStatusLabel(
+                            std.getStudy().ProtocolSection.StatusModule
+                                .OverallStatus
+                        ),
                         locations: loc,
                         interventions: inv,
                         condition_matching: false,
