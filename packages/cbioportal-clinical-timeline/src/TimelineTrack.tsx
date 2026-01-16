@@ -484,7 +484,7 @@ export const EventTooltipContent: React.FunctionComponent<{
     }
 
     // Use Context for date format and day of diagnosis
-    const { useAbsoluteDateFormat, startDate } = useDateFormat();
+    const { startDate } = useDateFormat();
 
     return (
         <div>
@@ -536,40 +536,50 @@ export const EventTooltipContent: React.FunctionComponent<{
                                 : 'DATE'
                         }`}</td>
                         <td className={'nowrap'}>
+                            {/* 1. Relative Date (Always) */}
                             {formatDate(
                                 event.event.startNumberOfDaysSinceDiagnosis,
                                 startDate,
-                                useAbsoluteDateFormat
+                                false
                             )}
-                            {useAbsoluteDateFormat &&
-                                startDate &&
-                                ' (' +
-                                    formatDate(
+                            {/* 2. Absolute Date (If start date exists) */}
+                            {startDate && (
+                                <>
+                                    {' ('}
+                                    {formatDate(
                                         event.event
                                             .startNumberOfDaysSinceDiagnosis,
-                                        startDate
-                                    ) +
-                                    ')'}
+                                        startDate,
+                                        true
+                                    )}
+                                    {')'}
+                                </>
+                            )}
                         </td>
                     </tr>
                     {event.event.endNumberOfDaysSinceDiagnosis && (
                         <tr>
                             <td>END DATE</td>
                             <td className={'nowrap'}>
+                                {/* 1. Relative Date (Always) */}
                                 {formatDate(
                                     event.event.endNumberOfDaysSinceDiagnosis,
                                     startDate,
-                                    useAbsoluteDateFormat
+                                    false
                                 )}
-                                {useAbsoluteDateFormat &&
-                                    startDate &&
-                                    ' (' +
-                                        formatDate(
+                                {/* 2. Absolute Date (If start date exists) */}
+                                {startDate && (
+                                    <>
+                                        {' ('}
+                                        {formatDate(
                                             event.event
                                                 .endNumberOfDaysSinceDiagnosis,
-                                            startDate
-                                        ) +
-                                        ')'}
+                                            startDate,
+                                            true
+                                        )}
+                                        {')'}
+                                    </>
+                                )}
                             </td>
                         </tr>
                     )}

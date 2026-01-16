@@ -420,10 +420,7 @@ export function buildBaseConfig(
                             );
 
                             // Use Context for date format and day of diagnosis
-                            const {
-                                useAbsoluteDateFormat,
-                                startDate,
-                            } = useDateFormat();
+                            const { startDate } = useDateFormat();
 
                             return (
                                 <table>
@@ -465,17 +462,19 @@ export function buildBaseConfig(
                                         <tr>
                                             <th>START DATE</th>
                                             <td className={'nowrap'}>
+                                                {/* 1. Relative Date (Always) */}
                                                 {formatDate(
                                                     event.start,
                                                     startDate,
-                                                    useAbsoluteDateFormat
+                                                    false
                                                 )}
-                                                {useAbsoluteDateFormat &&
-                                                    startDate &&
+                                                {/* 2. Absolute Date (If start date exists) */}
+                                                {startDate &&
                                                     ' (' +
                                                         formatDate(
                                                             event.start,
-                                                            startDate
+                                                            startDate,
+                                                            true
                                                         ) +
                                                         ')'}
                                             </td>

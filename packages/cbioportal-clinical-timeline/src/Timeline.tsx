@@ -37,7 +37,6 @@ import classNames from 'classnames';
 import getSvg from './svg/getSvg';
 
 import { DateFormatProvider } from './lib/DateFormatContext';
-import FormatToggle from './lib/FormatToggle';
 import { calculateStartDate } from './lib/absoluteTimelineDatesHelpers';
 
 interface ITimelineProps {
@@ -374,7 +373,6 @@ const Timeline: React.FunctionComponent<ITimelineProps> = observer(function({
                 className={'tl-timeline-wrapper'}
                 id={store.uniqueId}
             >
-                <FormatToggle />
                 <div className={'tl-timeline-reset-buttons'}>
                     <div className={'tl-timeline-zoom-info'}>
                         {store.zoomBounds && (

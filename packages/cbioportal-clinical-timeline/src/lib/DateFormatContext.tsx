@@ -1,37 +1,24 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { createContext, useContext } from 'react';
 
-// Component that provides the date format determined by state of FormatToggle Button to other components like the Tooltip
+// Component that provides the date format
 
 // Define the context
 interface DateFormatContextType {
-    useAbsoluteDateFormat: boolean;
-    toggleFormat: () => void;
     startDate: string | null;
 }
 
 // Create the context
 const DateFormatContext = createContext<DateFormatContextType>({
-    useAbsoluteDateFormat: true,
-    toggleFormat: () => {},
-    startDate: '',
+    startDate: null,
 });
 
-// DateFormatProvider to manage the format state
 export const DateFormatProvider: React.FC<{
     children: React.ReactNode;
     startDate: string | null;
 }> = ({ children, startDate }) => {
-    const [showAbsoluteDates, setShowAbsoluteDates] = useState<boolean>(true);
-
-    const toggleDateFormat = () => {
-        setShowAbsoluteDates(prev => !prev);
-    };
-
     return (
         <DateFormatContext.Provider
             value={{
-                useAbsoluteDateFormat: showAbsoluteDates,
-                toggleFormat: toggleDateFormat,
                 startDate: startDate,
             }}
         >
@@ -40,7 +27,7 @@ export const DateFormatProvider: React.FC<{
     );
 };
 
-// Custom hook for accessing context
+// Custom hook
 export const useDateFormat = () => {
     const context = useContext(DateFormatContext);
     if (!context) {
