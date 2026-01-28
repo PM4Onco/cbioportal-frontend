@@ -3,7 +3,6 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import FontAwesome from 'react-fontawesome';
 import { saveSvgAsPng } from 'save-svg-as-png';
 import {
     VictoryChart,
@@ -18,7 +17,7 @@ import {
     VictoryZoomContainer,
     VictoryTheme,
 } from 'victory';
-import { DefaultTooltip } from 'cbioportal-frontend-commons';
+import { DownloadControls } from 'cbioportal-frontend-commons';
 import CBIOPORTAL_VICTORY_THEME_PROM from '../utils/cBioPortalThemePROM';
 import {
     AVERAGE_KEY,
@@ -904,35 +903,19 @@ const LineScatterPlot: React.FC<LineScatterPlotProps> = ({
                 />
             </VictoryChart>
 
-            <div className="column-download-buttons">
-                <div>
-                    {' '}
-                    <DefaultTooltip
-                        overlay={<span>Download SVG</span>}
-                        placement="right"
-                    >
-                        <button
-                            onClick={() => exportAsSVG(`${exportFileName}.svg`)}
-                            className="btn btn-default btn-xs download-button"
-                        >
-                            <FontAwesome name="cloud-download" /> SVG
-                        </button>
-                    </DefaultTooltip>
-                </div>
-                <div>
-                    <DefaultTooltip
-                        overlay={<span>Download PNG</span>}
-                        placement="right"
-                    >
-                        <button
-                            onClick={() => exportAsPNG(`${exportFileName}.png`)}
-                            className="btn btn-default btn-xs download-button"
-                        >
-                            <FontAwesome name="cloud-download" /> PNG
-                        </button>
-                    </DefaultTooltip>
-                </div>
-            </div>
+            <DownloadControls
+                buttons={['SVG', 'PNG']}
+                filename={exportFileName}
+                getSvg={() => {
+                    const svgElement = chartRef.current?.querySelector('svg');
+                    return svgElement
+                        ? Promise.resolve(svgElement)
+                        : Promise.reject('SVG not found');
+                }}
+                dontFade={true}
+                type={'button'}
+                style={{ marginTop: 10 }}
+            />
         </div>
     );
 };

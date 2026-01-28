@@ -89,7 +89,6 @@ export function patientViewTabs(
             onTabClick={(id: string) => urlWrapper.setActiveTab(id)}
             className="mainTabs"
             getPaginationWidth={WindowStore.getWindowWidth}
-            onMount={() => console.log('TABS MOUNT')}
             contentWindowExtra={
                 <HelpWidget path={urlWrapper.routing.location.pathname} />
             }

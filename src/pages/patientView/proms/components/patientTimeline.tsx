@@ -1,5 +1,5 @@
 /**
- * Component that dsiplays the timeline in the PROMs tab
+ * Component that displays the timeline in the PROMs tab
  */
 
 import React, { useState } from 'react';
