@@ -1,4 +1,8 @@
 /**
+ * @jest-environment jsdom
+ */
+
+/**
  * Unit tests for PieChartProms component
  */
 
@@ -187,6 +191,7 @@ describe('PieChart', () => {
             ...defaultProps,
             data: { x: 'VAS', y: 40 },
             thresholds: [50],
+            showThresholds: true,
         };
         render(<PieChart {...props} />);
         const pie = screen.getByTestId('victory-pie');
@@ -225,6 +230,7 @@ describe('PieChart', () => {
             ...defaultProps,
             data: { x: 'VAS', y: 60 },
             thresholds: [50, 80],
+            showThresholds: true,
         };
         render(<PieChart {...props} />);
         const pie = screen.getByTestId('victory-pie');

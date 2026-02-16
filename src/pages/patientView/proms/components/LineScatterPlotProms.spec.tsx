@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 import React from 'react';
 import { inspect } from 'util';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -63,6 +67,29 @@ jest.mock('cbioportal-frontend-commons', () => ({
     DefaultTooltip: ({ children }: { children: React.ReactNode }) => (
         <>{children}</>
     ),
+    DownloadControls: (props: any) => <div data-testid="download-controls" />,
+    CBIOPORTAL_VICTORY_THEME: {
+        axis: {
+            style: {
+                grid: {
+                    fill: 'none',
+                    stroke: '#ECEFF1',
+                    strokeDasharray: '10, 5',
+                    strokeLinecap: 'round',
+                    strokeLinejoin: 'round',
+                    pointerEvents: 'visible',
+                },
+            },
+        },
+        pie: {
+            colorScale: [],
+            style: { data: {}, labels: {} },
+        },
+        tooltip: {
+            style: {},
+            flyoutStyle: {},
+        },
+    },
 }));
 
 jest.mock('react-fontawesome', () => (props: any) => (
@@ -195,6 +222,7 @@ describe('LineScatterPlot', () => {
         const propsWithStandardRange = {
             ...defaultProps,
             standardRange: [40, 60] as [number, number],
+            showStandardRange: true,
         };
         render(<LineScatterPlot {...propsWithStandardRange} />);
         expect(screen.getByTestId('victory-area')).toBeInTheDocument();
