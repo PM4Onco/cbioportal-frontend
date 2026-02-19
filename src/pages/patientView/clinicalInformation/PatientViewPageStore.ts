@@ -2026,7 +2026,7 @@ export class PatientViewPageStore {
                 }
             },
             onError: (err: Error) => {
-                // fail silently, leave the error handling responsibility to the data consumer
+                // fail silently, TODO
             },
         },
         ONCOKB_DEFAULT
