@@ -18,10 +18,6 @@ export const StudySelectorStats: React.FunctionComponent<{
                     let numSelectedStudies = expr(
                         () => props.store.selectableSelectedStudyIds.length
                     );
-                    let numAllStudies = expr(
-                        () => props.store.selectableStudies.length
-                    );
-
                     return (
                         <>
                             <a
@@ -31,38 +27,13 @@ export const StudySelectorStats: React.FunctionComponent<{
                                             .store.showSelectedStudiesOnly;
                                 }}
                             >
-                                {props.store.selectableSelectedStudies.length ==
-                                    0 && (
-                                    <div>
-                                        <b>{numAllStudies}</b> studies available
-                                        (
-                                        <b>
-                                            {
-                                                props.store
-                                                    .sampleCountForAllStudies
-                                            }
-                                        </b>{' '}
-                                        samples)
-                                    </div>
-                                )}
-
-                                {props.store.selectableSelectedStudies.length >
-                                    0 && (
-                                    <div>
-                                        <b>{numSelectedStudies}</b>{' '}
-                                        {numSelectedStudies === 1
-                                            ? 'study'
-                                            : 'studies'}{' '}
-                                        selected (
-                                        <b>
-                                            {
-                                                props.store
-                                                    .sampleCountForSelectedStudies
-                                            }
-                                        </b>{' '}
-                                        samples)
-                                    </div>
-                                )}
+                                <b>{numSelectedStudies}</b>{' '}
+                                {numSelectedStudies === 1 ? 'study' : 'studies'}{' '}
+                                selected (
+                                <b>
+                                    {props.store.sampleCountForSelectedStudies}
+                                </b>{' '}
+                                samples)
                             </a>
                             {props.store.selectableSelectedStudies.length >
                                 0 && (

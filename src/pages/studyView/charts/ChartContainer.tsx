@@ -395,8 +395,7 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
         return (
             this.props.promise.isComplete &&
             this.props.promise.result!.length > 1 &&
-            COMPARISON_CHART_TYPES.indexOf(this.props.chartType) > -1 &&
-            !this.props.chartMeta.mutationOptionType
+            COMPARISON_CHART_TYPES.indexOf(this.props.chartType) > -1
         );
     }
 
@@ -487,7 +486,7 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
     }
 
     @computed get comparisonButtonForTables() {
-        if (this.selectedRowsKeys!.length >= 2 && this.comparisonPagePossible) {
+        if (this.selectedRowsKeys!.length >= 2) {
             return {
                 content: (
                     <div
@@ -532,11 +531,7 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                         )}
                         ref={this.handlers.ref}
                         onUserSelection={this.handlers.onValueSelection}
-                        openComparisonPage={
-                            this.comparisonPagePossible
-                                ? this.openComparisonPage
-                                : undefined
-                        }
+                        openComparisonPage={this.openComparisonPage}
                         filters={this.props.filters}
                         data={this.props.promise.result}
                         placement={this.placement}
@@ -645,73 +640,6 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                                 {
                                     columnKey:
                                         MultiSelectionTableColumnKey.GENE,
-                                },
-                                {
-                                    columnKey:
-                                        MultiSelectionTableColumnKey.NUMBER_MUTATIONS,
-                                },
-                                numColumn,
-                                {
-                                    columnKey:
-                                        MultiSelectionTableColumnKey.FREQ,
-                                },
-                            ]}
-                            defaultSortBy={MultiSelectionTableColumnKey.FREQ}
-                            setOperationsButtonText={
-                                this.props.store.hesitateUpdate
-                                    ? 'Add Filters '
-                                    : 'Select Samples '
-                            }
-                        />
-                    );
-                };
-            }
-            case ChartTypeEnum.MUTATION_TYPE_COUNTS_TABLE: {
-                return () => {
-                    const numColumn: MultiSelectionTableColumn = {
-                        columnKey: MultiSelectionTableColumnKey.NUMBER,
-                    };
-                    if (this.props.store.isGlobalMutationFilterActive) {
-                        numColumn.columnTooltip = (
-                            <span data-test="hidden-mutation-alterations">
-                                Total number of mutations
-                                <br />
-                                This table is filtered based on selections in
-                                the <i>Alteration Filter</i> menu.
-                            </span>
-                        );
-                    }
-
-                    return (
-                        <MultiSelectionTable
-                            tableType={FreqColumnTypeEnum.MUTATION}
-                            promise={this.props.promise}
-                            width={getWidthByDimension(
-                                this.props.dimension,
-                                this.borderWidth
-                            )}
-                            height={getTableHeightByDimension(
-                                this.props.dimension,
-                                this.chartHeaderHeight
-                            )}
-                            filters={this.props.filters}
-                            onSubmitSelection={this.handlers.onValueSelection}
-                            onChangeSelectedRows={
-                                this.handlers.onChangeSelectedRows
-                            }
-                            extraButtons={
-                                this.comparisonButtonForTables && [
-                                    this.comparisonButtonForTables,
-                                ]
-                            }
-                            selectedRowsKeys={this.selectedRowsKeys}
-                            onChangeCancerGeneFilter={
-                                this.props.onChangeCancerGeneFilter!
-                            }
-                            columns={[
-                                {
-                                    columnKey:
-                                        MultiSelectionTableColumnKey.MUTATION_TYPE,
                                 },
                                 {
                                     columnKey:

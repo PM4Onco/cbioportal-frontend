@@ -141,8 +141,6 @@ function derive(clinicalData) {
                     caseTypeLower.indexOf('pdx') >= 0
                 ) {
                     caseTypeNormalized = 'Xenograft';
-                } else if (caseTypeLower.indexOf('organoid') >= 0) {
-                    caseTypeNormalized = 'Organoid';
                 } else if (caseTypeLower.indexOf('cfdna') >= 0) {
                     caseTypeNormalized = 'cfDNA';
                 } else if (caseTypeLower.indexOf('prim') >= 0) {

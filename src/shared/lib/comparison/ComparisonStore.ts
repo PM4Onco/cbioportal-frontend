@@ -611,8 +611,13 @@ export default abstract class ComparisonStore extends AnalysisStore
         {
             await: () => [this.molecularProfilesInActiveStudies],
             invoke: () => {
-                const availableProfiles = this.molecularProfilesInActiveStudies
-                    .result!;
+                const availableProfiles = this.appStore.featureFlagStore.has(
+                    FeatureFlagEnum.GENERIC_ASSAY_GROUP_COMPARISON
+                )
+                    ? this.molecularProfilesInActiveStudies.result!
+                    : pickGenericAssayEnrichmentProfiles(
+                          this.molecularProfilesInActiveStudies.result!
+                      );
                 return Promise.resolve(
                     _.groupBy(
                         pickAllGenericAssayEnrichmentProfiles(
@@ -1699,14 +1704,14 @@ export default abstract class ComparisonStore extends AnalysisStore
     readonly gaEnrichmentGroupsByAssayType = remoteData({
         await: () => [
             this
-                .selectedAllGenericAssayEnrichmentProfileMapGroupedByGenericAssayType,
+                .selectedGenericAssayEnrichmentProfileMapGroupedByGenericAssayType,
             this.enrichmentAnalysisGroups,
         ],
         invoke: () => {
             return Promise.resolve(
                 _.mapValues(
                     this
-                        .selectedAllGenericAssayEnrichmentProfileMapGroupedByGenericAssayType
+                        .selectedGenericAssayEnrichmentProfileMapGroupedByGenericAssayType
                         .result!,
                     selectedGenericAssayEnrichmentProfileMap => {
                         let studyIds = Object.keys(
@@ -1850,7 +1855,7 @@ export default abstract class ComparisonStore extends AnalysisStore
         await: () => [
             this.gaEnrichmentGroupsByAssayType,
             this
-                .selectedAllGenericAssayEnrichmentProfileMapGroupedByGenericAssayType,
+                .selectedGenericAssayEnrichmentProfileMapGroupedByGenericAssayType,
         ],
         invoke: () => {
             return Promise.resolve(
@@ -1866,7 +1871,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                                     sample => ({
                                         caseId: sample.sampleId,
                                         molecularProfileId: this
-                                            .selectedAllGenericAssayEnrichmentProfileMapGroupedByGenericAssayType
+                                            .selectedGenericAssayEnrichmentProfileMapGroupedByGenericAssayType
                                             .result![genericAssayType][
                                             sample.studyId
                                         ].molecularProfileId,
@@ -1973,7 +1978,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                             await: () => [],
                             getSelectedProfileMap: () =>
                                 this
-                                    .selectedAllGenericAssayEnrichmentProfileMapGroupedByGenericAssayType
+                                    .selectedGenericAssayEnrichmentProfileMapGroupedByGenericAssayType
                                     .result![genericAssayType], // returns an empty array if the selected study doesn't have any generic assay profiles
                             fetchData: () => {
                                 if (

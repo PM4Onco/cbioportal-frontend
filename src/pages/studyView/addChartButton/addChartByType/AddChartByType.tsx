@@ -68,7 +68,7 @@ export default class AddChartByType extends React.Component<
                     acc.push({
                         label: next.label,
                         key: next.key,
-                        disabled: next.disabled || disabled,
+                        disabled: disabled,
                         selected: next.selected,
                         isSharedChart: next.isSharedChart,
                         freq: disabled

@@ -327,38 +327,11 @@ export default class ComparisonTab extends React.Component<
                 >
                     <OqlStatusBanner
                         className="comparison-oql-status-banner"
-                        queryContainsOql={this.props.store.queryContainsOql}
+                        store={this.props.store}
                         tabReflectsOql={true}
                     />
-                    <AlterationFilterWarning
-                        driverAnnotationSettings={
-                            this.props.store.driverAnnotationSettings
-                        }
-                        includeGermlineMutations={
-                            this.props.store.includeGermlineMutations
-                        }
-                        mutationsReportByGene={
-                            this.props.store.mutationsReportByGene
-                        }
-                        oqlFilteredMutationsReport={
-                            this.props.store.oqlFilteredMutationsReport
-                        }
-                        oqlFilteredMolecularDataReport={
-                            this.props.store.oqlFilteredMolecularDataReport
-                        }
-                        oqlFilteredStructuralVariantsReport={
-                            this.props.store.oqlFilteredStructuralVariantsReport
-                        }
-                    />
-                    <CaseFilterWarning
-                        samples={this.props.store.samples}
-                        filteredSamples={this.props.store.filteredSamples}
-                        patients={this.props.store.patients}
-                        filteredPatients={this.props.store.filteredPatients}
-                        hideUnprofiledSamples={
-                            this.props.store.hideUnprofiledSamples
-                        }
-                    />
+                    <AlterationFilterWarning store={this.props.store} />
+                    <CaseFilterWarning store={this.props.store} />
                 </div>
                 <div
                     style={{

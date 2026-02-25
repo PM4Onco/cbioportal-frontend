@@ -14,7 +14,7 @@ export const colors = {
     sampleColorRecurrence: 'orange',
     sampleColorMetastasis: 'red',
     sampleColorCfdna: 'blue',
-    sampleColorOrganoid: 'paleVioletRed',
+    sampleColorXenograft: 'pink',
 };
 
 /**

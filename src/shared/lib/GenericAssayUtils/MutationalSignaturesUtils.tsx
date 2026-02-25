@@ -54,9 +54,7 @@ export const RESERVED_MUTATIONAL_SIGNATURE_COLORS: {
 };
 
 export function getColorByMutationalSignatureCategory(category: string) {
-    return (
-        RESERVED_MUTATIONAL_SIGNATURE_COLORS[category?.toLowerCase()] || '#000'
-    );
+    return RESERVED_MUTATIONAL_SIGNATURE_COLORS[category.toLowerCase()];
 }
 
 export function getVersionOption(version: string) {

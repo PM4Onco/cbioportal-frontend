@@ -4,6 +4,7 @@ import { observer } from 'mobx-react';
 import { ClinicalDataBySampleId } from 'cbioportal-ts-api-client';
 import _ from 'lodash';
 import { getSpanElementsFromCleanData } from '../clinicalInformation/lib/clinicalAttributesUtil';
+import { getMouseIcon } from '../SVGIcons';
 import { getSampleViewUrl } from 'shared/api/urls';
 import SignificantMutationalSignatures from '../patientHeader/SignificantMutationalSignatures';
 import { PatientViewPageStore } from '../clinicalInformation/PatientViewPageStore';
@@ -16,9 +17,6 @@ import {
 import { OtherBiomarkersQueryType } from 'oncokb-frontend-commons';
 import { OtherBiomarkerAnnotation } from '../oncokb/OtherBiomarkerAnnotation';
 import { IGenePanelModal } from 'pages/patientView/PatientViewPage';
-
-import mouseIcon from './mouse_icon.svg';
-import organoidIcon from './organoid_icon.svg';
 
 export type ISampleSummaryListProps = {
     sampleManager: SampleManager;
@@ -66,9 +64,7 @@ export default class SampleSummaryList extends React.Component<
         ) : null;
     }
 
-    private getDerivedNormalizedCaseType(
-        sample: ClinicalDataBySampleId
-    ): string | undefined {
+    private isPDX(sample: ClinicalDataBySampleId): boolean {
         return (
             this.props.sampleManager &&
             this.props.sampleManager.clinicalDataLegacyCleanAndDerived &&
@@ -77,16 +73,8 @@ export default class SampleSummaryList extends React.Component<
             ] &&
             this.props.sampleManager.clinicalDataLegacyCleanAndDerived[
                 sample.id
-            ].DERIVED_NORMALIZED_CASE_TYPE
+            ].DERIVED_NORMALIZED_CASE_TYPE === 'Xenograft'
         );
-    }
-
-    private isPDX(sample: ClinicalDataBySampleId): boolean {
-        return this.getDerivedNormalizedCaseType(sample) === 'Xenograft';
-    }
-
-    private isOrganoid(sample: ClinicalDataBySampleId): boolean {
-        return this.getDerivedNormalizedCaseType(sample) === 'Organoid';
     }
 
     public render() {
@@ -101,7 +89,6 @@ export default class SampleSummaryList extends React.Component<
                 }
 
                 const isPDX = this.isPDX(sample);
-                const isOrganoid = this.isOrganoid(sample);
 
                 return (
                     <div className="patientSample">
@@ -112,9 +99,8 @@ export default class SampleSummaryList extends React.Component<
                                 '',
                                 <span style={{ display: 'inline-flex' }}>
                                     {'\u00A0'}
-                                    {isPDX && <img src={mouseIcon} />}
-                                    {isOrganoid && <img src={organoidIcon} />}
-                                    {(isPDX || isOrganoid) && '\u00A0'}
+                                    {isPDX && getMouseIcon()}
+                                    {isPDX && '\u00A0'}
                                     <a
                                         href={getSampleViewUrl(
                                             this.props.patientViewPageStore

@@ -63,10 +63,6 @@ export default class OncoprinterTool extends React.Component<
     @observable geneOrderInput = '';
     @observable sampleOrderInput = '';
 
-    // jupyter incoming data
-    @observable mutations = '';
-    @observable studyIds = '';
-
     constructor(props: IOncoprinterToolProps) {
         super(props);
         makeObservable(this);
@@ -80,17 +76,11 @@ export default class OncoprinterTool extends React.Component<
             this.geneticDataInput = postData.genetic;
             this.clinicalDataInput = postData.clinical;
             this.heatmapDataInput = postData.heatmap;
-            this.studyIds = postData.studyIds;
-            this.mutations = postData.mutations;
-
             this.doSubmit(
                 this.geneticDataInput,
                 this.clinicalDataInput,
                 this.heatmapDataInput
             );
-
-            this.handleJupyterData(this.mutations, this.studyIds);
-
             getBrowserWindow().clientPostedData = null;
         }
     }
@@ -171,10 +161,6 @@ export default class OncoprinterTool extends React.Component<
         if (this.store.parseErrors.length === 0) {
             this.dataInputOpened = false;
         }
-    }
-
-    @action private handleJupyterData(mutations: string, studyIds: string) {
-        this.store.setJupyterInput(mutations, studyIds);
     }
 
     @autobind private geneticFileInputRef(input: HTMLInputElement | null) {

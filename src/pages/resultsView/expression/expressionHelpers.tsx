@@ -14,7 +14,7 @@ import {
     mutationRenderPriority,
     tooltipCnaSection,
     tooltipMutationsSection,
-} from 'shared/components/plots/PlotsTabUtils';
+} from '../plots/PlotsTabUtils';
 import { getJitterForCase } from '../../../shared/components/plots/PlotUtils';
 import * as React from 'react';
 import { getSampleViewUrl, getStudySummaryUrl } from '../../../shared/api/urls';

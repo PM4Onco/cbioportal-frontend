@@ -72,7 +72,6 @@ export type IFollowUpState = {
     deletions: IDeletions;
     loggedIn: boolean;
     permission: boolean;
-    admin: boolean;
     successfulSave: boolean;
 };
 
@@ -99,7 +98,6 @@ export default class FollowUpTable extends React.Component<
             deletions: props.deletions,
             loggedIn: false,
             permission: false,
-            admin: false,
             successfulSave: false,
         };
         makeObservable(this);
@@ -505,7 +503,6 @@ export default class FollowUpTable extends React.Component<
             console.log('checkPermission returned with ' + res);
             this.setState({ loggedIn: res[0] });
             this.setState({ permission: res[1] });
-            this.setState({ admin: res[2] });
         });
     }
 
@@ -629,7 +626,6 @@ export default class FollowUpTable extends React.Component<
             console.log('checkPermission returned with ' + res);
             this.setState({ loggedIn: res[0] });
             this.setState({ permission: res[1] });
-            this.setState({ permission: res[2] });
         });
     }
 }

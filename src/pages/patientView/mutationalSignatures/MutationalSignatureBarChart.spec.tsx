@@ -19,7 +19,6 @@ const sampleMutationalSignatureDataWithoutClass = [
         mutationalSignatureClass: '',
         version: 'v2',
         value: 15,
-        percentage: 90,
     },
     {
         uniqueSampleKey: 's09e3B34',
@@ -31,7 +30,6 @@ const sampleMutationalSignatureDataWithoutClass = [
         mutationalSignatureClass: '',
         version: 'v2',
         value: 12,
-        percentage: 90,
     },
     {
         uniqueSampleKey: 's09e3B34',
@@ -43,7 +41,6 @@ const sampleMutationalSignatureDataWithoutClass = [
         mutationalSignatureClass: '',
         version: 'v2',
         value: 20,
-        percentage: 90,
     },
 ];
 
@@ -58,7 +55,6 @@ const sampleMutationalSignatureData: IMutationalCounts[] = [
         mutationalSignatureClass: 'C>T',
         version: 'v2',
         value: 15,
-        percentage: 90,
     },
     {
         uniqueSampleKey: 's09e3B34',
@@ -70,7 +66,6 @@ const sampleMutationalSignatureData: IMutationalCounts[] = [
         mutationalSignatureClass: 'C>T',
         version: 'v2',
         value: 12,
-        percentage: 90,
     },
     {
         uniqueSampleKey: 's09e3B34',
@@ -82,7 +77,6 @@ const sampleMutationalSignatureData: IMutationalCounts[] = [
         mutationalSignatureClass: 'T>A',
         version: 'v2',
         value: 20,
-        percentage: 90,
     },
 ];
 
@@ -100,7 +94,6 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureClass: 'C>T',
                 version: 'v2',
                 value: 15,
-                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',
@@ -117,7 +110,6 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureClass: 'C>T',
                 version: 'v2',
                 value: 12,
-                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',
@@ -135,7 +127,6 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureClass: 'T>A',
                 version: 'v2',
                 value: 20,
-                percentage: 90,
                 colorValue: '#99A3A4',
                 subcategory: ' ',
                 sublabel: ' ',
@@ -159,7 +150,6 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureLabel: 'A[C>T]G',
                 version: 'v2',
                 value: 15,
-                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',
@@ -176,7 +166,6 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureLabel: 'A[C>T]G',
                 version: 'v2',
                 value: 12,
-                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',
@@ -194,7 +183,6 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureLabel: 'A[C>T]G',
                 version: 'v2',
                 value: 20,
-                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',

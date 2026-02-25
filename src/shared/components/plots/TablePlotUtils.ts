@@ -1,4 +1,4 @@
-import { IStringAxisData } from './PlotsTabUtils';
+import { IStringAxisData } from '../../../pages/resultsView/plots/PlotsTabUtils';
 import { Sample } from 'cbioportal-ts-api-client';
 function getUniqueSampleKeyToCategories(
     horzData: IStringAxisData['data'],

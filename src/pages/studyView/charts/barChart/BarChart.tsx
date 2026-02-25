@@ -168,7 +168,7 @@ export default class BarChart extends React.Component<IBarChartProps, {}>
 
     @computed
     get tickValuesBasedOnNA(): number[] {
-        if (this.props.showNAChecked || !this.numberOfNA) {
+        if (this.props.showNAChecked) {
             return this.tickValues;
         }
         const tickValuesWithoutNA = this.tickValues.slice(0, -this.numberOfNA);
@@ -274,7 +274,7 @@ export default class BarChart extends React.Component<IBarChartProps, {}>
 
     @computed
     get labelShowingNA(): JSX.Element | null {
-        if (!this.props.showNAChecked && this.numberOfNA) {
+        if (!this.props.showNAChecked) {
             const labelNA = this.barDataWithNA
                 .map((element: BarDatum) => element.dataBin.count)
                 .join(', ');

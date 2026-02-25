@@ -8,10 +8,7 @@ import ClinicalTrialMatchRecruitingSelect from './ClinicalTrialMatchRecruitingSe
 import ClinicalTrialMatchCountrySelect from './ClinicalTrialMatchCountrySelect';
 import ClinicalTrialMatchAgeSelect from './ClinicalTrialMatchAgeSelect';
 import { PatientViewPageStore } from '../clinicalInformation/PatientViewPageStore';
-import {
-    RecruitingStatus,
-    recruitingStatusOptions,
-} from 'shared/enums/ClinicalTrialsGovRecruitingStatus';
+import { RecruitingStatus } from 'shared/enums/ClinicalTrialsGovRecruitingStatus';
 import Select from 'react-select';
 import { components } from 'react-select';
 import Async, { useAsync } from 'react-select/async';
@@ -19,6 +16,7 @@ import AsyncSelect from 'react-select/async';
 import CreatableSelect from 'react-select/creatable';
 import oncoTreeTumorTypes from 'cbioportal-utils/src/model/OncoTreeTumorTypes';
 import {
+    recruitingValueNames,
     countriesNames,
     countriesGroups,
     genderNames,
@@ -65,7 +63,7 @@ interface IClinicalTrialOptionsMatchState {
     mutationNecSymbolItems: Array<string>;
     tumorEntityItems: Array<string>;
     countryItems: Array<string>;
-    recruitingItems: Array<RecruitingStatus>;
+    recruitingItems: Array<string>;
     gender: string;
     patientLocation: City;
     ageState: number;
@@ -79,6 +77,7 @@ class ClinicalTrialMatchTableOptions extends React.Component<
     IClinicalTrialOptionsMatchProps,
     IClinicalTrialOptionsMatchState
 > {
+    recruiting_values: RecruitingStatus[] = [];
     countries: Array<String>;
     countriesGroups: Array<String>;
     cancerTypes: Array<String>;
@@ -163,10 +162,7 @@ class ClinicalTrialMatchTableOptions extends React.Component<
             mutationNecSymbolItems: new Array<string>(),
             tumorEntityItems: this.tumorEntityDefault,
             countryItems: new Array<string>(),
-            recruitingItems: [
-                RecruitingStatus.Recruiting,
-                RecruitingStatus.NotYetRecruiting,
-            ],
+            recruitingItems: ['Recruiting', 'Not yet recruiting'],
             patientLocation: {
                 city: '',
                 lat: 0,
@@ -182,6 +178,8 @@ class ClinicalTrialMatchTableOptions extends React.Component<
             mutationsRequired: false,
         };
 
+        this.recruiting_values = recruitingValueNames;
+
         this.genders = genderNames;
         this.countries = countriesNames;
         this.countriesGroups = Object.keys(countriesGroups);
@@ -194,11 +192,23 @@ class ClinicalTrialMatchTableOptions extends React.Component<
             .sort();
     }
 
+    getRecruitingKeyFromValueString(value: string): RecruitingStatus {
+        for (let status of this.recruiting_values) {
+            if (status.toString() == value) {
+                return status;
+            }
+        }
+
+        return RecruitingStatus.Invalid;
+    }
+
     setSearchParams() {
         var symbols: string[] = this.state.mutationSymbolItems;
         var necSymbols: string[] = this.state.mutationNecSymbolItems;
         var tumorEntities: string[] = this.state.tumorEntityItems;
-        var recruiting_stati: RecruitingStatus[] = this.state.recruitingItems;
+        var recruiting_stati: RecruitingStatus[] = this.state.recruitingItems.map(
+            item => this.getRecruitingKeyFromValueString(item)
+        );
         var countries_to_search: string[] = this.state.countryItems;
         var gender: string = this.state.gender;
         var patientLocation = this.state.patientLocation;
@@ -230,10 +240,6 @@ class ClinicalTrialMatchTableOptions extends React.Component<
         console.log(necSymbols);
         console.log('dist');
     }
-
-    private handleRecruitingStatusChange = (statuses: RecruitingStatus[]) => {
-        this.setState({ recruitingItems: statuses });
-    };
 
     render() {
         return (
@@ -496,16 +502,30 @@ class ClinicalTrialMatchTableOptions extends React.Component<
                                     }}
                                 >
                                     <ClinicalTrialMatchRecruitingSelect
-                                        selected={this.state.recruitingItems}
-                                        options={recruitingStatusOptions}
+                                        data={this.state.recruitingItems}
+                                        options={this.recruiting_values.map(
+                                            recStatus => ({
+                                                label: recStatus,
+                                                value: recStatus,
+                                            })
+                                        )}
                                         isMulti
                                         name="recruitingStatusSearch"
                                         className="basic-multi-select"
                                         classNamePrefix="select"
                                         placeholder="Select status..."
-                                        onChange={
-                                            this.handleRecruitingStatusChange
-                                        }
+                                        onChange={(
+                                            selectedOption: Array<any>
+                                        ) => {
+                                            const newStatuses = [];
+                                            if (selectedOption !== null) {
+                                                const statuses = selectedOption;
+                                                newStatuses.push(...statuses);
+                                            }
+                                            this.setState({
+                                                recruitingItems: newStatuses,
+                                            });
+                                        }}
                                     />
                                 </tr>
                             </td>

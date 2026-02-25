@@ -162,14 +162,17 @@ export default class AnnotationColumnFormatter {
         uniqueSampleKeyToTumorType?: { [sampleId: string]: string },
         studyIdToStudy?: { [studyId: string]: CancerStudy }
     ): IndicatorQueryResp | undefined {
-        if (!uniqueSampleKeyToTumorType || !oncoKbData.indicatorMap) {
+        if (
+            uniqueSampleKeyToTumorType === null ||
+            oncoKbData.indicatorMap === null
+        ) {
             return undefined;
         }
 
         const id = generateQueryStructuralVariantId(
             structuralVariantData[0].site1EntrezGeneId,
             structuralVariantData[0].site2EntrezGeneId,
-            uniqueSampleKeyToTumorType[
+            uniqueSampleKeyToTumorType![
                 structuralVariantData[0].uniqueSampleKey
             ],
             deriveStructuralVariantType(structuralVariantData[0])

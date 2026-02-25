@@ -8,7 +8,6 @@ import { VirtualStudy } from 'shared/api/session-service/sessionServiceModels';
 
 export const CANCER_TYPE_ROOT = 'tissue';
 export const VIRTUAL_STUDY_NAME = 'My Virtual Studies';
-export const PUBLIC_VIRTUAL_STUDY_NAME = 'Public Virtual Studies';
 export const PHYSICAL_STUDY_NAME = 'Studies';
 
 export type CancerTypeWithVisibility = CancerType & {
@@ -64,16 +63,6 @@ export default class CancerStudyTreeData {
         alwaysVisible: true,
     };
 
-    publicVirtualStudyCategory: CancerTypeWithVisibility = {
-        id: 'public_virtual_studies_list',
-        dedicatedColor: '',
-        name: PUBLIC_VIRTUAL_STUDY_NAME,
-        parent: CANCER_TYPE_ROOT,
-        shortName: PUBLIC_VIRTUAL_STUDY_NAME,
-        cancerTypeId: PUBLIC_VIRTUAL_STUDY_NAME,
-        alwaysVisible: true,
-    };
-
     physicalStudyCategory: CancerTypeWithVisibility = {
         dedicatedColor: '',
         name: PHYSICAL_STUDY_NAME,
@@ -94,7 +83,6 @@ export default class CancerStudyTreeData {
         allStudyTags = [],
         priorityStudies = {},
         virtualStudies = [],
-        publicVirtualStudies = [],
         maxTreeDepth = 0,
     }: {
         cancerTypes: CancerTypeWithVisibility[];
@@ -102,7 +90,6 @@ export default class CancerStudyTreeData {
         allStudyTags: StudyTags[];
         priorityStudies?: CategorizedConfigItems;
         virtualStudies?: VirtualStudy[];
-        publicVirtualStudies?: VirtualStudy[];
         maxTreeDepth: number;
     }) {
         let nodes: CancerTreeNode[];
@@ -111,25 +98,6 @@ export default class CancerStudyTreeData {
 
         // sort by name
         cancerTypes = CancerStudyTreeData.sortNodes(cancerTypes);
-
-        //map public virtual study to cancer study
-        const _publicVirtualStudies = publicVirtualStudies.map(
-            publicVirtualStudy => {
-                return {
-                    allSampleCount: _.sumBy(
-                        publicVirtualStudy.data.studies,
-                        study => study.samples.length
-                    ),
-                    studyId: publicVirtualStudy.id,
-                    name: publicVirtualStudy.data.name,
-                    description: publicVirtualStudy.data.description,
-                    cancerTypeId:
-                        publicVirtualStudy.data.typeOfCancerId ||
-                        PUBLIC_VIRTUAL_STUDY_NAME,
-                    pmid: publicVirtualStudy.data.pmid,
-                } as CancerStudy;
-            }
-        );
 
         //map virtual study to cancer study
         const _virtualStudies = virtualStudies
@@ -172,7 +140,6 @@ export default class CancerStudyTreeData {
         }
         // add virtual study category, and studies
         cancerTypes = [
-            this.publicVirtualStudyCategory,
             this.virtualStudyCategory,
             this.physicalStudyCategory,
             ...this.priorityCategories,
@@ -180,7 +147,6 @@ export default class CancerStudyTreeData {
             ...cancerTypes,
         ];
         studies = CancerStudyTreeData.sortNodes([
-            ..._publicVirtualStudies,
             ..._virtualStudies,
             ...studies,
         ]);

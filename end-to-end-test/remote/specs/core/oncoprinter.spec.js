@@ -1,67 +1,60 @@
-const assert = require('assert');
-const {
+var assert = require('assert');
+var {
     waitForOncoprint,
     setOncoprintMutationsMenuOpen,
     goToUrlAndSetLocalStorage,
-    getElement,
-    isSelected,
-    clickElement,
-} = require('../../../shared/specUtils_Async');
+    setInputText,
+} = require('../../../shared/specUtils');
 
 const TIMEOUT = 6000;
+
+const ONCOPRINT_TIMEOUT = 60000;
+
 const CBIOPORTAL_URL = process.env.CBIOPORTAL_URL.replace(/\/$/, '');
 
-describe('oncoprinter tests', () => {
+describe('oncoprinter tests', function() {
     describe('custom driver annotation', () => {
-        const doTestWithCustomDriver = async () => {
-            await (
-                await getElement('.oncoprinterGeneticExampleData')
-            ).waitForExist();
-            await clickElement('.oncoprinterGeneticExampleData');
-            await clickElement('.oncoprinterSubmit');
-            await waitForOncoprint(TIMEOUT);
+        function doTestWithCustomDriver() {
+            $('.oncoprinterGeneticExampleData').waitForExist();
+            $('.oncoprinterGeneticExampleData').click();
+            $('.oncoprinterSubmit').click();
+            waitForOncoprint(TIMEOUT);
 
-            await setOncoprintMutationsMenuOpen(true);
-            assert(!(await isSelected('input[data-test="annotateOncoKb"]')));
-            assert(await isSelected('input[data-test="annotateCustomBinary"]'));
-        };
+            setOncoprintMutationsMenuOpen(true);
+            assert(!$('input[data-test="annotateOncoKb"]').isSelected());
+            assert($('input[data-test="annotateCustomBinary"]').isSelected());
+        }
 
-        const doTestWithoutCustomDriver = async () => {
-            await (
-                await getElement('.oncoprinterGeneticExampleData')
-            ).waitForExist();
-            await browser.execute(text => {
+        function doTestWithoutCustomDriver() {
+            $('.oncoprinterGeneticExampleData').waitForExist();
+            browser.execute(function(text) {
                 oncoprinterTool.onGeneticDataInputChange({
                     currentTarget: {
                         value: text,
                     },
                 });
             }, 'TCGA-25-2392-01 TP53 FUSION FUSION\nTCGA-04-1357-01 BRCA1 Q1538A MISSENSE');
-            await clickElement('.oncoprinterSubmit');
-            await waitForOncoprint(TIMEOUT);
+            $('.oncoprinterSubmit').click();
+            waitForOncoprint(TIMEOUT);
 
-            await setOncoprintMutationsMenuOpen(true);
-            assert(await isSelected('input[data-test="annotateOncoKb"]'));
-            assert(
-                !(await (
-                    await getElement('input[data-test="annotateCustomBinary"]')
-                ).isExisting())
-            );
-        };
+            setOncoprintMutationsMenuOpen(true);
+            assert($('input[data-test="annotateOncoKb"]').isSelected());
+            assert(!$('input[data-test="annotateCustomBinary"]').isExisting());
+        }
 
-        it('only custom driver annotation is selected when input data includes a custom driver', async () => {
-            await goToUrlAndSetLocalStorage(`${CBIOPORTAL_URL}/oncoprinter`);
-            await doTestWithCustomDriver();
+        it('only custom driver annotation is selected when input data includes a custom driver', () => {
+            goToUrlAndSetLocalStorage(`${CBIOPORTAL_URL}/oncoprinter`);
+            doTestWithCustomDriver();
         });
-        it('oncokb is selected, and custom driver button hidden, when input data does not include a custom driver', async () => {
-            await goToUrlAndSetLocalStorage(`${CBIOPORTAL_URL}/oncoprinter`);
-            await doTestWithoutCustomDriver();
+        it('oncokb is selected, and custom driver button hidden, when input data does not include a custom driver', () => {
+            goToUrlAndSetLocalStorage(`${CBIOPORTAL_URL}/oncoprinter`);
+            doTestWithoutCustomDriver();
         });
-        it('mutation annotation settings reset whenever oncoprint is submitted', async () => {
-            await goToUrlAndSetLocalStorage(`${CBIOPORTAL_URL}/oncoprinter`);
-            await doTestWithCustomDriver();
-            await clickElement('.oncoprinterModifyInput');
-            await doTestWithoutCustomDriver();
+        it('mutation annotation settings reset whenever oncoprint is submitted', () => {
+            goToUrlAndSetLocalStorage(`${CBIOPORTAL_URL}/oncoprinter`);
+            doTestWithCustomDriver();
+            $('.oncoprinterModifyInput').click();
+            doTestWithoutCustomDriver();
         });
     });
 });

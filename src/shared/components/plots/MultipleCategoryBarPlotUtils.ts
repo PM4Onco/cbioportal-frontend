@@ -1,4 +1,4 @@
-import { IStringAxisData } from './PlotsTabUtils';
+import { IStringAxisData } from '../../../pages/resultsView/plots/PlotsTabUtils';
 import _ from 'lodash';
 import { IMultipleCategoryBarPlotData } from '../../../pages/groupComparison/MultipleCategoryBarPlot';
 

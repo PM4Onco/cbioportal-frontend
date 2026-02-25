@@ -139,10 +139,7 @@ export interface IMutationTableProps {
     namespaceColumns?: NamespaceColumnConfig;
     data?: Mutation[][];
     dataStore?: ILazyMobXTableApplicationDataStore<Mutation[]>;
-    downloadDataFetcher?:
-        | ILazyMobXTableApplicationLazyDownloadDataFetcher
-        | (() => Promise<any>)
-        | undefined;
+    downloadDataFetcher?: ILazyMobXTableApplicationLazyDownloadDataFetcher;
     initialItemsPerPage?: number;
     itemsLabel?: string;
     itemsLabelPlural?: string;
@@ -1266,7 +1263,7 @@ export default class MutationTable<
                 </span>
             ),
             defaultSortDirection: 'desc',
-            visible: false,
+            visible: true,
             align: 'left',
         };
 
@@ -1352,7 +1349,7 @@ export default class MutationTable<
                 </span>
             ),
             defaultSortDirection: 'desc',
-            visible: false,
+            visible: true,
             align: 'right',
         };
 

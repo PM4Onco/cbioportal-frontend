@@ -1,36 +1,51 @@
 var assert = require('assert');
 
-const { goToUrlAndSetLocalStorage } = require('../../../shared/specUtils');
-const { assertScreenShotMatch } = require('../../../shared/lib/testUtils');
 const {
-    clickElement,
+    goToUrlAndSetLocalStorage,
+    checkOncoprintElement,
+    checkElementWithMouseDisabled,
     waitForNetworkQuiet,
-} = require('../../../shared/specUtils_Async');
+} = require('../../../shared/specUtils');
+const { assertScreenShotMatch } = require('../../../shared/lib/testUtils');
 
 const CBIOPORTAL_URL = process.env.CBIOPORTAL_URL.replace(/\/$/, '');
 
 describe('Patient Cohort View Custom Tab Tests', () => {
     const patientUrl = `${CBIOPORTAL_URL}/patient?studyId=coadread_tcga_pub&caseId=TCGA-A6-2670#navCaseIds=coadread_tcga_pub:TCGA-A6-2670,coadread_tcga_pub:TCGA-A6-2672`;
 
-    it('Patient page valid after cohort navigation', async () => {
-        await goToUrlAndSetLocalStorage(patientUrl);
+    it('Patient page valid after cohort navigation', function() {
+        goToUrlAndSetLocalStorage(patientUrl);
 
-        await waitForNetworkQuiet();
+        waitForNetworkQuiet();
 
-        await clickElement('.nextPageBtn');
+        $('.nextPageBtn').click();
 
-        await browser.pause(2000);
+        waitForNetworkQuiet();
 
-        const res = await browser.checkDocument();
+        var res = browser.checkDocument();
         assertScreenShotMatch(res);
 
         // now reload so that we get to the patient via direct initial load (not cohort navigation)
-        await browser.url(await browser.getUrl());
+        browser.url(browser.getUrl());
 
-        await waitForNetworkQuiet();
+        waitForNetworkQuiet();
 
         // check that it matches again
-        const res2 = await browser.checkDocument();
+        var res2 = browser.checkDocument();
         assertScreenShotMatch(res2);
     });
 });
+
+// describe('patient page', function() {
+//     before(() => {
+//         goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
+//     });
+//
+//     it('should show all samples button for single sample view of multi sample patient', function() {
+//         goToUrlAndSetLocalStorage(
+//             `${CBIOPORTAL_URL}/patient?studyId=lgg_ucsf_2014&tab=summaryTab&sampleId=P04_Pri`
+//         );
+//
+//         checkElementWithMouseDisabled();
+//     });
+// });

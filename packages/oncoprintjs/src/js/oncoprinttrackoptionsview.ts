@@ -1,13 +1,13 @@
 import $ from 'jquery';
 import menuDotsIcon from '../img/menudots.svg';
 import OncoprintModel, {
-    GAP_MODE_ENUM,
+    TrackGroupProp,
     TrackId,
     TrackProp,
     TrackSortDirection,
 } from './oncoprintmodel';
-import { CLOSE_MENUS_EVENT as HEADER_VIEW_CLOSE_MENUS_EVENT } from './oncoprintheaderview';
 import ClickEvent = JQuery.ClickEvent;
+import { CLOSE_MENUS_EVENT as HEADER_VIEW_CLOSE_MENUS_EVENT } from './oncoprintheaderview';
 
 const TOGGLE_BTN_CLASS = 'oncoprintjs__track_options__toggle_btn_img';
 const TOGGLE_BTN_OPEN_CLASS = 'oncoprintjs__track_options__open';
@@ -44,10 +44,7 @@ export default class OncoprintTrackOptionsView {
             sortDirection: TrackSortDirection
         ) => void,
         private unexpandCallback: TrackCallback,
-        private showGapsCallback: (
-            trackId: TrackId,
-            showGaps: GAP_MODE_ENUM
-        ) => void
+        private showGapsCallback: (trackId: TrackId, showGaps: boolean) => void
     ) {
         const position = $div.css('position');
         if (position !== 'absolute' && position !== 'relative') {
@@ -451,51 +448,31 @@ export default class OncoprintTrackOptionsView {
             $dropdown.append(
                 OncoprintTrackOptionsView.$makeDropdownSeparator()
             );
-
-            const $show_gaps_percent_opt = OncoprintTrackOptionsView.$makeDropdownOption(
-                model.getTrackShowGaps(track_id) ===
-                    GAP_MODE_ENUM.SHOW_GAPS_PERCENT
-                    ? 'Hide gaps (w/%)'
-                    : 'Show Gaps (w/%)',
-                model.getTrackShowGaps(track_id) ===
-                    GAP_MODE_ENUM.SHOW_GAPS_PERCENT
-                    ? 'bold'
-                    : 'normal',
-                false,
-                function(evt) {
-                    evt.stopPropagation();
-                    $show_gaps_opt.css('font-weight', 'bold');
-                    const mode: GAP_MODE_ENUM = [
-                        GAP_MODE_ENUM.SHOW_GAPS_PERCENT,
-                    ].includes(model.getTrackShowGaps(track_id))
-                        ? GAP_MODE_ENUM.HIDE_GAPS
-                        : GAP_MODE_ENUM.SHOW_GAPS_PERCENT;
-                    self.showGapsCallback(track_id, mode);
-                }
-            );
-
             const $show_gaps_opt = OncoprintTrackOptionsView.$makeDropdownOption(
-                model.getTrackShowGaps(track_id) === GAP_MODE_ENUM.SHOW_GAPS
-                    ? 'Hide gaps'
-                    : 'Show Gaps',
-                model.getTrackShowGaps(track_id) === GAP_MODE_ENUM.SHOW_GAPS
-                    ? 'bold'
-                    : 'normal',
+                'Show gaps',
+                model.getTrackShowGaps(track_id) ? 'bold' : 'normal',
                 false,
                 function(evt) {
                     evt.stopPropagation();
                     $show_gaps_opt.css('font-weight', 'bold');
-                    const mode: GAP_MODE_ENUM = [
-                        GAP_MODE_ENUM.SHOW_GAPS,
-                    ].includes(model.getTrackShowGaps(track_id))
-                        ? GAP_MODE_ENUM.HIDE_GAPS
-                        : GAP_MODE_ENUM.SHOW_GAPS;
-                    self.showGapsCallback(track_id, mode);
+                    $dont_show_gaps_opt.css('font-weight', 'normal');
+                    self.showGapsCallback(track_id, true);
                 }
             );
+            const $dont_show_gaps_opt = OncoprintTrackOptionsView.$makeDropdownOption(
+                "Don't show gaps",
+                model.getTrackShowGaps(track_id) ? 'normal' : 'bold',
+                false,
+                function(evt) {
+                    evt.stopPropagation();
 
+                    $show_gaps_opt.css('font-weight', 'normal');
+                    $dont_show_gaps_opt.css('font-weight', 'bold');
+                    self.showGapsCallback(track_id, false);
+                }
+            );
             $dropdown.append($show_gaps_opt);
-            $dropdown.append($show_gaps_percent_opt);
+            $dropdown.append($dont_show_gaps_opt);
         }
         // Add custom options
         const custom_options = model.getTrackCustomOptions(track_id);

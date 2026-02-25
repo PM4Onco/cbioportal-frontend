@@ -92,15 +92,14 @@ export function patientViewTabs(
                 <HelpWidget path={urlWrapper.routing.location.pathname} />
             }
         >
-            {tabs(pageInstance, sampleManager, urlWrapper)}
+            {tabs(pageInstance, sampleManager)}
         </MSKTabs>
     );
 }
 
 export function tabs(
     pageComponent: PatientViewPageInner,
-    sampleManager: SampleManager | null,
-    urlWrapper: PatientViewUrlWrapper
+    sampleManager: SampleManager | null
 ) {
     const tabs: JSX.Element[] = [];
     tabs.push(
@@ -833,7 +832,7 @@ export function tabs(
                     }
                     samples={
                         pageComponent.patientViewPageStore
-                            .samplesWithDataAvailable
+                            .samplesWithCountDataAvailable
                     }
                     samplesNotProfiled={
                         pageComponent.patientViewPageStore
@@ -886,22 +885,6 @@ export function tabs(
         tabs.push(...pageComponent.resourceTabs.component);
 
     tabs.push(...buildCustomTabs(pageComponent.customTabs));
-
-    const patientCustomTabs = (getServerConfig().custom_tabs || [])
-        .filter((tab: any) => tab.location === 'PATIENT_PAGE')
-        .map((tab: any, i: number) => (
-            <MSKTab
-                key={getPatientViewResourceTabId('customTab' + i)}
-                id={getPatientViewResourceTabId('customTab' + i)}
-                unmountOnHide={tab.unmountOnHide === true}
-                onTabDidMount={div => {
-                    this.customTabMountCallback(div, tab);
-                }}
-                linkText={tab.title}
-            ></MSKTab>
-        ));
-
-    tabs.push(...patientCustomTabs);
 
     return tabs;
 }

@@ -71,27 +71,37 @@ const promiseOptions = (
         // TODO better to separate this call to a configurable client
         request
             .get(
-                'https://clinicaltrials.gov/api/v2/studies/' +
+                'https://www.clinicaltrials.gov/api/query/study_fields?expr=' +
                     inputValue +
-                    '?format=json&fields=BriefTitle%7CNCTId'
+                    '&fields=NCTId%2CBriefTitle%2COfficialTitle&min_rnk=1&max_rnk=5&fmt=json'
             )
             .end((err, res) => {
                 if (!err && res.ok) {
                     const response = JSON.parse(res.text);
-                    const result =
-                        response.protocolSection.identificationModule;
+                    const result = response.StudyFieldsResponse;
                     console.group('Result from ClinicalTrials.gov');
                     console.log(response);
                     console.groupEnd();
-                    return callback([
-                        {
-                            value: {
-                                name: result.briefTitle,
-                                id: result.nctId,
-                            },
-                            label: result.nctId + ': ' + result.briefTitle,
-                        } as MyOption,
-                    ]);
+                    const trialResults = result.StudyFields;
+                    const ret: MyOption[] = trialResults.map(
+                        (trialResult: {
+                            OfficialTitle: string[];
+                            BriefTitle: string[];
+                            NCTId: string[];
+                            Rank: number;
+                        }) => {
+                            const trialName = trialResult.BriefTitle[0];
+                            const trialId = trialResult.NCTId[0];
+                            return {
+                                value: {
+                                    name: trialName,
+                                    id: trialId,
+                                },
+                                label: trialId + ': ' + trialName,
+                            } as MyOption;
+                        }
+                    );
+                    return callback(ret);
                 } else {
                     const errClinicalTrial = {
                         id: '',
