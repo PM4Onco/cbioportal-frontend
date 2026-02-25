@@ -119,9 +119,7 @@ export default class MutualExclusivityTab extends React.Component<
                             <div className={'tabMessageContainer'}>
                                 <OqlStatusBanner
                                     className="mutex-oql-status-banner"
-                                    queryContainsOql={
-                                        this.props.store.queryContainsOql
-                                    }
+                                    store={this.props.store}
                                     tabReflectsOql={true}
                                 />
                                 {this.filteredTrackOqls.length > 0 && (
@@ -133,43 +131,9 @@ export default class MutualExclusivityTab extends React.Component<
                                     </div>
                                 )}
                                 <AlterationFilterWarning
-                                    driverAnnotationSettings={
-                                        this.props.store
-                                            .driverAnnotationSettings
-                                    }
-                                    includeGermlineMutations={
-                                        this.props.store
-                                            .includeGermlineMutations
-                                    }
-                                    mutationsReportByGene={
-                                        this.props.store.mutationsReportByGene
-                                    }
-                                    oqlFilteredMutationsReport={
-                                        this.props.store
-                                            .oqlFilteredMutationsReport
-                                    }
-                                    oqlFilteredMolecularDataReport={
-                                        this.props.store
-                                            .oqlFilteredMolecularDataReport
-                                    }
-                                    oqlFilteredStructuralVariantsReport={
-                                        this.props.store
-                                            .oqlFilteredStructuralVariantsReport
-                                    }
+                                    store={this.props.store}
                                 />
-                                <CaseFilterWarning
-                                    samples={this.props.store.samples}
-                                    filteredSamples={
-                                        this.props.store.filteredSamples
-                                    }
-                                    patients={this.props.store.patients}
-                                    filteredPatients={
-                                        this.props.store.filteredPatients
-                                    }
-                                    hideUnprofiledSamples={
-                                        this.props.store.hideUnprofiledSamples
-                                    }
-                                />
+                                <CaseFilterWarning store={this.props.store} />
                             </div>
                         )}
 
@@ -214,40 +178,9 @@ export default class MutualExclusivityTab extends React.Component<
                         )}
                         {this.props.store && [
                             <AlterationFilterWarning
-                                driverAnnotationSettings={
-                                    this.props.store.driverAnnotationSettings
-                                }
-                                includeGermlineMutations={
-                                    this.props.store.includeGermlineMutations
-                                }
-                                mutationsReportByGene={
-                                    this.props.store.mutationsReportByGene
-                                }
-                                oqlFilteredMutationsReport={
-                                    this.props.store.oqlFilteredMutationsReport
-                                }
-                                oqlFilteredMolecularDataReport={
-                                    this.props.store
-                                        .oqlFilteredMolecularDataReport
-                                }
-                                oqlFilteredStructuralVariantsReport={
-                                    this.props.store
-                                        .oqlFilteredStructuralVariantsReport
-                                }
+                                store={this.props.store}
                             />,
-                            <CaseFilterWarning
-                                samples={this.props.store.samples}
-                                filteredSamples={
-                                    this.props.store.filteredSamples
-                                }
-                                patients={this.props.store.patients}
-                                filteredPatients={
-                                    this.props.store.filteredPatients
-                                }
-                                hideUnprofiledSamples={
-                                    this.props.store.hideUnprofiledSamples
-                                }
-                            />,
+                            <CaseFilterWarning store={this.props.store} />,
                         ]}
                     </div>
                 );

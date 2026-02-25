@@ -24,11 +24,7 @@ export class AppStore {
 
             if (error.status && /400|500|5\d\d|403/.test(error.status)) {
                 sendSentryMessage('ERROR DIALOG SHOWN:' + error);
-                if (error instanceof Error) {
-                    this.siteErrors.push(new SiteError(error));
-                } else {
-                    this.siteErrors.push(new SiteError(new Error(error)));
-                }
+                this.siteErrors.push(new SiteError(new Error(error)));
             }
         });
     }

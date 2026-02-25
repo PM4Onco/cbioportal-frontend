@@ -1,73 +1,66 @@
-const assert = require('assert');
-const {
-    goToUrlAndSetLocalStorage,
-    getElementByTestHandle,
-    waitForNetworkQuiet,
-    getElement,
-    getText,
-    clickElement,
-} = require('../../../shared/specUtils_Async');
-
+var assert = require('assert');
+const { getElementByTestHandle } = require('../../../shared/specUtils');
+var expect = require('chai').expect;
+var goToUrlAndSetLocalStorage = require('../../../shared/specUtils')
+    .goToUrlAndSetLocalStorage;
+var checkOncoprintElement = require('../../../shared/specUtils')
+    .checkOncoprintElement;
+var waitForNetworkQuiet = require('../../../shared/specUtils')
+    .waitForNetworkQuiet;
+var assertScreenShotMatch = require('../../../shared/lib/testUtils')
+    .assertScreenShotMatch;
 const CBIOPORTAL_URL = process.env.CBIOPORTAL_URL.replace(/\/$/, '');
 
 describe('Patient View Genomic Evolution tab', function() {
     describe('mutation table', () => {
-        it('shows only highlighted, or all mutations, depending on setting', async () => {
-            await goToUrlAndSetLocalStorage(
+        it('shows only highlighted, or all mutations, depending on setting', () => {
+            goToUrlAndSetLocalStorage(
                 `${CBIOPORTAL_URL}/patient/genomicEvolution?caseId=P04&studyId=lgg_ucsf_2014`
             );
-            await waitForNetworkQuiet(10000);
+            waitForNetworkQuiet(10000);
             // at first, showing all mutations
-            await getElement('input[data-test="TableShowOnlyHighlighted"]', {
+            $('input[data-test="TableShowOnlyHighlighted"]').waitForExist({
                 timeout: 3000,
             });
             assert(
-                !(await (
-                    await getElement(
-                        'input[data-test="TableShowOnlyHighlighted"]'
-                    )
-                ).isSelected())
+                !$('input[data-test="TableShowOnlyHighlighted"]').isSelected()
             );
 
             // at first, more than 2 mutations (making this ambiguous to be unaffected by data changes
-            await (
-                await getElement(
-                    'div[data-test="GenomicEvolutionMutationTable"] span[data-test="LazyMobXTable_CountHeader"]'
-                )
-            ).waitForExist();
-            let numMutationsText = await getText(
+            $(
                 'div[data-test="GenomicEvolutionMutationTable"] span[data-test="LazyMobXTable_CountHeader"]'
-            );
+            ).waitForExist();
+            let numMutationsText = $(
+                'div[data-test="GenomicEvolutionMutationTable"] span[data-test="LazyMobXTable_CountHeader"]'
+            ).getText();
             let numMutations = parseInt(numMutationsText, 10);
             assert(numMutations > 2);
 
             // now select two mutations
-            await clickElement(
+            $(
                 'div[data-test="GenomicEvolutionMutationTable"] table tbody > tr:nth-child(1)'
-            );
-            await clickElement(
+            ).click();
+            $(
                 'div[data-test="GenomicEvolutionMutationTable"] table tbody > tr:nth-child(4)'
-            );
+            ).click();
 
             // should still show all
-            await (
-                await getElement(
-                    'div[data-test="GenomicEvolutionMutationTable"] span[data-test="LazyMobXTable_CountHeader"]'
-                )
-            ).waitForExist();
-            numMutationsText = await getText(
+            $(
                 'div[data-test="GenomicEvolutionMutationTable"] span[data-test="LazyMobXTable_CountHeader"]'
-            );
+            ).waitForExist();
+            numMutationsText = $(
+                'div[data-test="GenomicEvolutionMutationTable"] span[data-test="LazyMobXTable_CountHeader"]'
+            ).getText();
             numMutations = parseInt(numMutationsText, 10);
             assert(numMutations > 2);
 
             // now select "show only highlighted"
-            await clickElement('input[data-test="TableShowOnlyHighlighted"]');
-            await browser.waitUntil(
-                async () => {
-                    numMutationsText = await getText(
+            $('input[data-test="TableShowOnlyHighlighted"]').click();
+            browser.waitUntil(
+                () => {
+                    numMutationsText = $(
                         'div[data-test="GenomicEvolutionMutationTable"] span[data-test="LazyMobXTable_CountHeader"]'
-                    );
+                    ).getText();
                     numMutations = parseInt(numMutationsText, 10);
                     return numMutations === 2;
                 },
@@ -76,14 +69,14 @@ describe('Patient View Genomic Evolution tab', function() {
             );
 
             // now click on one of the 2 mutations
-            await clickElement(
+            $(
                 'div[data-test="GenomicEvolutionMutationTable"] table tbody > tr:nth-child(1)'
-            );
-            await browser.waitUntil(
-                async () => {
-                    numMutationsText = await getText(
+            ).click();
+            browser.waitUntil(
+                () => {
+                    numMutationsText = $(
                         'div[data-test="GenomicEvolutionMutationTable"] span[data-test="LazyMobXTable_CountHeader"]'
-                    );
+                    ).getText();
                     numMutations = parseInt(numMutationsText, 10);
                     return numMutations === 1;
                 },
@@ -92,14 +85,14 @@ describe('Patient View Genomic Evolution tab', function() {
             );
 
             // now click on the last remaining mutation
-            await clickElement(
+            $(
                 'div[data-test="GenomicEvolutionMutationTable"] table tbody > tr:nth-child(1)'
-            );
-            await browser.waitUntil(
-                async () => {
-                    numMutationsText = await getText(
+            ).click();
+            browser.waitUntil(
+                () => {
+                    numMutationsText = $(
                         'div[data-test="GenomicEvolutionMutationTable"] span[data-test="LazyMobXTable_CountHeader"]'
-                    );
+                    ).getText();
                     numMutations = parseInt(numMutationsText, 10);
                     return numMutations > 2;
                 },
@@ -108,15 +101,14 @@ describe('Patient View Genomic Evolution tab', function() {
             );
         });
 
-        it('force sequential mode when samples have no equivalent clincal events', async () => {
-            await goToUrlAndSetLocalStorage(
+        it('force sequential mode when samples have no equivalent clincal events', () => {
+            goToUrlAndSetLocalStorage(
                 `${CBIOPORTAL_URL}/patient/genomicEvolution?studyId=nsclc_ctdx_msk_2022&caseId=P-0016223`
             );
 
+            getElementByTestHandle('VAFChartControls').waitForExist();
             assert.equal(
-                await (
-                    await getElementByTestHandle('VAFSequentialMode')
-                ).isExisting(),
+                getElementByTestHandle('VAFSequentialMode').isExisting(),
                 false,
                 'SequentialModel Check Box should not exists if not possible.'
             );

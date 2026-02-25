@@ -88,10 +88,7 @@ export type LazyMobXTableProps<T> = {
     columns: Column<T>[];
     data?: T[];
     dataStore?: ILazyMobXTableApplicationDataStore<T>;
-    downloadDataFetcher?:
-        | ILazyMobXTableApplicationLazyDownloadDataFetcher
-        | (() => Promise<any>)
-        | undefined;
+    downloadDataFetcher?: ILazyMobXTableApplicationLazyDownloadDataFetcher;
     initialSortColumn?: string;
     initialSortDirection?: SortDirection;
     initialItemsPerPage?: number;
@@ -137,12 +134,6 @@ type HeaderGroup = {
     name: string;
     cardinality: number;
     first_index: number;
-    onFilterTextChange?: (filterString: string) => void;
-    onSortDirectionChange?: (field: string, direction: SortDirection) => void;
-    isResultLimited?: boolean;
-    resultCountOverride?: number;
-    showLoading?: boolean;
-    loadingComponent?: JSX.Element;
 };
 
 function compareValues<U extends number | string>(
@@ -302,16 +293,11 @@ export class LazyMobXTableStore<T> {
     @observable public headerRefs: React.RefObject<any>[];
     @observable public downloadDataFetcher:
         | ILazyMobXTableApplicationLazyDownloadDataFetcher
-        | undefined
-        | (() => Promise<any>)
         | undefined;
     @observable private onRowClick: ((d: T, i: number) => void) | undefined;
     @observable private onRowMouseEnter: ((d: T) => void) | undefined;
     @observable private onRowMouseLeave: ((d: T) => void) | undefined;
     @observable private rowColorFunc: ((d: T) => string) | undefined;
-
-    @observable resultCountOverride: number | undefined;
-    // now we need to use this in control if passed in. maybe call it override
 
     // this observable is intended to always refer to props.columnToHeaderFilterIconModal
     @observable private _columnToHeaderFilterIconModal:
@@ -326,8 +312,6 @@ export class LazyMobXTableStore<T> {
     @observable private _columnVisibilityOverride:
         | { [columnId: string]: boolean }
         | undefined;
-
-    @observable private onSortDirectionChange: any;
 
     @computed public get itemsPerPage() {
         return this.dataStore.itemsPerPage;
@@ -471,26 +455,12 @@ export class LazyMobXTableStore<T> {
 
     @action
     public defaultHeaderClick(column: Column<T>) {
-        const sortAscending = this.getNextSortAscending(column);
+        this.sortAscending = this.getNextSortAscending(column);
+        this.dataStore.sortAscending = this.sortAscending;
 
-        if (this.onSortDirectionChange) {
-            // even though are tracking sort direction in parent store
-            // we unfortunately still need keep these properties in sync
-            // a larger refactor would be necessary
-            this.sortAscending = !this.sortAscending;
-            this.sortColumn = column.name;
-            this.onSortDirectionChange(
-                column.name,
-                this.sortAscending ? 'asc' : 'desc'
-            );
-        } else {
-            this.sortAscending = sortAscending;
-            this.dataStore.sortAscending = sortAscending;
-
-            this.sortColumn = column.name;
-            this.dataStore.sortMetric = this.sortMetric;
-            this.page = 0;
-        }
+        this.sortColumn = column.name;
+        this.dataStore.sortMetric = this.sortMetric;
+        this.page = 0;
     }
 
     @computed
@@ -763,10 +733,7 @@ export class LazyMobXTableStore<T> {
             itemsLabel = ` ${itemsLabel}`;
         }
 
-        // this allows us override the count for display purposes when we are in the
-        // result limited scenario
-        const total = this.resultCountOverride || this.displayData.length;
-        return `Showing ${firstVisibleItemDisp}-${lastVisibleItemDisp} of ${total}${itemsLabel}`;
+        return `Showing ${firstVisibleItemDisp}-${lastVisibleItemDisp} of ${this.displayData.length}${itemsLabel}`;
     }
 
     @computed
@@ -946,9 +913,6 @@ export class LazyMobXTableStore<T> {
         this.onRowMouseEnter = props.onRowMouseEnter;
         this.onRowMouseLeave = props.onRowMouseLeave;
         this.rowColorFunc = props.rowColorFunc;
-        this.onSortDirectionChange = props.onSortDirectionChange;
-
-        this.resultCountOverride = props.resultCountOverride;
 
         if (props.dataStore) {
             this.dataStore = props.dataStore;
@@ -1073,32 +1037,23 @@ export default class LazyMobXTable<T> extends React.Component<
             // we need to download all the lazy data before initiating the download process.
             if (this.store.downloadDataFetcher) {
                 // populate the cache instances with all available data for the lazy loaded columns
-                if (typeof this.store.downloadDataFetcher === 'function') {
-                    this.store.downloadDataFetcher().then(data => {
+                this.store.downloadDataFetcher
+                    .fetchAndCacheAllLazyData()
+                    .then(() => {
+                        // we don't use allData directly,
+                        // we rely on the data cached by the download data fetcher
                         resolve({
                             status: 'complete',
-                            text: JSON.stringify(data),
+                            text: this.getDownloadData(),
+                        });
+                    })
+                    .catch(() => {
+                        // even if loading of all lazy data fails, resolve with partial data
+                        resolve({
+                            status: 'incomplete',
+                            text: this.getDownloadData(),
                         });
                     });
-                } else {
-                    this.store.downloadDataFetcher
-                        .fetchAndCacheAllLazyData()
-                        .then(() => {
-                            // we don't use allData directly,
-                            // we rely on the data cached by the download data fetcher
-                            resolve({
-                                status: 'complete',
-                                text: this.getDownloadData(),
-                            });
-                        })
-                        .catch(() => {
-                            // even if loading of all lazy data fails, resolve with partial data
-                            resolve({
-                                status: 'incomplete',
-                                text: this.getDownloadData(),
-                            });
-                        });
-                }
             }
             // no lazy data to preload, just return the current download data
             else {
@@ -1122,9 +1077,7 @@ export default class LazyMobXTable<T> extends React.Component<
         this.handlers = {
             onFilterTextChange: (() => {
                 return inputBoxChangeTimeoutEvent(filterValue => {
-                    props.onFilterTextChange
-                        ? props.onFilterTextChange(filterValue)
-                        : this.store.setFilterString(filterValue);
+                    this.store.setFilterString(filterValue);
                 }, 400);
             })(),
             clearFilterText: () => {
@@ -1292,12 +1245,10 @@ export default class LazyMobXTable<T> extends React.Component<
                 this.props.paginationProps
             );
         }
-
-        return this.store.displayData.length > 0 ? (
-            <PaginationControls {...paginationProps} />
-        ) : (
-            <></>
-        );
+        return <PaginationControls {...paginationProps} />;
+        // } else {
+        //     return null;
+        // }
     }
 
     private get countHeader() {
@@ -1310,10 +1261,8 @@ export default class LazyMobXTable<T> extends React.Component<
                     fontWeight: 'bold',
                 }}
             >
-                {this.store.displayData.length} {this.store.itemsLabel}
-                {this.store.maxPage + 1 > 1 &&
-                    ` (page ${this.store.page + 1} of ${this.store.maxPage +
-                        1})`}
+                {this.store.displayData.length} {this.store.itemsLabel} (page{' '}
+                {this.store.page + 1} of {this.store.maxPage + 1})
             </h3>
         ) : (
             <span
@@ -1325,10 +1274,8 @@ export default class LazyMobXTable<T> extends React.Component<
                     fontWeight: 'bold',
                 }}
             >
-                {this.store.displayData.length} {this.store.itemsLabel}
-                {this.store.maxPage + 1 > 1 &&
-                    ` (page ${this.store.page + 1} of ${this.store.maxPage +
-                        1})`}
+                {this.store.displayData.length} {this.store.itemsLabel} (page{' '}
+                {this.store.page + 1} of {this.store.maxPage + 1})
             </span>
         );
     }
@@ -1466,16 +1413,6 @@ export default class LazyMobXTable<T> extends React.Component<
                     className={this.props.className}
                     headerGroups={this.store.headerGroups}
                 />
-                {(this.props.showLoading && this.props.loadingComponent) ||
-                    null}
-
-                <span style={{ opacity: this.props.showLoading ? 0.1 : 1.0 }}>
-                    <SimpleTable
-                        headers={this.store.headers}
-                        rows={this.store.rows}
-                        className={this.props.className}
-                    />
-                </span>
             </div>
         );
     }
@@ -1485,17 +1422,6 @@ export default class LazyMobXTable<T> extends React.Component<
             <div className="lazy-mobx-table" data-test="LazyMobXTable">
                 <Observer>{this.getTopToolbar}</Observer>
                 <Observer>{this.getTable}</Observer>
-                {this.props.isResultLimited &&
-                    this.store.maxPage > 0 &&
-                    this.store.page === this.store.maxPage && (
-                        <div className={'text-center alert alert-info'}>
-                            <strong>
-                                You've reached the maximum viewable records.{' '}
-                                <br />
-                                Please use filter or sort to refine result set.
-                            </strong>
-                        </div>
-                    )}
                 {!this.props.showPaginationAtTop && (
                     <Observer>{this.getBottomToolbar}</Observer>
                 )}

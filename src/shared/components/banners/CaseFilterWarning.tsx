@@ -1,15 +1,11 @@
 import * as React from 'react';
 import { observer } from 'mobx-react';
+import { ResultsViewPageStore } from '../../../pages/resultsView/ResultsViewPageStore';
 import { MakeMobxView } from '../MobxView';
-import { MobxPromise, pluralize } from 'cbioportal-frontend-commons';
-import { Patient, Sample } from 'cbioportal-ts-api-client';
+import { pluralize } from 'cbioportal-frontend-commons';
 
 export interface ICaseFilterWarningProps {
-    samples: MobxPromise<Sample[]>;
-    filteredSamples: MobxPromise<Sample[]>;
-    patients: MobxPromise<Patient[]>;
-    filteredPatients: MobxPromise<Patient[]>;
-    hideUnprofiledSamples: false | 'any' | 'totally';
+    store: ResultsViewPageStore;
     isPatientMode?: boolean;
     isUnaffected?: boolean;
 }
@@ -21,22 +17,22 @@ export default class CaseFilterWarning extends React.Component<
 > {
     readonly sampleWarning = MakeMobxView({
         await: () => [
-            this.props.samples,
-            this.props.filteredSamples,
-            this.props.patients,
-            this.props.filteredPatients,
+            this.props.store.samples,
+            this.props.store.filteredSamples,
+            this.props.store.patients,
+            this.props.store.filteredPatients,
         ],
         render: () => {
             let nFiltered: number;
             if (this.props.isPatientMode) {
-                const nPatients = this.props.patients.result!.length;
-                const nFilteredPatients = this.props.filteredPatients.result!
-                    .length;
+                const nPatients = this.props.store.patients.result!.length;
+                const nFilteredPatients = this.props.store.filteredPatients
+                    .result!.length;
                 nFiltered = nPatients - nFilteredPatients;
             } else {
-                const nSamples = this.props.samples.result!.length;
-                const nFilteredSamples = this.props.filteredSamples.result!
-                    .length;
+                const nSamples = this.props.store.samples.result!.length;
+                const nFilteredSamples = this.props.store.filteredSamples
+                    .result!.length;
                 nFiltered = nSamples - nFilteredSamples;
             }
             if (nFiltered === 0) {
@@ -47,7 +43,7 @@ export default class CaseFilterWarning extends React.Component<
             const it = nFiltered === 1 ? 'it' : 'they';
 
             let allOrAny;
-            switch (this.props.hideUnprofiledSamples) {
+            switch (this.props.store.hideUnprofiledSamples) {
                 // The language is confusing here... if `hideUnprofiledSamples` is `any`, that means that we
                 //  filter out samples if they are unprofiled in "any" genes or profiles. This corresponds to
                 //  filtering out samples that are not profiled for "all" queried genes and profiles. If `hideUnprofiledSamples`

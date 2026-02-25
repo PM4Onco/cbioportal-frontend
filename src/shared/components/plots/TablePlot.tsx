@@ -10,7 +10,10 @@ import {
     VictoryLegend,
     VictoryScatter,
 } from 'victory';
-import { IStringAxisData, tableCellTextColor } from './PlotsTabUtils';
+import {
+    IStringAxisData,
+    tableCellTextColor,
+} from '../../../pages/resultsView/plots/PlotsTabUtils';
 import { StringListIndexedMap } from '../../lib/ListIndexedMap';
 import naturalSort from 'javascript-natural-sort';
 import * as d3Scale from 'd3-scale';

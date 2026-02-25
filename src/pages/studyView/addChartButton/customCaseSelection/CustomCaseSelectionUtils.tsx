@@ -1,4 +1,4 @@
-import _, { uniq } from 'lodash';
+import _ from 'lodash';
 import { Sample } from 'cbioportal-ts-api-client';
 import { ClinicalDataType, ClinicalDataTypeEnum } from '../../StudyViewUtils';
 import Pluralize from 'pluralize';
@@ -132,7 +132,6 @@ export function validateLines(
 
     let occurrence: { [key: string]: number } = {};
     let validLines: { [key: string]: InputLine } = {};
-    let multiStudyCases: string[] = [];
 
     // Remove all dups, not necessary to mention in the message
     _.reduce(
@@ -141,34 +140,27 @@ export function validateLines(
         }),
         (acc, line) => {
             let _case = '';
-            let validLine = false;
-            let newLines: InputLine[] = [];
+            let validLine = true;
             if (line.studyId === undefined || line.studyId === '') {
-                let validCaseCount = 0;
-                selectedStudies.map(studyId => {
-                    _case = getUniqueCaseId(studyId, line.caseId);
-                    if (validPair[_case]) {
+                if (!isSingleStudy) {
+                    warningMessages.push({
+                        code: CodeEnum.INVALID_CASE_ID,
+                        message: new Error(
+                            `No study specified for ${caseType} id: ${line.caseId}, and more than one study selected for query. The case will be ignored.`
+                        ),
+                    });
+                    validLine = false;
+                } else {
+                    _case = getUniqueCaseId(selectedStudies[0], line.caseId);
+                    if (!validPair[_case]) {
+                        invalidCases.push(line.caseId);
+                        validLine = false;
+                    } else {
                         if (occurrence[_case] === undefined) {
                             occurrence[_case] = 0;
                         }
                         occurrence[_case]++;
-
-                        let newLine = _.cloneDeep(line);
-                        newLine.studyId = studyId;
-                        newLines.push(newLine);
-
-                        validCaseCount += 1;
-                        validLine = true;
                     }
-                });
-
-                if (validCaseCount === 0) {
-                    invalidCases.push(line.caseId);
-                }
-
-                // case where it belongs to multiple studies
-                if (validCaseCount > 1) {
-                    multiStudyCases.push(line.caseId);
                 }
             } else {
                 if (!_.includes(selectedStudies, line.studyId)) {
@@ -178,6 +170,7 @@ export function validateLines(
                             `Incorrect study id: ${line.studyId}`
                         ),
                     });
+                    validLine = false;
                 } else {
                     _case = getUniqueCaseId(line.studyId, line.caseId);
                     if (validPair[_case] !== undefined) {
@@ -185,34 +178,19 @@ export function validateLines(
                             occurrence[_case] = 0;
                         }
                         occurrence[_case]++;
-                        validLine = true;
                     } else {
                         invalidCases.push(line.caseId);
+                        validLine = false;
                     }
-                    newLines.push(_.cloneDeep(line));
                 }
             }
-
             if (validLine) {
-                _.forEach(newLines, newLine => {
-                    acc[getInputLineKey(newLine)] = newLine;
-                });
+                acc[getInputLineKey(line)] = line;
             }
             return acc;
         },
         validLines
     );
-
-    if (!isSingleStudy && !_.isEmpty(multiStudyCases)) {
-        warningMessages.push({
-            code: CodeEnum.INVALID_CASE_ID,
-            message: new Error(
-                `The ${caseType} ID's below belong to multiple studies. All of them in the different studies will be selected. 
-                To select specific ${caseType}, pelase specify study_id, Example: study_id:sample_id. 
-                ${caseType} ID's: ${multiStudyCases.join(', ')}`
-            ),
-        });
-    }
 
     // Find duplication cases
     const dups = _.reduce(

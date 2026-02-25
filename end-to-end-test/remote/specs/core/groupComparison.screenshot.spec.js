@@ -1,35 +1,36 @@
-const assert = require('assert');
-const {
-    goToUrlAndSetLocalStorage,
-    waitForNetworkQuiet,
-    checkElementWithTemporaryClass,
-    checkElementWithMouseDisabled,
+var assert = require('assert');
+var goToUrlAndSetLocalStorage = require('../../../shared/specUtils')
+    .goToUrlAndSetLocalStorage;
+var waitForNetworkQuiet = require('../../../shared/specUtils')
+    .waitForNetworkQuiet;
+var assertScreenShotMatch = require('../../../shared/lib/testUtils')
+    .assertScreenShotMatch;
+var setInputText = require('../../../shared/specUtils').setInputText;
+var checkElementWithTemporaryClass = require('../../../shared/specUtils')
+    .checkElementWithTemporaryClass;
+var checkElementWithMouseDisabled = require('../../../shared/specUtils')
+    .checkElementWithMouseDisabled;
+var {
     jsApiClick,
     jsApiHover,
     getElementByTestHandle,
-    getElement,
-    clickElement,
-    setInputText,
-} = require('../../../shared/specUtils_Async');
-const { assertScreenShotMatch } = require('../../../shared/lib/testUtils');
+} = require('../../../shared/specUtils');
 
 const CBIOPORTAL_URL = process.env.CBIOPORTAL_URL.replace(/\/$/, '');
 
-describe('group comparison page screenshot tests', () => {
-    describe('general screenshot tests', () => {
-        before(async () => {
-            await goToUrlAndSetLocalStorage(
+describe('group comparison page screenshot tests', function() {
+    describe('general screenshot tests', function() {
+        before(function() {
+            goToUrlAndSetLocalStorage(
                 `${CBIOPORTAL_URL}/comparison?sessionId=5ce411c7e4b0ab4137874076`
             );
-            await (
-                await getElement('div[data-test="ComparisonPageOverlapTabDiv"]')
-            ).waitForDisplayed({
+            $('div[data-test="ComparisonPageOverlapTabDiv"]').waitForDisplayed({
                 timeout: 100000,
             });
         });
-        it('group comparison page overlap tab upset plot view', async () => {
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+        it('group comparison page overlap tab upset plot view', function() {
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageOverlapTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
@@ -37,18 +38,14 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page survival tab exclude overlapping samples', async () => {
-            assert(
-                await (await getElement('a.tabAnchor_survival')).isDisplayed()
-            );
-            await clickElement('a.tabAnchor_survival');
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageSurvivalTabDiv"]'
-                )
+        it('group comparison page survival tab exclude overlapping samples', () => {
+            assert($('a.tabAnchor_survival').isDisplayed());
+            $('a.tabAnchor_survival').click();
+            $(
+                'div[data-test="ComparisonPageSurvivalTabDiv"]'
             ).waitForDisplayed({ timeout: 60000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageSurvivalTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
@@ -56,18 +53,18 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page survival tab include overlapping samples', async () => {
-            await browser.execute(() => {
+        it('group comparison page survival tab include overlapping samples', function() {
+            browser.execute(function() {
                 groupComparisonPage.onOverlapStrategySelect({
                     value: 'Include',
                 });
             });
-            await waitForNetworkQuiet();
-            await getElement('div[data-test="ComparisonPageSurvivalTabDiv"]', {
+            waitForNetworkQuiet();
+            $('div[data-test="ComparisonPageSurvivalTabDiv"]').waitForExist({
                 timeout: 60000,
             });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await checkElementWithMouseDisabled(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = checkElementWithMouseDisabled(
                 'div[data-test="ComparisonPageSurvivalTabDiv"]',
                 0,
                 { hide: ['.qtip'] }
@@ -75,19 +72,15 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page clinical tab include overlapping samples Kruskal Wallis test', async () => {
-            assert(
-                await (await getElement('a.tabAnchor_clinical')).isDisplayed()
-            );
-            await clickElement('a.tabAnchor_clinical');
-            await waitForNetworkQuiet();
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
-                )
+        it('group comparison page clinical tab include overlapping samples Kruskal Wallis test', function() {
+            assert($('a.tabAnchor_clinical').isDisplayed());
+            $('a.tabAnchor_clinical').click();
+            waitForNetworkQuiet();
+            $(
+                'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
             ).waitForDisplayed({ timeout: 20000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageClinicalTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
@@ -95,17 +88,15 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page clinical tab swaped axes Kruskal Wallis test', async () => {
-            await clickElement(
+        it('group comparison page clinical tab swaped axes Kruskal Wallis test', function() {
+            $(
                 'div[data-test="ComparisonPageClinicalTabDiv"] input[data-test="SwapAxes"]'
-            );
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
-                )
+            ).click();
+            $(
+                'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
             ).waitForDisplayed({ timeout: 20000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageClinicalTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
@@ -113,17 +104,15 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page clinical tab log scale  Kruskal Wallis test', async () => {
-            await clickElement(
+        it('group comparison page clinical tab log scale  Kruskal Wallis test', function() {
+            $(
                 'div[data-test="ComparisonPageClinicalTabDiv"] input[data-test="logScale"]'
-            );
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
-                )
+            ).click();
+            $(
+                'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
             ).waitForDisplayed({ timeout: 20000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageClinicalTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
@@ -131,20 +120,18 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page clinical tab percentage stacked bar chart exclude overlapping samples Chi squared test', async () => {
-            await browser.execute(() => {
+        it('group comparison page clinical tab percentage stacked bar chart exclude overlapping samples Chi squared test', function() {
+            browser.execute(function() {
                 groupComparisonPage.onOverlapStrategySelect({
                     value: 'Exclude',
                 });
             });
-            await waitForNetworkQuiet();
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
-                )
+            waitForNetworkQuiet();
+            $(
+                'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
             ).waitForDisplayed({ timeout: 20000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageClinicalTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
@@ -152,19 +139,17 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page clinical tab bar chart Chi squared test', async () => {
-            await setInputText(
-                '[data-test="plotTypeSelector"] .Select-input input',
-                'Bar chart'
+        it('group comparison page clinical tab bar chart Chi squared test', function() {
+            var plotTypeSelector = $(
+                '[data-test="plotTypeSelector"] .Select-input input'
             );
-            await clickElement('[data-test="plotTypeSelector"] .Select-option');
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
-                )
+            plotTypeSelector.setValue('Bar chart');
+            $('[data-test="plotTypeSelector"] .Select-option').click();
+            $(
+                'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
             ).waitForDisplayed({ timeout: 20000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageClinicalTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
@@ -172,19 +157,17 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page clinical tab stacked bar chart Chi squared test', async () => {
-            await setInputText(
-                '[data-test="plotTypeSelector"] .Select-input input',
-                'Stacked bar chart'
+        it('group comparison page clinical tab stacked bar chart Chi squared test', function() {
+            var plotTypeSelector = $(
+                '[data-test="plotTypeSelector"] .Select-input input'
             );
-            await clickElement('[data-test="plotTypeSelector"] .Select-option');
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
-                )
+            plotTypeSelector.setValue('Stacked bar chart');
+            $('[data-test="plotTypeSelector"] .Select-option').click();
+            $(
+                'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
             ).waitForDisplayed({ timeout: 20000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageClinicalTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
@@ -192,17 +175,15 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page clinical tab stacked bar chart swaped axes Chi squared test', async () => {
-            await clickElement(
+        it('group comparison page clinical tab stacked bar chart swaped axes Chi squared test', function() {
+            $(
                 'div[data-test="ComparisonPageClinicalTabDiv"] input[data-test="SwapAxes"]'
-            );
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
-                )
+            ).click();
+            $(
+                'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
             ).waitForDisplayed({ timeout: 20000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageClinicalTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
@@ -210,45 +191,37 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page clinical tab stacked bar chart horizontal bars Chi squared test', async () => {
-            await clickElement(
+        it('group comparison page clinical tab stacked bar chart horizontal bars Chi squared test', function() {
+            $(
                 'div[data-test="ComparisonPageClinicalTabDiv"] input[data-test="SwapAxes"]'
-            );
-            await clickElement(
+            ).click();
+            $(
                 'div[data-test="ComparisonPageClinicalTabDiv"] input[data-test="HorizontalBars"]'
-            );
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
-                )
+            ).click();
+            $(
+                'div[data-test="ComparisonPageClinicalTabDiv"] div[data-test="ClinicalTabPlotDiv"]'
             ).waitForDisplayed({ timeout: 20000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 'div[data-test="ComparisonPageClinicalTabDiv"]',
                 '',
                 { hide: ['.qtip'] }
             );
             assertScreenShotMatch(res);
         });
-        //TODO:-- this test is not passing because of out of bounds error
-        it('group comparison page mrna enrichments tab several groups', async () => {
-            await clickElement('.tabAnchor_mrna');
-            await (
-                await getElement(
-                    'div[data-test="GroupComparisonMRNAEnrichments"]'
-                )
+
+        it('group comparison page mrna enrichments tab several groups', function() {
+            $('.tabAnchor_mrna').click();
+            $(
+                'div[data-test="GroupComparisonMRNAEnrichments"]'
             ).waitForDisplayed({ timeout: 20000 });
-            await (await getElement('b=BTN3A3')).waitForDisplayed({
-                timeout: 10000,
-            });
-            await clickElement('b=BTN3A3');
-            await (
-                await getElement('div[data-test="MiniBoxPlot"]')
-            ).waitForDisplayed({
+            $('b=BTN3A3').waitForDisplayed({ timeout: 10000 });
+            $('b=BTN3A3').click();
+            $('div[data-test="MiniBoxPlot"]').waitForDisplayed({
                 timeout: 20000,
             });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 '.msk-tab:not(.hiddenByPosition)',
                 '',
                 {
@@ -258,24 +231,18 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page protein enrichments tab several groups', async () => {
-            await clickElement('.tabAnchor_protein');
-            await (
-                await getElement(
-                    'div[data-test="GroupComparisonProteinEnrichments"]'
-                )
+        it('group comparison page protein enrichments tab several groups', function() {
+            $('.tabAnchor_protein').click();
+            $(
+                'div[data-test="GroupComparisonProteinEnrichments"]'
             ).waitForDisplayed({ timeout: 10000 });
-            await (await getElement('b=TUBA1B')).waitForDisplayed({
-                timeout: 10000,
-            });
-            await clickElement('b=TUBA1B');
-            await (
-                await getElement('div[data-test="MiniBoxPlot"]')
-            ).waitForDisplayed({
+            $('b=TUBA1B').waitForDisplayed({ timeout: 10000 });
+            $('b=TUBA1B').click();
+            $('div[data-test="MiniBoxPlot"]').waitForDisplayed({
                 timeout: 20000,
             });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 '.msk-tab:not(.hiddenByPosition)',
                 '',
                 {
@@ -285,24 +252,18 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page methylation enrichments tab several groups', async () => {
-            await clickElement('.tabAnchor_dna_methylation');
-            await (
-                await getElement(
-                    'div[data-test="GroupComparisonMethylationEnrichments"]'
-                )
+        it('group comparison page methylation enrichments tab several groups', function() {
+            $('.tabAnchor_dna_methylation').click();
+            $(
+                'div[data-test="GroupComparisonMethylationEnrichments"]'
             ).waitForDisplayed({ timeout: 10000 });
-            await (await getElement('b=MTRF1L')).waitForDisplayed({
-                timeout: 10000,
-            });
-            await clickElement('b=MTRF1L');
-            await (
-                await getElement('div[data-test="MiniBoxPlot"]')
-            ).waitForDisplayed({
+            $('b=MTRF1L').waitForDisplayed({ timeout: 10000 });
+            $('b=MTRF1L').click();
+            $('div[data-test="MiniBoxPlot"]').waitForDisplayed({
                 timeout: 20000,
             });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 '.msk-tab:not(.hiddenByPosition)',
                 '',
                 {
@@ -312,28 +273,21 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page alteration enrichments tab two groups', async () => {
+        it('group comparison page alteration enrichments tab two groups', function() {
             // deselect two groups
-            await clickElement(
-                'button[data-test="groupSelectorButtonGARS mutant"]'
-            );
-            await getElement(
-                'button[data-test="groupSelectorButtonZNF517 mutant"]',
-                { timeout: 10000 }
-            );
-            await clickElement(
+            $('button[data-test="groupSelectorButtonGARS mutant"]').click();
+            $(
                 'button[data-test="groupSelectorButtonZNF517 mutant"]'
-            );
+            ).waitForExist({ timeout: 10000 });
+            $('button[data-test="groupSelectorButtonZNF517 mutant"]').click();
             // go back to mutations tab
-            await getElement('.tabAnchor_alterations', { timeout: 10000 });
-            await clickElement('.tabAnchor_alterations');
-            await (
-                await getElement(
-                    'div[data-test="GroupComparisonAlterationEnrichments"]'
-                )
+            $('.tabAnchor_alterations').waitForExist({ timeout: 10000 });
+            $('.tabAnchor_alterations').click();
+            $(
+                'div[data-test="GroupComparisonAlterationEnrichments"]'
             ).waitForDisplayed({ timeout: 10000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 '.msk-tab:not(.hiddenByPosition)',
                 '',
                 {
@@ -343,15 +297,13 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page cna enrichments tab two groups', async () => {
-            await clickElement('.tabAnchor_alterations');
-            await (
-                await getElement(
-                    'div[data-test="GroupComparisonAlterationEnrichments"]'
-                )
+        it('group comparison page cna enrichments tab two groups', function() {
+            $('.tabAnchor_alterations').click();
+            $(
+                'div[data-test="GroupComparisonAlterationEnrichments"]'
             ).waitForDisplayed({ timeout: 10000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 '.msk-tab:not(.hiddenByPosition)',
                 '',
                 {
@@ -361,17 +313,15 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page cna enrichments tab patient mode', async () => {
-            await browser.execute(() => {
+        it('group comparison page cna enrichments tab patient mode', function() {
+            browser.execute(function() {
                 groupComparisonStore.setUsePatientLevelEnrichments(true);
             });
-            await (
-                await getElement(
-                    'div[data-test="GroupComparisonAlterationEnrichments"]'
-                )
+            $(
+                'div[data-test="GroupComparisonAlterationEnrichments"]'
             ).waitForDisplayed({ timeout: 30000 });
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 '.msk-tab:not(.hiddenByPosition)',
                 '',
                 {
@@ -381,22 +331,15 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        //TODO:-- this test is not passing because of out of bounds error
-        it('group comparison page mrna enrichments tab two groups', async () => {
-            await clickElement('.tabAnchor_mrna');
-            await (
-                await getElement(
-                    'div[data-test="GroupComparisonMRNAEnrichments"]'
-                )
+        it('group comparison page mrna enrichments tab two groups', function() {
+            $('.tabAnchor_mrna').click();
+            $(
+                'div[data-test="GroupComparisonMRNAEnrichments"]'
             ).waitForDisplayed({ timeout: 10000 });
-            await (await getElement('b=RBMX2')).waitForDisplayed({
-                timeout: 10000,
-            });
-            await clickElement('b=RBMX2');
-            const body = await getElement('body');
-            await body.waitForDisplayed();
-            await body.moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('b=RBMX2').waitForDisplayed({ timeout: 10000 });
+            $('b=RBMX2').click();
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 '.msk-tab:not(.hiddenByPosition)',
                 '',
                 {
@@ -406,19 +349,15 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page protein enrichments tab two groups', async () => {
-            await clickElement('.tabAnchor_protein');
-            await (
-                await getElement(
-                    'div[data-test="GroupComparisonProteinEnrichments"]'
-                )
+        it('group comparison page protein enrichments tab two groups', function() {
+            $('.tabAnchor_protein').click();
+            $(
+                'div[data-test="GroupComparisonProteinEnrichments"]'
             ).waitForDisplayed({ timeout: 10000 });
-            await (await getElement('b=ETS1')).waitForDisplayed({
-                timeout: 10000,
-            });
-            await clickElement('b=ETS1');
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('b=ETS1').waitForDisplayed({ timeout: 10000 });
+            $('b=ETS1').click();
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 '.msk-tab:not(.hiddenByPosition)',
                 '',
                 {
@@ -428,26 +367,42 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page methylation enrichments tab two groups', async () => {
-            await clickElement('.tabAnchor_dna_methylation');
-            await (
-                await getElement(
-                    'div[data-test="GroupComparisonMethylationEnrichments"]',
-                    {
-                        timeout: 20000,
-                    }
-                )
+        it('group comparison page methylation enrichments tab two groups', function() {
+            $('.tabAnchor_dna_methylation').click();
+            $(
+                'div[data-test="GroupComparisonMethylationEnrichments"]'
             ).waitForDisplayed({ timeout: 10000 });
-            await (
-                await getElement('b=BET1', {
-                    timeout: 20000,
-                })
-            ).waitForDisplayed({
+            $('b=BET1').waitForDisplayed({ timeout: 10000 });
+            $('b=BET1').click();
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
+                '.msk-tab:not(.hiddenByPosition)',
+                '',
+                {
+                    hide: ['.qtip'],
+                }
+            );
+            assertScreenShotMatch(res);
+        });
+
+        it('group comparison page microbiome signature tab several groups', function() {
+            // use study blca_tcga_pan_can_atlas_2018 for microbiome signature tests
+            goToUrlAndSetLocalStorage(
+                `${CBIOPORTAL_URL}/comparison/generic_assay_microbiome_signature?sessionId=5d63f222e4b0d777deb05c78&unselectedGroups=%5B%22NA%22%5D`
+            );
+            $(
+                'div[data-test="GroupComparisonGenericAssayEnrichments"]'
+            ).waitForDisplayed({ timeout: 10000 });
+            $(
+                'div[data-test="GroupComparisonGenericAssayEnrichments"]'
+            ).waitForDisplayed({ timeout: 10000 });
+            $('b=Collimonas').waitForDisplayed({ timeout: 10000 });
+            $('b=Collimonas').click();
+            $('div[data-test="MiniBoxPlot"]').waitForDisplayed({
                 timeout: 20000,
             });
-            await clickElement('b=BET1');
-            await (await getElement('body')).moveTo({ xOffset: 0, yOffset: 0 });
-            const res = await browser.checkElement(
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
                 '.msk-tab:not(.hiddenByPosition)',
                 '',
                 {
@@ -457,18 +412,33 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page mutations tab two groups', async () => {
-            await goToUrlAndSetLocalStorage(
+        it('group comparison page microbiome signature tab two groups', function() {
+            // use study blca_tcga_pan_can_atlas_2018 for microbiome signature tests
+            goToUrlAndSetLocalStorage(
+                `${CBIOPORTAL_URL}/comparison/generic_assay_microbiome_signature?sessionId=5d63f222e4b0d777deb05c78&unselectedGroups=%5B%22NA%22%2C%22White%22%5D`
+            );
+            $(
+                'div[data-test="GroupComparisonGenericAssayEnrichments"]'
+            ).waitForDisplayed({ timeout: 10000 });
+            $('b=Lawsonia').waitForDisplayed({ timeout: 10000 });
+            $('b=Lawsonia').click();
+            $('body').moveTo({ xOffset: 0, yOffset: 0 });
+            var res = browser.checkElement(
+                '.msk-tab:not(.hiddenByPosition)',
+                '',
+                {
+                    hide: ['.qtip'],
+                }
+            );
+            assertScreenShotMatch(res);
+        });
+
+        it('group comparison page mutations tab two groups', function() {
+            goToUrlAndSetLocalStorage(
                 `${CBIOPORTAL_URL}/comparison/mutations?sessionId=5cf89323e4b0ab413787436c&selectedGene=AR`
             );
-            await (
-                await getElement('.borderedChart svg', {
-                    timeout: 20000,
-                })
-            ).waitForDisplayed({
-                timeout: 20000,
-            });
-            const res = await browser.checkElement(
+            $('.borderedChart svg').waitForDisplayed({ timeout: 20000 });
+            var res = browser.checkElement(
                 '[data-test="ComparisonPageMutationsTabPlot"]',
                 '',
                 {
@@ -478,23 +448,17 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page mutations tab three groups first unselected', async () => {
-            await goToUrlAndSetLocalStorage(
+        it('group comparison page mutations tab three groups first unselected', function() {
+            goToUrlAndSetLocalStorage(
                 `${CBIOPORTAL_URL}/comparison/mutations?comparisonId=634006c24dd45f2bc4c3d4aa&unselectedGroups=%5B"Colon%20Adenocarcinoma"%5D`
             );
-            await (
-                await getElement('.borderedChart svg', {
-                    timeout: 20000,
-                })
-            ).waitForDisplayed({
-                timeout: 20000,
-            });
-            await jsApiHover(await getElementByTestHandle('infoIcon'));
+            $('.borderedChart svg').waitForDisplayed({ timeout: 20000 });
+            jsApiHover(getElementByTestHandle('infoIcon'));
 
-            await (
-                await getElementByTestHandle('patientMultipleMutationsMessage')
-            ).waitForDisplayed();
-            const res = await browser.checkElement(
+            getElementByTestHandle(
+                'patientMultipleMutationsMessage'
+            ).waitForExist();
+            var res = browser.checkElement(
                 '[data-test="ComparisonPageMutationsTabPlot"]',
                 '',
                 {
@@ -505,50 +469,39 @@ describe('group comparison page screenshot tests', () => {
         });
     });
 
-    describe('delete group from session', () => {
-        before(async () => {
-            await goToUrlAndSetLocalStorage(
+    describe('delete group from session', function() {
+        before(function() {
+            goToUrlAndSetLocalStorage(
                 `${CBIOPORTAL_URL}/comparison?sessionId=5ce411c7e4b0ab4137874076`
             );
-            await (
-                await getElement(
-                    'div[data-test="ComparisonPageOverlapTabDiv"]',
-                    {
-                        timeout: 20000,
-                    }
-                )
-            ).waitForDisplayed({
+            $('div[data-test="ComparisonPageOverlapTabDiv"]').waitForDisplayed({
                 timeout: 20000,
             });
         });
-        it('group comparison page delete group from session', async function() {
-            await this.retries(0);
-            await clickElement(
+        it('group comparison page delete group from session', function() {
+            this.retries(0);
+            $(
                 'button[data-test="groupSelectorButtonGARS mutant"] [data-test="deleteButton"]'
-            );
-            await browser.pause(1000);
-            const res = await checkElementWithMouseDisabled(
-                'div.mainContainer'
-            );
+            ).click();
+            browser.pause(1000);
+            var res = checkElementWithMouseDisabled('div.mainContainer');
             assertScreenShotMatch(res);
         });
     });
 
-    describe('overlap venn diagram', () => {
-        describe('disjoint diagram', () => {
-            before(async () => {
-                await goToUrlAndSetLocalStorage(
+    describe('overlap venn diagram', function() {
+        describe('disjoint diagram', function() {
+            before(function() {
+                goToUrlAndSetLocalStorage(
                     `${CBIOPORTAL_URL}/comparison?sessionId=5cf8b1b3e4b0ab413787436f`
                 );
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
             });
 
-            it('group comparison page overlap tab disjoint venn diagram view', async () => {
-                const res = await checkElementWithTemporaryClass(
+            it('group comparison page overlap tab disjoint venn diagram view', function() {
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -557,14 +510,12 @@ describe('group comparison page screenshot tests', () => {
                 assertScreenShotMatch(res);
             });
 
-            it('group comparison page overlap tab disjoint venn diagram view with a group selected view', async () => {
-                await (
-                    await getElement('svg#comparison-tab-overlap-svg')
-                ).waitForDisplayed({
+            it('group comparison page overlap tab disjoint venn diagram view with a group selected view', function() {
+                $('svg#comparison-tab-overlap-svg').waitForDisplayed({
                     timeout: 6000,
                 });
-                await jsApiClick('rect[data-test="sample0VennRegion"]');
-                const res = await checkElementWithTemporaryClass(
+                jsApiClick('rect[data-test="sample0VennRegion"]');
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -572,16 +523,14 @@ describe('group comparison page screenshot tests', () => {
                 );
                 assertScreenShotMatch(res);
             });
-            it('group comparison page overlap tab 3 disjoint venn diagram', async () => {
-                await goToUrlAndSetLocalStorage(
+            it('group comparison page overlap tab 3 disjoint venn diagram', function() {
+                goToUrlAndSetLocalStorage(
                     `${CBIOPORTAL_URL}/comparison?sessionId=5d28f03be4b0ab413787b1ef`
                 );
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -591,20 +540,18 @@ describe('group comparison page screenshot tests', () => {
             });
         });
 
-        describe('venn diagram with overlap', () => {
-            before(async () => {
-                await goToUrlAndSetLocalStorage(
+        describe('venn diagram with overlap', function() {
+            before(function() {
+                goToUrlAndSetLocalStorage(
                     `${CBIOPORTAL_URL}/comparison/overlap?sessionId=5cf6bcf0e4b0ab413787430c`
                 );
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
             });
 
-            it('group comparison page overlap tab venn diagram with overlap view', async () => {
-                const res = await checkElementWithTemporaryClass(
+            it('group comparison page overlap tab venn diagram with overlap view', function() {
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -613,9 +560,9 @@ describe('group comparison page screenshot tests', () => {
                 assertScreenShotMatch(res);
             });
 
-            it('group comparison page overlap tab venn diagram view with overlap and session selected view', async () => {
-                await jsApiClick('rect[data-test="sample0,1,2VennRegion"]');
-                const res = await checkElementWithTemporaryClass(
+            it('group comparison page overlap tab venn diagram view with overlap and session selected view', function() {
+                jsApiClick('rect[data-test="sample0,1,2VennRegion"]');
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -624,18 +571,14 @@ describe('group comparison page screenshot tests', () => {
                 assertScreenShotMatch(res);
             });
 
-            it('group comparison page overlap tab venn diagram view with overlap deselect active group', async () => {
-                await clickElement(
+            it('group comparison page overlap tab venn diagram view with overlap deselect active group', function() {
+                $(
                     'button[data-test="groupSelectorButtonZFPM1 mutant"]'
-                );
-
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+                ).click();
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -645,31 +588,27 @@ describe('group comparison page screenshot tests', () => {
             });
         });
 
-        describe('venn diagram with complex overlaps', async () => {
+        describe('venn diagram with complex overlaps', function() {
             const buttonA = 'button[data-test="groupSelectorButtonAll Cases"]';
             const buttonB = 'button[data-test="groupSelectorButtonMetastasis"]';
             const buttonC =
                 'button[data-test="groupSelectorButtonoverlapping patients"]';
             const buttonD = 'button[data-test="groupSelectorButtonPrimary"]';
 
-            before(async () => {
-                await goToUrlAndSetLocalStorage(
+            before(function() {
+                goToUrlAndSetLocalStorage(
                     `${CBIOPORTAL_URL}/comparison/overlap?sessionId=5d1bc517e4b0ab413787924a`
                 );
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
             });
-            it('group comparison complex venn BCD', async () => {
-                await clickElement(buttonA);
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+            it('group comparison complex venn BCD', function() {
+                $(buttonA).click();
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -677,14 +616,12 @@ describe('group comparison page screenshot tests', () => {
                 );
                 assertScreenShotMatch(res);
             });
-            it('group comparison complex venn CD', async () => {
-                await clickElement(buttonB);
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+            it('group comparison complex venn CD', function() {
+                $(buttonB).click();
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -692,16 +629,14 @@ describe('group comparison page screenshot tests', () => {
                 );
                 assertScreenShotMatch(res);
             });
-            it('group comparison complex venn BC', async () => {
-                await clickElement(buttonB);
-                await (await getElement(buttonD)).waitForDisplayed();
-                await clickElement(buttonD);
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+            it('group comparison complex venn BC', function() {
+                $(buttonB).click();
+                $(buttonD).waitForDisplayed();
+                $(buttonD).click();
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -709,14 +644,12 @@ describe('group comparison page screenshot tests', () => {
                 );
                 assertScreenShotMatch(res);
             });
-            it('group comparison complex venn ABC', async () => {
-                await clickElement(buttonA);
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+            it('group comparison complex venn ABC', function() {
+                $(buttonA).click();
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -724,14 +657,12 @@ describe('group comparison page screenshot tests', () => {
                 );
                 assertScreenShotMatch(res);
             });
-            it('group comparison complex venn AB', async () => {
-                await clickElement(buttonC);
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+            it('group comparison complex venn AB', function() {
+                $(buttonC).click();
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -739,14 +670,12 @@ describe('group comparison page screenshot tests', () => {
                 );
                 assertScreenShotMatch(res);
             });
-            it('group comparison complex venn ABD', async () => {
-                await clickElement(buttonD);
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+            it('group comparison complex venn ABD', function() {
+                $(buttonD).click();
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -754,14 +683,12 @@ describe('group comparison page screenshot tests', () => {
                 );
                 assertScreenShotMatch(res);
             });
-            it('group comparison complex venn AD', async () => {
-                await clickElement(buttonB);
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+            it('group comparison complex venn AD', function() {
+                $(buttonB).click();
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -769,14 +696,12 @@ describe('group comparison page screenshot tests', () => {
                 );
                 assertScreenShotMatch(res);
             });
-            it('group comparison complex venn ACD', async () => {
-                await clickElement(buttonC);
-                await (
-                    await getElement(
-                        'div[data-test="ComparisonPageOverlapTabDiv"]'
-                    )
+            it('group comparison complex venn ACD', function() {
+                $(buttonC).click();
+                $(
+                    'div[data-test="ComparisonPageOverlapTabDiv"]'
                 ).waitForDisplayed({ timeout: 20000 });
-                const res = await checkElementWithTemporaryClass(
+                var res = checkElementWithTemporaryClass(
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'div[data-test="ComparisonPageOverlapTabDiv"]',
                     'disablePointerEvents',
@@ -787,23 +712,21 @@ describe('group comparison page screenshot tests', () => {
         });
     });
 
-    describe('overlap upset diagram group selection', () => {
-        before(async () => {
-            await goToUrlAndSetLocalStorage(
+    describe('overlap upset diagram group selection', function() {
+        before(function() {
+            goToUrlAndSetLocalStorage(
                 `${CBIOPORTAL_URL}/comparison?sessionId=5d0bc0c5e4b0ab4137876bc3`
             );
-            await (
-                await getElement('div[data-test="ComparisonPageOverlapTabDiv"]')
-            ).waitForDisplayed({
+            $('div[data-test="ComparisonPageOverlapTabDiv"]').waitForDisplayed({
                 timeout: 20000,
             });
         });
 
-        it('group comparison page overlap tab upset groups selected', async () => {
-            await jsApiClick('.sample_testGroup5_bar');
-            await jsApiClick('.sample_testGroup1_testGroup2_bar');
-            await jsApiClick('.patient_testGroup1_bar');
-            const res = await checkElementWithTemporaryClass(
+        it('group comparison page overlap tab upset groups selected', function() {
+            jsApiClick('.sample_testGroup5_bar');
+            jsApiClick('.sample_testGroup1_testGroup2_bar');
+            jsApiClick('.patient_testGroup1_bar');
+            var res = checkElementWithTemporaryClass(
                 'div[data-test="ComparisonPageOverlapTabDiv"]',
                 'div[data-test="ComparisonPageOverlapTabDiv"]',
                 'disablePointerEvents',
@@ -812,16 +735,9 @@ describe('group comparison page screenshot tests', () => {
             assertScreenShotMatch(res);
         });
 
-        it('group comparison page overlap tab upset deselect active group', async () => {
-            await clickElement(
-                'button[data-test="groupSelectorButtontestGroup4"]'
-            );
-            await (
-                await getElement('div[data-test="ComparisonPageOverlapTabDiv"]')
-            ).waitForDisplayed({
-                timeout: 20000,
-            });
-            const res = await checkElementWithTemporaryClass(
+        it('group comparison page overlap tab upset deselect active group', function() {
+            $('button[data-test="groupSelectorButtontestGroup4"]').click();
+            var res = checkElementWithTemporaryClass(
                 'div[data-test="ComparisonPageOverlapTabDiv"]',
                 'div[data-test="ComparisonPageOverlapTabDiv"]',
                 'disablePointerEvents',
@@ -831,3 +747,14 @@ describe('group comparison page screenshot tests', () => {
         });
     });
 });
+
+var clickTypeSelectorCheckBox = name => {
+    $('label=' + name)
+        .$('input')
+        .click();
+};
+
+var submitEnrichmentRequest = () => {
+    $('[data-test=changeSortOrderButton]').click();
+    $('[data-test=GroupComparisonAlterationEnrichments]').waitForDisplayed();
+};

@@ -9,7 +9,6 @@ import classNames from 'classnames';
 import { Portal } from 'react-portal';
 import { getBrowserWindow, MobxPromise } from 'cbioportal-frontend-commons';
 import ExtendedRouterStore from 'shared/lib/ExtendedRouterStore';
-import { getServerConfig } from 'config/config';
 
 export interface IUserMessage {
     dateStart?: number;
@@ -39,11 +38,25 @@ if (
 
         {
             dateEnd: 100000000000000,
-            content: `Re-introducing the cBioPortal Newsletter! Subscribe via <a href="https://www.linkedin.com/newsletters/cbioportal-newsletter-7178731490539634689/" target="_blank">LinkedIn</a> or <a href="https://groups.google.com/g/cbioportal-news" target="_blank">Google Groups</a>`,
+            content: `P and q-values on this page have changed recently. The 1-sided Fisher exact test is now a 2-sided test  
+                (<a href="https://docs.cbioportal.org/news/#aug-1-2023" target="_blank">Read more</a>).`,
             showCondition: routingStore => {
-                return getServerConfig().app_name === 'public-portal';
+                return _.some(
+                    [
+                        /comparison_subtab=alterations/i,
+                        /results\/mutualExclusivity/i,
+                        /comparison\/alterations/i,
+                        /comparison\/mutations/i,
+                    ],
+                    (re: RegExp) => {
+                        return re.test(
+                            routingStore.location.pathname +
+                                routingStore.location.search
+                        );
+                    }
+                );
             },
-            id: '2024_newsletter_intro',
+            id: '2023_qval_change',
         },
     ];
 

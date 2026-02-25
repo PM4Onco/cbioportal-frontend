@@ -1,9 +1,10 @@
-const assert = require('assert');
-const expect = require('chai').expect;
+var assert = require('assert');
+var expect = require('chai').expect;
 
-const {
+var {
     goToUrlAndSetLocalStorage,
     clickQueryByGeneButton,
+    useExternalFrontend,
     useNetlifyDeployPreview,
     setInputText,
     waitForNumberOfStudyCheckboxes,
@@ -12,27 +13,23 @@ const {
     setDropdownOpen,
     jq,
     getElementByTestHandle,
-    getElement,
-    clickElement,
-    getText,
-    isSelected,
-} = require('../../../shared/specUtils_Async');
+} = require('../../../shared/specUtils');
 
 const CBIOPORTAL_URL = process.env.CBIOPORTAL_URL.replace(/\/$/, '');
 
-const searchInputSelector = 'div[data-test=study-search] input[type=text]';
+var searchInputSelector = 'div[data-test=study-search] input[type=text]';
 
-describe('homepage', () => {
-    before(async () => {
-        await goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
+describe('homepage', function() {
+    before(() => {
+        goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
     });
 
     if (!useNetlifyDeployPreview) {
-        it('window.frontendConfig.frontendUrl should point to localhost 3000 when testing', async () => {
+        it('window.frontendConfig.frontendUrl should point to localhost 3000 when testing', function() {
             // We no longer check whether the dev mode banner exits.
             // The banner is hidden in e2etests.scss
             assert.equal(
-                await browser.execute(() => {
+                browser.execute(function() {
                     return window.getLoadConfig().frontendUrl;
                 }),
                 '//localhost:3000/'
@@ -41,165 +38,165 @@ describe('homepage', () => {
     }
 
     // this just shows that we have some studies listed
-    it('it should have some (>0) studies listed ', async () => {
-        await goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
-        const selector = '[data-test="cancerTypeListContainer"] > ul > ul';
-        await getElement(selector, {
+    it('it should have some (>0) studies listed ', function() {
+        goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
+
+        var studies = $('[data-test="cancerTypeListContainer"] > ul > ul');
+
+        studies.waitForExist({ timeout: 10000 }); // same as `$('.notification').waitForExist({timeout: 10000})`
+
+        expect(0).to.be.below(
+            $$('[data-test="cancerTypeListContainer"] > ul > ul').length
+        );
+    });
+
+    it('should filter study list according to filter text input', function() {
+        var input = $(searchInputSelector);
+
+        input.waitForExist({ timeout: 10000 });
+
+        setInputText(searchInputSelector, 'bladder');
+
+        waitForNumberOfStudyCheckboxes(4);
+    });
+
+    it('when a single study is selected, a case set selector is provided', function() {
+        var caseSetSelectorClass = '[data-test="CaseSetSelector"]';
+
+        var checkBox = $('[data-test="StudySelect"]');
+
+        checkBox.waitForExist({ timeout: 10000 });
+
+        assert.equal($(caseSetSelectorClass).isExisting(), false);
+
+        $('[data-test="StudySelect"] input').click();
+
+        clickQueryByGeneButton();
+
+        var caseSetSelector = $(caseSetSelectorClass);
+        caseSetSelector.waitForExist({ timeout: 10000 });
+
+        assert.equal($(caseSetSelectorClass).isExisting(), true);
+    });
+
+    it('should not allow submission if OQL contains EXP or PROT for multiple studies', () => {
+        goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
+
+        $('div[data-test=study-search] input[type=text]').waitForExist({
             timeout: 10000,
         });
-        expect(0).to.be.below((await jq(selector)).length);
-    });
-
-    it('should filter study list according to filter text input', async () => {
-        await getElement(searchInputSelector, { timeout: 10000 });
-        await setInputText(searchInputSelector, 'bladder');
-
-        assert(
-            (await jq('[data-test="StudySelect"] input:checkbox')).length > 1
-        );
-    });
-
-    it('when a single study is selected, a case set selector is provided', async () => {
-        const caseSetSelectorClass = '[data-test="CaseSetSelector"]';
-        await getElementByTestHandle('StudySelect', { timeout: 10000 });
-        assert.equal(
-            await (await getElement(caseSetSelectorClass)).isExisting(),
-            false
-        );
-        await clickElement('[data-test="StudySelect"] input');
-        await clickQueryByGeneButton();
-        await getElement(caseSetSelectorClass, { timeout: 10000 });
-        assert.equal(
-            await (await getElement(caseSetSelectorClass)).isExisting(),
-            true
-        );
-    });
-
-    it('should not allow submission if OQL contains EXP or PROT for multiple studies', async () => {
-        await goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
-        await getElement('div[data-test=study-search] input[type=text]', {
-            timeout: 20000,
-        });
-        await setInputText(
+        setInputText(
             'div[data-test=study-search] input[type=text]',
             'breast -invasive'
         );
-        await browser.pause(500);
-        await getElement('[data-test="StudySelect"]', { timeout: 10000 });
-        await clickElement('[data-test="selectAllStudies"]');
-        await clickQueryByGeneButton();
-        const oqlEntrySel = 'textarea[data-test="geneSet"]';
-        await setInputText(oqlEntrySel, 'PTEN: EXP>1');
-        const errorMessageSel = 'span[data-test="oqlErrorMessage"]';
-        await (await getElement(errorMessageSel)).waitForExist();
-        await browser.waitUntil(
-            async () =>
-                (await (await getElement(errorMessageSel)).getText()) ===
+
+        browser.pause(500);
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="selectAllStudies"]').click();
+
+        clickQueryByGeneButton();
+
+        var oqlEntrySel = 'textarea[data-test="geneSet"]';
+        setInputText(oqlEntrySel, 'PTEN: EXP>1');
+
+        var errorMessageSel = 'span[data-test="oqlErrorMessage"]';
+        $(errorMessageSel).waitForExist();
+        browser.waitUntil(
+            () =>
+                $(errorMessageSel).getText() ===
                 'Expression filtering in the gene list (the EXP command) is not supported when doing cross cancer queries.'
         );
+
         assert.equal(
-            await (await getElement(errorMessageSel)).getText(),
+            $(errorMessageSel).getText(),
             'Expression filtering in the gene list (the EXP command) is not supported when doing cross cancer queries.'
         );
-        const submitButtonSel = 'button[data-test="queryButton"]';
+
+        var submitButtonSel = 'button[data-test="queryButton"]';
         assert.ok(
-            !(await (await getElement(submitButtonSel)).isEnabled()),
+            !$(submitButtonSel).isEnabled(),
             'submit should be disabled w/ EXP in oql'
         );
-        await setInputText(oqlEntrySel, 'PTEN: PROT>1');
-        await (await getElement(errorMessageSel)).waitForExist();
-        await (
-            await getElement(
-                'span=Protein level filtering in the gene list (the PROT command) is not supported when doing cross cancer queries.'
-            )
+
+        setInputText(oqlEntrySel, 'PTEN: PROT>1');
+        $(errorMessageSel).waitForExist();
+        $(
+            'span=Protein level filtering in the gene list (the PROT command) is not supported when doing cross cancer queries.'
         ).waitForExist();
         assert.equal(
-            await getText(errorMessageSel),
+            $(errorMessageSel).getText(),
             'Protein level filtering in the gene list (the PROT command) is not supported when doing cross cancer queries.'
         );
         assert.ok(
-            !(await (await getElement(submitButtonSel)).isEnabled()),
+            !$(submitButtonSel).isEnabled(),
             'submit should be disabled w/ PROT in oql'
         );
     });
 });
 
-describe('select all/deselect all functionality in study selector', () => {
-    const getCheckedCheckboxes = async () => {
-        await (
-            await getElement('[data-test="StudySelect"] input[type=checkbox]')
-        ).waitForDisplayed();
+describe('select all/deselect all functionality in study selector', function() {
+    const getCheckedCheckboxes = () => {
+        $('[data-test="StudySelect"] input[type=checkbox]').waitForDisplayed();
+        // return $$('[data-test="StudySelect"] input[type=checkbox]');
+
         return jq(`[data-test=\"StudySelect\"] input[type=checkbox]:checked`);
     };
 
-    it('clicking select all studies checkbox selects all studies', async () => {
-        await goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
-        await browser.pause(1000);
-        assert.equal(
-            (await getCheckedCheckboxes()).length,
-            0,
-            'no studies selected'
-        );
+    it('clicking select all studies checkbox selects all studies', function() {
+        goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
 
-        await clickElement('button=TCGA PanCancer Atlas Studies');
+        assert.equal(getCheckedCheckboxes().length, 0, 'no studies selected');
+
+        $('button=TCGA PanCancer Atlas Studies').click();
 
         assert.equal(
-            (await getCheckedCheckboxes()).length,
+            getCheckedCheckboxes().length,
             32,
             'all pan can studies are selected'
         );
 
-        await clickElement('[data-test=globalDeselectAllStudiesButton]');
+        $('[data-test=globalDeselectAllStudiesButton]').click();
 
         assert.equal(
-            (await getCheckedCheckboxes()).length,
+            getCheckedCheckboxes().length,
             0,
             'no studies are selected'
         );
     });
 
-    it('global deselect button clears all selected studies, even during filter', async () => {
-        await goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
+    it('global deselect button clears all selected studies, even during filter', function() {
+        goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
 
-        await assert.equal(
-            await (
-                await getElementByTestHandle('globalDeselectAllStudiesButton')
-            ).isExisting(),
+        assert.equal(
+            $('[data-test=globalDeselectAllStudiesButton]').isExisting(),
             false,
             'global deselect button does not exist'
         );
 
-        await browser.pause(500);
-        const selectElement = await $$(
-            '[data-test="StudySelect"] input[type=checkbox]'
-        );
-        await selectElement[50].click();
+        browser.pause(500);
+        $$('[data-test="StudySelect"] input[type=checkbox]')[50].click();
 
         assert.equal(
-            await (
-                await getElement('[data-test=globalDeselectAllStudiesButton]')
-            ).isExisting(),
+            $('[data-test=globalDeselectAllStudiesButton]').isExisting(),
             true,
             'global deselect button DOES exist'
         );
-        assert.equal(
-            (await getCheckedCheckboxes()).length,
-            1,
-            'we selected one study'
-        );
-        await setInputText(
-            'div[data-test=study-search] input[type=text]',
-            'breast'
-        );
+
+        var input = $('div[data-test=study-search] input[type=text]');
+
+        assert.equal(getCheckedCheckboxes().length, 1, 'we selected one study');
+
+        // add a filter
+        input.setValue('breast');
 
         //click global deselect all while filtered
-        await clickElement('[data-test=globalDeselectAllStudiesButton]');
+        $('[data-test=globalDeselectAllStudiesButton]').click();
 
         // click unfilter button
-        await clickElement('[data-test=clearStudyFilter]');
+        $('[data-test=clearStudyFilter]').click();
 
         assert.equal(
-            (await getCheckedCheckboxes()).length,
+            getCheckedCheckboxes().length,
             0,
             'no selected studies are selected after deselect all clicked'
         );
@@ -207,411 +204,391 @@ describe('select all/deselect all functionality in study selector', () => {
 });
 
 describe('case set selection in front page query form', function() {
-    const selectedCaseSet_sel =
+    var selectedCaseSet_sel =
         'div[data-test="CaseSetSelector"] span.Select-value-label[aria-selected="true"]';
 
-    beforeEach(async () => {
-        await goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
-        // await waitForOncoprint();
+    beforeEach(function() {
+        goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
     });
 
-    it('selects the default case set for single study selections', async () => {
-        const input = 'div[data-test=study-search] input[type=text]';
-        await getElement(input, { timeout: 20000 });
-        await setInputText(input, 'ovarian nature 2011');
-        await waitForNumberOfStudyCheckboxes(1);
-        await getElement('[data-test="StudySelect"]', { timeout: 10000 });
-        await clickElement('[data-test="StudySelect"] input');
+    it('selects the default case set for single study selections', () => {
+        var input = 'div[data-test=study-search] input[type=text]';
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'ovarian nature 2011');
+        waitForNumberOfStudyCheckboxes(1);
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="StudySelect"] input').click();
 
-        await clickQueryByGeneButton();
+        clickQueryByGeneButton();
 
-        await (await getElement(selectedCaseSet_sel)).waitForDisplayed();
-        await browser.waitUntil(
-            async () =>
-                (await getText(selectedCaseSet_sel)) ===
+        $(selectedCaseSet_sel).waitForExist();
+        browser.waitUntil(
+            () =>
+                $(selectedCaseSet_sel).getText() ===
                 'Samples with mutation and CNA data (316)',
             5000
         );
     });
+    it('selects the right default case sets in a single->multiple->single study selection flow', () => {
+        // Select Ampullary Carcinoma
+        var input = 'div[data-test=study-search] input[type=text]';
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'ampullary baylor');
+        waitForNumberOfStudyCheckboxes(1);
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="StudySelect"] input').click();
 
-    it('selects the right default case sets in a single->multiple->single study selection flow', async function() {
-        this.retries(0);
-        const input = 'div[data-test=study-search] input[type=text]';
-        async function searchAndSelectStudy(
-            studyName,
-            checkboxSelector,
-            expectedText
-        ) {
-            await getElement(input, { timeout: 20000 });
-            await setInputText(input, studyName);
-            await (
-                await getElement('[data-test="study-search"] .dropdown-toggle')
-            ).click();
-            await waitForNumberOfStudyCheckboxes(1, checkboxSelector);
-            await getElement('[data-test="StudySelect"]', { timeout: 10000 });
-            await clickElement(checkboxSelector);
+        clickQueryByGeneButton();
 
-            await browser.pause(2000);
-
-            await clickQueryByGeneButton();
-
-            await (await getElement(selectedCaseSet_sel)).waitForDisplayed();
-            await browser.waitUntil(async () => {
-                const selectedText = (
-                    await getText(selectedCaseSet_sel)
-                ).trim();
-                return selectedText === expectedText;
-            }, 30000);
-        }
-        // Phase 1: Select Ampullary Carcinoma
-        await searchAndSelectStudy(
-            'ampullary baylor',
-            '[data-test="StudySelect"] input',
-            'Samples with mutation data (160)'
+        $(selectedCaseSet_sel).waitForExist();
+        browser.waitUntil(
+            () =>
+                $(selectedCaseSet_sel).getText() ===
+                'Samples with mutation data (160)',
+            30000
         );
-        await browser.pause(2000);
-        await clickModifyStudySelectionButton();
-        // Phase 2: Select all TCGA non-provisional
-        await searchAndSelectStudy(
-            'adrenocortical carcinoma tcga firehose legacy',
-            '.studyItem_acc_tcga',
-            'All (252)'
-        );
-        await clickModifyStudySelectionButton();
-        await browser.pause(500);
-        //Phase 3: Deselect Ampullary Carcinoma
-        await (await getElement(input)).waitForExist({ timeout: 10000 });
-        await setInputText(input, 'ampullary baylor');
-        await browser.pause(2000);
-        await (
-            await getElement('[data-test="study-search"] .dropdown-toggle')
-        ).click();
-        await clickElement(
-            '[data-tour="cancer-study-list-container"] .studyItem_ampca_bcm_2016'
-        );
-        await clickQueryByGeneButton();
-        await (await getElement(selectedCaseSet_sel)).waitForExist();
-        await browser.waitUntil(async () => {
-            const expectedText = 'Samples with mutation and CNA data (88)';
-            const selectedText = (await getText(selectedCaseSet_sel)).trim();
-            return selectedText === expectedText;
-        }, 10000);
-    });
-});
 
-describe('selects the right default case sets in a single->select all filtered->single study selection flow', () => {
-    before(async () => {
-        await goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
-    });
-    const inputSelector = 'div[data-test=study-search] input[type=text]';
-    const selectAllSelector =
-        'div[data-test="cancerTypeListContainer"] input[data-test="selectAllStudies"]';
-    const selectedCaseSetSelector =
-        'div[data-test="CaseSetSelector"] span.Select-value-label[aria-selected="true"]';
+        clickModifyStudySelectionButton();
 
-    const searchAndSelectStudy = async (studyName, expectedCheckboxes = 1) => {
-        await getElement(inputSelector, { timeout: 20000 });
-        await setInputText(inputSelector, studyName);
-        await (
-            await getElement('[data-test="study-search"] .dropdown-toggle')
-        ).click();
-        await waitForNumberOfStudyCheckboxes(expectedCheckboxes);
-        await getElement('[data-test="StudySelect"]', { timeout: 10000 });
-        // await clickElement('[data-test="StudySelect"] input');
-    };
-
-    const validateSelectedCaseSet = async expectedText => {
-        await (await getElement(selectedCaseSetSelector)).waitForExist();
-        await browser.waitUntil(async () => {
-            const selectedText = await getText(selectedCaseSetSelector);
-            return selectedText.trim() === expectedText;
-        }, 10000);
-    };
-
-    it('Step 1: Select Ampullary Carcinoma', async function() {
-        await searchAndSelectStudy('ampullary baylor');
-        await clickElement('[data-test="StudySelect"] input');
-        await clickQueryByGeneButton();
-        await validateSelectedCaseSet('Samples with mutation data (160)');
-    });
-
-    it('Step 2: Select all TCGA non-provisional studies', async function() {
-        await clickModifyStudySelectionButton();
-        await searchAndSelectStudy('tcga -provisional');
-        await browser.pause(500);
-        await clickElement(selectAllSelector);
-        await clickQueryByGeneButton();
-        await getElementByTestHandle('MUTATION_EXTENDED', {
-            timeout: 20000,
-        });
-        await getElementByTestHandle('COPY_NUMBER_ALTERATION', {
-            timeout: 10000,
-        });
-        await browser.waitUntil(
-            async () =>
-                /All \(\d+\)/.test(await getText(selectedCaseSetSelector)),
-            10000
-        );
-    });
-
-    it('Step 3: Deselect all TCGA non-provisional studies', async function() {
-        await clickModifyStudySelectionButton();
-        await clickElement(
-            '[data-tour="cancer-study-list-container"] input[data-test="selectAllStudies"]'
-        );
-        await clickQueryByGeneButton();
-        validateSelectedCaseSet('Samples with mutation data (160)');
-    });
-
-    it('Step 4: Select Adrenocortical Carcinoma', async function() {
-        await browser.pause(2000);
-        await clickModifyStudySelectionButton();
-        await searchAndSelectStudy(
-            'adrenocortical carcinoma tcga firehose legacy'
-        );
-        await waitForNumberOfStudyCheckboxes(
+        // select Adrenocortical Carcinoma
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'adrenocortical carcinoma tcga firehose legacy');
+        waitForNumberOfStudyCheckboxes(
             1,
             'Adrenocortical Carcinoma (TCGA, Firehose Legacy)'
         );
-        await clickElement('[data-test="StudySelect"] input');
-        await clickQueryByGeneButton();
-        await validateSelectedCaseSet('All (252)');
-    });
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="StudySelect"] input').click();
 
-    it('Step 5: Deselect Ampullary Carcinoma', async function() {
-        await clickModifyStudySelectionButton();
-        await searchAndSelectStudy('ampullary baylor');
-        await browser.pause(2000);
-        await clickElement(
-            '[data-tour="cancer-study-list-container"] input[data-test="selectAllStudies"]'
+        clickQueryByGeneButton();
+
+        getElementByTestHandle('MUTATION_EXTENDED').waitForExist({
+            timeout: 10000,
+        });
+
+        $(selectedCaseSet_sel).waitForExist();
+        browser.waitUntil(
+            () => $(selectedCaseSet_sel).getText() === 'All (252)',
+            10000
         );
 
-        await clickQueryByGeneButton();
-        await validateSelectedCaseSet(
-            'Samples with mutation and CNA data (88)'
+        clickModifyStudySelectionButton();
+
+        // Deselect Ampullary Carcinoma
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'ampullary baylor');
+        waitForNumberOfStudyCheckboxes(
+            1,
+            'Ampullary Carcinoma (Baylor College of Medicine, Cell Reports 2016)'
+        );
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="StudySelect"] input').click();
+
+        clickQueryByGeneButton();
+
+        $(selectedCaseSet_sel).waitForExist();
+        browser.waitUntil(
+            () =>
+                $(selectedCaseSet_sel).getText() ===
+                'Samples with mutation and CNA data (88)',
+            10000
+        );
+    });
+    it('selects the right default case sets in a single->select all filtered->single study selection flow', () => {
+        // Select Ampullary Carcinoma
+        var input = 'div[data-test=study-search] input[type=text]';
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'ampullary baylor');
+        waitForNumberOfStudyCheckboxes(1);
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="StudySelect"] input').click();
+
+        clickQueryByGeneButton();
+
+        $(selectedCaseSet_sel).waitForExist();
+        browser.waitUntil(
+            () =>
+                $(selectedCaseSet_sel).getText() ===
+                'Samples with mutation data (160)',
+            10000
+        );
+
+        clickModifyStudySelectionButton();
+
+        // select all TCGA non-provisional
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'tcga -provisional');
+        browser.pause(500);
+        $(
+            'div[data-test="cancerTypeListContainer"] input[data-test="selectAllStudies"]'
+        ).waitForExist({ timeout: 10000 });
+        $(
+            'div[data-test="cancerTypeListContainer"] input[data-test="selectAllStudies"]'
+        ).click();
+
+        clickQueryByGeneButton();
+
+        getElementByTestHandle('MUTATION_EXTENDED').waitForExist({
+            timeout: 10000,
+        });
+
+        getElementByTestHandle('COPY_NUMBER_ALTERATION').waitForExist({
+            timeout: 10000,
+        });
+
+        $(selectedCaseSet_sel).waitForExist({ timeout: 10000 });
+        browser.waitUntil(
+            () => /All \(\d+\)/.test($(selectedCaseSet_sel).getText()),
+            10000
+        ); // since sample #s change across studies, dont depend this test on specific number
+
+        clickModifyStudySelectionButton();
+
+        // Deselect all tcga -provisional studies
+        $(
+            'div[data-test="cancerTypeListContainer"] input[data-test="selectAllStudies"]'
+        ).waitForExist({ timeout: 10000 });
+        $(
+            'div[data-test="cancerTypeListContainer"] input[data-test="selectAllStudies"]'
+        ).click();
+        browser.pause(100);
+
+        // select Adrenocortical Carcinoma
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'adrenocortical carcinoma tcga firehose legacy');
+        waitForNumberOfStudyCheckboxes(1);
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="StudySelect"] input').click();
+
+        clickQueryByGeneButton();
+
+        getElementByTestHandle('MUTATION_EXTENDED').waitForExist({
+            timeout: 10000,
+        });
+
+        getElementByTestHandle('COPY_NUMBER_ALTERATION').waitForExist({
+            timeout: 10000,
+        });
+
+        $(selectedCaseSet_sel).waitForExist({ timeout: 10000 });
+        browser.waitUntil(
+            () => $(selectedCaseSet_sel).getText() === 'All (252)',
+            10000
+        );
+
+        clickModifyStudySelectionButton();
+
+        // Deselect Ampullary Carcinoma
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'ampullary baylor');
+        waitForNumberOfStudyCheckboxes(
+            1,
+            'Ampullary Carcinoma (Baylor College of Medicine, Cell Reports 2016)'
+        );
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="StudySelect"] input').click();
+
+        clickQueryByGeneButton();
+
+        $(selectedCaseSet_sel).waitForExist();
+        browser.waitUntil(
+            () =>
+                $(selectedCaseSet_sel).getText() ===
+                'Samples with mutation and CNA data (88)',
+            10000
         );
     });
 });
 
 describe('genetic profile selection in front page query form', () => {
-    before(async () => {
-        await goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
+    beforeEach(function() {
+        goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
     });
-
-    it('selects the right default genetic profiles after selecting the initial study', async () => {
+    it('selects the right default genetic profiles in a single->multiple->single study selection flow', () => {
         // select a study
-        const input = 'div[data-test=study-search] input[type=text]';
-        await getElement(input, { timeout: 20000 });
-        await setInputText(input, 'ovarian nature 2011');
-        await waitForNumberOfStudyCheckboxes(1);
-        await getElement('[data-test="StudySelect"]', { timeout: 10000 });
-        await clickElement('[data-test="StudySelect"] input');
-        await browser.pause(200);
+        var input = 'div[data-test=study-search] input[type=text]';
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'ovarian nature 2011');
+        waitForNumberOfStudyCheckboxes(1);
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="StudySelect"] input').click();
+        browser.pause(200);
 
-        await clickQueryByGeneButton();
+        clickQueryByGeneButton();
 
         // wait for profiles selector to load
-        await getElement(
-            'div[data-test="molecularProfileSelector"] input[type="checkbox"]',
-            { timeout: 6000 }
-        );
+        $(
+            'div[data-test="molecularProfileSelector"] input[type="checkbox"]'
+        ).waitForExist({ timeout: 6000 });
         // mutations, CNA should be selected
         assert(
-            await isSelected(
+            $(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MUTATION_EXTENDED"]'
-            ),
+            ).isSelected(),
             'mutation profile should be selected'
         );
         assert(
-            await isSelected(
+            $(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="COPY_NUMBER_ALTERATION"]'
-            ),
+            ).isSelected(),
             'cna profile should be selected'
         );
         assert(
-            !(await isSelected(
+            !$(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MRNA_EXPRESSION"]'
-            )),
+            ).isSelected(),
             'mrna profile not selected'
         );
-    });
 
-    it('modifies the study selection and verifies the genetic profiles', async () => {
-        await clickModifyStudySelectionButton();
+        clickModifyStudySelectionButton();
 
         // select another study
-        const input = 'div[data-test=study-search] input[type=text]';
-        await getElement(input, { timeout: 10000 });
-        await setInputText(input, 'ampullary baylor');
-        await waitForNumberOfStudyCheckboxes(
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'ampullary baylor');
+        waitForNumberOfStudyCheckboxes(
             1,
             'Ampullary Carcinoma (Baylor College of Medicine, Cell Reports 2016)'
         );
-        await (
-            await getElement('[data-test="StudySelect"]')
-        ).waitForDisplayed();
-        await clickElement('[data-test="StudySelect"]');
+        $('[data-test="StudySelect"]').waitForExist({ timeout: 10000 });
+        $('[data-test="StudySelect"] input').click();
 
-        await clickQueryByGeneButton();
+        clickQueryByGeneButton();
 
-        await getElementByTestHandle('MUTATION_EXTENDED', {
+        getElementByTestHandle('MUTATION_EXTENDED').waitForExist({
             timeout: 10000,
         });
 
-        await getElementByTestHandle('COPY_NUMBER_ALTERATION', {
+        getElementByTestHandle('COPY_NUMBER_ALTERATION').waitForExist({
             timeout: 10000,
         });
 
         assert(
-            await (
-                await getElementByTestHandle('MUTATION_EXTENDED')
-            ).isSelected(),
+            getElementByTestHandle('MUTATION_EXTENDED').isSelected(),
             "'Mutation' should be selected"
         );
         assert(
-            await getElementByTestHandle('COPY_NUMBER_ALTERATION'),
+            getElementByTestHandle('COPY_NUMBER_ALTERATION'),
             "'Copy number alterations' should be selected"
         );
-    });
 
-    it('deselects the study and verifies the genetic profiles', async () => {
-        await clickModifyStudySelectionButton();
+        clickModifyStudySelectionButton();
 
         //deselect other study
-        await clickElement('[data-test="StudySelect"]');
+        $('[data-test="StudySelect"] input').click();
 
-        await clickQueryByGeneButton();
+        clickQueryByGeneButton();
 
         // wait for profiles selector to load
-        await getElement(
-            'div[data-test="molecularProfileSelector"] input[type="checkbox"]',
-            { timeout: 10000 }
-        );
+        $(
+            'div[data-test="molecularProfileSelector"] input[type="checkbox"]'
+        ).waitForExist({ timeout: 10000 });
         // mutations, CNA should be selected
         assert(
-            await isSelected(
+            $(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MUTATION_EXTENDED"]'
-            ),
+            ).isSelected(),
             'mutation profile should be selected'
         );
         assert(
-            await isSelected(
+            $(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="COPY_NUMBER_ALTERATION"]'
-            ),
+            ).isSelected(),
             'cna profile should be selected'
         );
         assert(
-            !(await isSelected(
-                'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MRNA_EXPRESSION"]',
-                {
-                    timeout: 10000,
-                }
-            )),
+            !$(
+                'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MRNA_EXPRESSION"]'
+            ).isSelected(),
             'mrna profile not selected'
         );
-    });
 
-    it('selects all TCGA firehose legacy studies and verifies the genetic profiles', async () => {
-        await clickModifyStudySelectionButton();
+        clickModifyStudySelectionButton();
 
         // select all tcga firehose legacy studies
-        const input = 'div[data-test=study-search] input[type=text]';
-        await getElement(input, { timeout: 10000 });
-        await setInputText(input, 'tcga firehose');
-        await browser.pause(500);
-        await clickElement(
+        $(input).waitForExist({ timeout: 10000 });
+        setInputText(input, 'tcga firehose');
+        browser.pause(500);
+        $(
             'div[data-test="cancerTypeListContainer"] input[data-test="selectAllStudies"]'
-        );
+        ).click();
 
-        await clickQueryByGeneButton();
+        clickQueryByGeneButton();
 
         // wait for data type priority selector to load
-        await getElementByTestHandle('MUTATION_EXTENDED', {
+        getElementByTestHandle('MUTATION_EXTENDED').waitForExist({
             timeout: 10000,
         });
 
-        await getElementByTestHandle('COPY_NUMBER_ALTERATION', {
+        getElementByTestHandle('COPY_NUMBER_ALTERATION').waitForExist({
             timeout: 10000,
         });
         assert(
-            await (
-                await getElementByTestHandle('MUTATION_EXTENDED')
-            ).isSelected(),
+            getElementByTestHandle('MUTATION_EXTENDED').isSelected(),
             "'Mutation' should be selected"
         );
         assert(
-            getElementByTestHandle('COPY_NUMBER_ALTERATION', {
+            getElementByTestHandle('COPY_NUMBER_ALTERATION').waitForExist({
                 timeout: 10000,
             }),
             "'Copy number alterations' should be selected"
         );
-    });
 
-    it('deselects all TCGA firehose legacy studies and verifies the genetic profiles', async () => {
-        await clickModifyStudySelectionButton();
+        clickModifyStudySelectionButton();
 
         // Deselect all tcga firehose legacy studies
-        await clickElement(
+        $(
             'div[data-test="cancerTypeListContainer"] input[data-test="selectAllStudies"]'
-        );
-        await browser.pause(100);
+        ).click();
+        browser.pause(100);
 
-        await clickQueryByGeneButton();
+        clickQueryByGeneButton();
 
-        // wait for profiles selector to
         // wait for profiles selector to load
-        await getElement(
-            'div[data-test="molecularProfileSelector"] input[type="checkbox"]',
-            { timeout: 6000 }
-        );
+        $(
+            'div[data-test="molecularProfileSelector"] input[type="checkbox"]'
+        ).waitForExist({ timeout: 6000 });
         // mutations, CNA should be selected
         assert(
-            await isSelected(
+            $(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MUTATION_EXTENDED"]'
-            ),
+            ).isSelected(),
             'mutation profile should be selected'
         );
         assert(
-            await isSelected(
+            $(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="COPY_NUMBER_ALTERATION"]'
-            ),
+            ).isSelected(),
             'cna profile should be selected'
         );
         assert(
-            !(await isSelected(
-                'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MRNA_EXPRESSION"]',
-                {
-                    timeout: 10000,
-                }
-            )),
+            !$(
+                'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MRNA_EXPRESSION"]'
+            ).isSelected(),
             'mrna profile not selected'
         );
     });
 });
 
 describe('auto-selecting needed profiles for oql in query form', () => {
-    beforeEach(async () => {
-        await goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
+    beforeEach(() => {
+        goToUrlAndSetLocalStorage(CBIOPORTAL_URL);
     });
 
-    it('gives a submit error if protein oql is inputted and no protein profile is available for the study', async () => {
-        await getElement('.studyItem_nsclc_mskcc_2018', { timeout: 20000 });
-        await clickElement('.studyItem_nsclc_mskcc_2018');
-        await clickQueryByGeneButton();
+    it('gives a submit error if protein oql is inputted and no protein profile is available for the study', () => {
+        $('.studyItem_nsclc_mskcc_2018').waitForExist({ timeout: 20000 });
+        $('.studyItem_nsclc_mskcc_2018').click();
+        clickQueryByGeneButton();
 
         // enter oql
-        await getElement('textarea[data-test="geneSet"]', { timeout: 2000 });
-        await setInputText('textarea[data-test="geneSet"]', 'BRCA1: PROT>1');
+        $('textarea[data-test="geneSet"]').waitForExist({ timeout: 2000 });
+        setInputText('textarea[data-test="geneSet"]', 'BRCA1: PROT>1');
 
         // error appears
-        await browser.waitUntil(
-            async () => {
-                const errorMessageSel = await getElement(
-                    '[data-test="oqlErrorMessage"]'
-                );
+        browser.waitUntil(
+            () => {
                 return (
-                    (await errorMessageSel.isExisting()) &&
-                    (await errorMessageSel.getText()) ===
+                    $('[data-test="oqlErrorMessage"]').isExisting() &&
+                    $('[data-test="oqlErrorMessage"]').getText() ===
                         'Protein level data query specified in OQL, but no protein level profile is available in the selected study.'
                 );
             },
@@ -619,67 +596,54 @@ describe('auto-selecting needed profiles for oql in query form', () => {
         );
 
         // submit is disabled
-        assert(
-            !(await (
-                await getElement('button[data-test="queryButton"]')
-            ).isEnabled())
-        );
+        assert(!$('button[data-test="queryButton"]').isEnabled());
     });
-    it('auto-selects an mrna profile when mrna oql is entered', async () => {
-        await getElement('.studyItem_chol_tcga_pan_can_atlas_2018', {
+    it('auto-selects an mrna profile when mrna oql is entered', () => {
+        $('.studyItem_chol_tcga_pan_can_atlas_2018').waitForExist({
             timeout: 20000,
         });
-        await clickElement('.studyItem_chol_tcga_pan_can_atlas_2018');
-        await clickQueryByGeneButton();
+        $('.studyItem_chol_tcga_pan_can_atlas_2018').click();
+        clickQueryByGeneButton();
 
         // make sure profiles selector is loaded
-        await getElement(
-            'div[data-test="molecularProfileSelector"] input[type="checkbox"]',
-            { timeout: 3000 }
-        );
+        $(
+            'div[data-test="molecularProfileSelector"] input[type="checkbox"]'
+        ).waitForExist({ timeout: 3000 });
         // mutations, CNA should be selected
         assert(
-            await isSelected(
+            $(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MUTATION_EXTENDED"]'
-            ),
+            ).isSelected(),
             'mutation profile should be selected'
         );
         assert(
-            await isSelected(
+            $(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="COPY_NUMBER_ALTERATION"]'
-            ),
+            ).isSelected(),
             'cna profile should be selected'
         );
         assert(
-            !(await isSelected(
+            !$(
                 'div[data-test="molecularProfileSelector"] input[type="checkbox"][data-test="MRNA_EXPRESSION"]'
-            )),
+            ).isSelected(),
             'mrna profile not selected'
         );
 
         // enter oql
-        await getElement('textarea[data-test="geneSet"]', { timeout: 2000 });
-        await setInputText(
-            'textarea[data-test="geneSet"]',
-            'TP53 BRCA1: EXP>1'
-        );
+        $('textarea[data-test="geneSet"]').waitForExist({ timeout: 2000 });
+        setInputText('textarea[data-test="geneSet"]', 'TP53 BRCA1: EXP>1');
 
-        await (
-            await getElement('button[data-test="queryButton"]')
-        ).waitForEnabled({ timeout: 5000 });
-        await clickElement('button[data-test="queryButton"]');
+        $('button[data-test="queryButton"]').waitForEnabled({ timeout: 5000 });
+        $('button[data-test="queryButton"]').click();
 
         // wait for query to load
-        await waitForOncoprint();
+        waitForOncoprint(30000);
 
         const profileFilter = (
-            (
-                await browser.execute(() => {
-                    return { ...urlWrapper.query };
-                })
-            ).profileFilter || ''
+            browser.execute(function() {
+                return { ...urlWrapper.query };
+            }).profileFilter || ''
         ).split(',');
-
         // mutation, cna, mrna profiles are there
         assert.equal(profileFilter.includes('mutations'), true);
         assert.equal(profileFilter.includes('gistic'), true);
@@ -691,38 +655,29 @@ describe('auto-selecting needed profiles for oql in query form', () => {
 });
 
 describe('results page quick oql edit', () => {
-    it('gives a submit error if protein oql is inputted and no protein profile is available for the study', async () => {
-        await goToUrlAndSetLocalStorage(
+    it('gives a submit error if protein oql is inputted and no protein profile is available for the study', () => {
+        goToUrlAndSetLocalStorage(
             `${CBIOPORTAL_URL}/results/oncoprint?cancer_study_list=ccrcc_dfci_2019&Z_SCORE_THRESHOLD=2.0&RPPA_SCORE_THRESHOLD=2.0&profileFilter=mutations&case_set_id=ccrcc_dfci_2019_sequenced&gene_list=TP53&geneset_list=%20&tab_index=tab_visualize&Action=Submit`
         );
 
-        await waitForOncoprint();
+        $('[data-test="oqlQuickEditButton"]').waitForExist({ timeout: 20000 });
+        $('[data-test="oqlQuickEditButton"]').click();
 
-        await getElement('[data-test="oqlQuickEditButton"]', {
-            timeout: 20000,
-        });
-        await clickElement('[data-test="oqlQuickEditButton"]');
-
-        await getElement('.quick_oql_edit [data-test="geneSet"]', {
+        $('.quick_oql_edit [data-test="geneSet"]').waitForExist({
             timeout: 5000,
         });
-        await setInputText(
-            '.quick_oql_edit [data-test="geneSet"]',
-            'PTEN: PROT>0'
-        );
+        setInputText('.quick_oql_edit [data-test="geneSet"]', 'PTEN: PROT>0');
 
         // error appears
-        await browser.waitUntil(
-            async () => {
+        browser.waitUntil(
+            () => {
                 return (
-                    (await (
-                        await getElement(
-                            '.quick_oql_edit [data-test="oqlErrorMessage"]'
-                        )
-                    ).isExisting()) &&
-                    (await getText(
+                    $(
                         '.quick_oql_edit [data-test="oqlErrorMessage"]'
-                    )) ===
+                    ).isExisting() &&
+                    $(
+                        '.quick_oql_edit [data-test="oqlErrorMessage"]'
+                    ).getText() ===
                         'Protein level data query specified in OQL, but no protein level profile is available in the selected study.'
                 );
             },
@@ -730,35 +685,26 @@ describe('results page quick oql edit', () => {
         );
 
         // submit is disabled
-        assert(
-            !(await (
-                await getElement('button[data-test="oqlQuickEditSubmitButton"]')
-            ).isEnabled())
-        );
+        assert(!$('button[data-test="oqlQuickEditSubmitButton"]').isEnabled());
     });
-    /** skip tests */
-    it.skip('auto-selects an mrna profile when mrna oql is entered', async () => {
-        await goToUrlAndSetLocalStorage(
+    it('auto-selects an mrna profile when mrna oql is entered', () => {
+        goToUrlAndSetLocalStorage(
             `${CBIOPORTAL_URL}/results/oncoprint?genetic_profile_ids_PROFILE_MUTATION_EXTENDED=prad_tcga_pub_mutations&genetic_profile_ids_PROFILE_COPY_NUMBER_ALTERATION=prad_tcga_pub_gistic&cancer_study_list=prad_tcga_pub&Z_SCORE_THRESHOLD=2.0&RPPA_SCORE_THRESHOLD=2.0&data_priority=0&profileFilter=0&case_set_id=prad_tcga_pub_cnaseq&gene_list=BRCA1&geneset_list=%20&tab_index=tab_visualize&Action=Submit`
         );
 
-        // await waitForOncoprint();
+        $('[data-test="oqlQuickEditButton"]').waitForExist({ timeout: 20000 });
 
-        await getElement('[data-test="oqlQuickEditButton"]', {
-            timeout: 20000,
-        });
+        $('[data-test="oqlQuickEditButton"]').click();
 
-        await clickElement('[data-test="oqlQuickEditButton"]');
-
-        await getElement('.quick_oql_edit [data-test="geneSet"]', {
+        $('.quick_oql_edit [data-test="geneSet"]').waitForExist({
             timeout: 5000,
         });
-        await setInputText(
+        setInputText(
             '.quick_oql_edit [data-test="geneSet"]',
             'TP53 PTEN: PROT>0'
         );
 
-        let query = await browser.execute(() => {
+        let query = browser.execute(function() {
             return { ...urlWrapper.query };
         });
         // mutation and cna profile are there
@@ -776,34 +722,31 @@ describe('results page quick oql edit', () => {
         );
 
         // enter oql
-        await setDropdownOpen(
+        setDropdownOpen(
             true,
             'a[data-test="oqlQuickEditButton"]',
             '.quick_oql_edit textarea[data-test="geneSet"]'
         );
-        await setInputText(
+        setInputText(
             '.quick_oql_edit textarea[data-test="geneSet"]',
             'PTEN: EXP>1'
         );
 
-        await browser.pause(1000); // give it a second
-        await getElement('button[data-test="oqlQuickEditSubmitButton"]', {
+        browser.pause(1000); // give it a second
+        $('button[data-test="oqlQuickEditSubmitButton"]').waitForEnabled({
             timeout: 5000,
         });
-        await clickElement('button[data-test="oqlQuickEditSubmitButton"]');
+        $('button[data-test="oqlQuickEditSubmitButton"]').click();
 
         // wait for query to load
-        await waitForOncoprint();
+        waitForOncoprint(20000);
 
         // mutation, cna, mrna profiles are there
-        //TODO:-- why is this not working? profileFilter is '0' when logged even on the query url
         let profileFilter = (
-            (await browser.execute(function() {
+            browser.execute(function() {
                 return { ...urlWrapper.query };
-            }).profileFilter) || ''
+            }).profileFilter || ''
         ).split(',');
-
-        console.log('profileFilter', profileFilter);
         // mutation, cna, mrna profiles are there
         assert.equal(profileFilter.includes('mutations'), true);
         assert.equal(profileFilter.includes('gistic'), true);

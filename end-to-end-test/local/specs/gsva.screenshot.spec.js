@@ -54,7 +54,7 @@ describe('gsva feature', () => {
     describe('oncoprint tab', () => {
         beforeEach(() => {
             goToUrlAndSetLocalStorage(oncoprintTabUrl, true);
-            waitForOncoprint();
+            waitForOncoprint(20000);
         });
 
         it('shows GSVA heatmap track', () => {
@@ -76,7 +76,7 @@ describe('gsva feature', () => {
             ).waitForDisplayed();
             $(trackOptionsElts.dropdown_selector + ' li:nth-child(7)').click();
 
-            waitForOncoprint();
+            waitForOncoprint(20000);
             var res = checkOncoprintElement('.oncoprintContainer');
             assertScreenShotMatch(res);
         });

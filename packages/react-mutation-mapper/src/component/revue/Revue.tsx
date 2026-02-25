@@ -34,18 +34,15 @@ export const RevueTooltipContent: React.FunctionComponent<{
                     </a>
                 }
                 {` (`}
-                {props.vue.references.map((reference, index) => (
-                    <span key={index}>
-                        <a
-                            href={`https://pubmed.ncbi.nlm.nih.gov/${reference.pubmedId}/`}
-                            rel="noopener noreferrer"
-                            target="_blank"
-                        >
-                            {reference.referenceText}
-                        </a>
-                        {index < props.vue.references.length - 1 && ';'}
-                    </span>
-                ))}
+                {
+                    <a
+                        href={`https://pubmed.ncbi.nlm.nih.gov/${props.vue.pubmedId}/`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >
+                        {props.vue.referenceText}
+                    </a>
+                }
                 {`): `}
                 <strong>{props.vue.revisedProteinEffect}</strong>
             </li>

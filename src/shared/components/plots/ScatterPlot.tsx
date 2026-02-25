@@ -28,7 +28,10 @@ import {
     getRegressionComputations,
     makeMultilineAxisLabel,
 } from './ScatterPlotUtils';
-import { IAxisLogScaleParams, IPlotSampleData } from './PlotsTabUtils';
+import {
+    IAxisLogScaleParams,
+    IPlotSampleData,
+} from 'pages/resultsView/plots/PlotsTabUtils';
 import ifNotDefined from '../../lib/ifNotDefined';
 import {
     CBIOPORTAL_VICTORY_THEME,

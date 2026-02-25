@@ -9,6 +9,7 @@ var getScreenshotName = require('./getScreenshotName');
 
 const TEST_TYPE = process.env.TEST_TYPE || 'remote';
 
+const CustomReporter = require('./customReporter.v6');
 const { transformJUNITFiles } = require('../edit-junit');
 
 const debug = process.env.DEBUG;
@@ -32,9 +33,8 @@ const chromeArgs = [
             ? [
                   '--headless',
                   '--no-sandbox',
+                  '--disable-gpu',
                   '--disable-setuid-sandbox',
-                  '--in-process-gpu',
-                  '--use-gl=angle',
               ]
             : [];
     })()
@@ -167,10 +167,12 @@ exports.config = {
 
     specs: [SPEC_FILE_PATTERN],
 
-    exclude: ['./local/specs/web-tour.spec.js'],
+    //specs: ['./remote/specs/core/comparisonTab.screenshot.spec.js'],
 
     // Patterns to exclude.
-    //exclude: ['./local/specs/web-tour.spec.js'],
+    exclude: [
+        // 'path/to/excluded/files'
+    ],
     //
     // ============
     // Capabilities
@@ -205,7 +207,7 @@ exports.config = {
                 args: chromeArgs,
             },
             acceptInsecureCerts: true,
-            //acceptSslCerts: true,
+            acceptSslCerts: true,
             // If outputDir is provided WebdriverIO can capture driver session logs
             // it is possible to configure which logTypes to include/exclude.
             // excludeDriverLogs: ['*'], // pass '*' to exclude all driver session logs
@@ -273,7 +275,6 @@ exports.config = {
         ],
     ],
 
-    //port: 9515,
     // FROM OLD webdriver config
     // capabilities: [
     //     {
@@ -342,6 +343,17 @@ exports.config = {
                 outputDir: process.env.JUNIT_REPORT_PATH || './shared/results/',
                 outputFileFormat: function(opts) {
                     return `results-${opts.cid}.${opts.capabilities.browserName}.xml`;
+                },
+            },
+        ],
+        [
+            CustomReporter,
+            {
+                testHome: TEST_TYPE,
+                outputDir: process.env.JUNIT_REPORT_PATH || './shared/results/',
+                outputFileFormat: function(opts) {
+                    // optional
+                    return `custom-results-${opts.cid}.${opts.capabilities}.xml`;
                 },
             },
         ],
@@ -499,11 +511,13 @@ exports.config = {
      * @param {<Object>} results object containing test results
      */
     onComplete: function(exitCode, config, capabilities, results) {
+        //const resultsDir = process.env.JUNIT_REPORT_PATH;
+
         mergeReports(resultsDir, `${resultsDir}/completeResults.json`);
-        //
-        // //this is going to eliminate duplicate tests caused by retries
-        // //leaving, for each unique test name only one result (error or pass)
-        // transformJUNITFiles(resultsDir);
+
+        // this is going to eliminate duplicate tests caused by retries
+        // leaving, for each unique test name only one result (error or pass)
+        transformJUNITFiles(resultsDir);
     },
     /**
      * Gets executed when a refresh happens.

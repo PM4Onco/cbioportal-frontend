@@ -21,12 +21,6 @@ import PrecomputedComparator from './precomputedcomparator';
 import { calculateHeaderTops, calculateTrackTops } from './modelutils';
 import { OncoprintGapConfig } from './oncoprintwebglcellview';
 
-export enum GAP_MODE_ENUM {
-    SHOW_GAPS = 'SHOW_GAPS',
-    SHOW_GAPS_PERCENT = 'SHOW_GAPS_PERCENT',
-    HIDE_GAPS = 'HIDE_GAPS',
-}
-
 export type ColumnId = string;
 export type ColumnIndex = number;
 export type TrackId = number;
@@ -68,10 +62,7 @@ export type TrackSortDirectionChangeCallback = (
     track_id: TrackId,
     dir: number
 ) => void;
-export type TrackGapChangeCallBack = (
-    track_id: TrackId,
-    mode: GAP_MODE_ENUM
-) => void;
+export type TrackGapChangeCallBack = (track_id: TrackId, on: boolean) => void;
 export type CustomTrackOption = {
     label?: string;
     separator?: boolean;
@@ -327,7 +318,7 @@ export default class OncoprintModel {
     private track_expansion_parent: TrackProp<TrackId>;
     private track_custom_options: TrackProp<CustomTrackOption[]>;
     private track_can_show_gaps: TrackProp<boolean>;
-    private track_show_gaps: TrackProp<GAP_MODE_ENUM>;
+    private track_show_gaps: TrackProp<boolean>;
 
     // Rule set properties
     private rule_sets: { [ruleSetId: number]: RuleSet };
@@ -580,11 +571,7 @@ export default class OncoprintModel {
             const precomputedComparator = model.precomputed_comparator.get();
             const trackIdsWithGaps = model
                 .getTracks()
-                .filter(
-                    trackId =>
-                        model.getTrackShowGaps(trackId) !==
-                        GAP_MODE_ENUM.HIDE_GAPS
-                );
+                .filter(trackId => model.getTrackShowGaps(trackId));
             const ids = model.visible_id_order.get();
 
             for (let i = 1; i < ids.length; i++) {
@@ -749,7 +736,7 @@ export default class OncoprintModel {
         this.column_left.addBoundProperty(this.column_left_no_padding);
     }
 
-    public setTrackShowGaps(trackId: TrackId, show: GAP_MODE_ENUM) {
+    public setTrackShowGaps(trackId: TrackId, show: boolean) {
         this.track_show_gaps[trackId] = show;
         this.track_gap_change_callback[trackId](trackId, show);
         this.ids_after_a_gap.update(this);
@@ -1156,14 +1143,7 @@ export default class OncoprintModel {
 
     public getGapSize() {
         if (this.showGaps()) {
-            switch (this.gapMode()) {
-                case GAP_MODE_ENUM.SHOW_GAPS:
-                    return this.getCellWidth(true);
-                case GAP_MODE_ENUM.SHOW_GAPS_PERCENT:
-                    return 50;
-                default:
-                    return 50;
-            }
+            return 50; // this creates enough space for 3 digit percentage
         } else {
             return this.getCellWidth(true);
         }
@@ -1445,9 +1425,7 @@ export default class OncoprintModel {
         );
 
         const trackShowGaps = ifndef(params.show_gaps_on_init, false);
-        this.track_show_gaps[track_id] = trackShowGaps
-            ? GAP_MODE_ENUM.SHOW_GAPS_PERCENT
-            : GAP_MODE_ENUM.HIDE_GAPS;
+        this.track_show_gaps[track_id] = trackShowGaps;
         const trackNotSorted = this.track_sort_direction[track_id] === 0;
         if (trackShowGaps && trackNotSorted) {
             this.track_sort_direction[track_id] = 1;
@@ -1911,16 +1889,7 @@ export default class OncoprintModel {
     }
 
     public showGaps() {
-        return _(this.track_show_gaps)
-            .values()
-            .some(t => t !== GAP_MODE_ENUM.HIDE_GAPS);
-    }
-
-    public gapMode() {
-        const mode = _(this.track_show_gaps)
-            .values()
-            .find(g => g !== GAP_MODE_ENUM.HIDE_GAPS);
-        return mode || GAP_MODE_ENUM.HIDE_GAPS;
+        return _.some(this.track_show_gaps);
     }
 
     public getOncoprintWidthNoColumnPaddingNoGaps() {

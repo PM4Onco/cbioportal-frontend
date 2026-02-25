@@ -353,17 +353,11 @@ describe('Virtual Study Tour', () => {
     });
 });
 
-describe('Group Comparison Tour', function() {
+describe('Group Comparison Tour', () => {
     let step = -1;
 
-    this.retries(0);
-
     before(() => {
-        goToUrlAndSetLocalStorage(CBIOPORTAL_URL, true);
-    });
-
-    beforeEach(() => {
-        browser.setWindowSize(1600, 1200);
+        goToUrlAndSetLocalStorage(CBIOPORTAL_URL, false);
     });
 
     it('Initial step with -1.', () => {
@@ -479,11 +473,6 @@ describe('Group Comparison Tour', function() {
         !tourModal.$(SKIP_ALL_BTN).isDisplayed();
         !tourModal.$(NEXT_STEP_BTN).isDisplayed();
 
-        browser.setWindowSize(
-            browser.getWindowSize().width + 400,
-            browser.getWindowSize().height
-        );
-
         browser.pause(1000);
         // There should be the Mutated Genes table [data-tour="mutated-genes-table"]
         const mutatedGenesTable = $('[data-tour="mutated-genes-table"]').$(
@@ -493,8 +482,6 @@ describe('Group Comparison Tour', function() {
 
         // Select samples, IDH1 mutations, TP53 mutant and EGFR amplified samples
         mutatedGenesTable.$$('input')[0].waitForDisplayed();
-
-        //browser.debug();
         mutatedGenesTable.$$('input')[0].click();
         mutatedGenesTable.$$('input')[1].click();
 
@@ -646,7 +633,7 @@ describe('Group Comparison Tour', function() {
         step++;
     });
 
-    it.skip('Step 8: Intro to the Survival tab, on the group comparison page.', () => {
+    it('Step 8: Intro to the Survival tab, on the group comparison page.', () => {
         // The tour should be at step = 8
         assert.equal(step, 8);
 
@@ -670,7 +657,7 @@ describe('Group Comparison Tour', function() {
         step++;
     });
 
-    it.skip('Step 9: Intro to the Clinical tab, on the group comparison page.', () => {
+    it('Step 9: Intro to the Clinical tab, on the group comparison page.', () => {
         // The tour should be at step = 9
         assert.equal(step, 9);
 
@@ -694,7 +681,7 @@ describe('Group Comparison Tour', function() {
         step++;
     });
 
-    it.skip('Step 10: Intro to the Genomic Alterations tab, on the group comparison page.', () => {
+    it('Step 10: Intro to the Genomic Alterations tab, on the group comparison page.', () => {
         // The tour should be at step = 10
         assert.equal(step, 10);
 

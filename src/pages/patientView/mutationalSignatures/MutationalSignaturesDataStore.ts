@@ -49,7 +49,6 @@ export class MutationalSignatureTableDataStore extends SimpleGetterLazyMobXTable
                 confidence: 0.8,
             },
         },
-        description: '',
         url: '',
     };
 
