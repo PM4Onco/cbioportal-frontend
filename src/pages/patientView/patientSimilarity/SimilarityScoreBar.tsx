@@ -268,8 +268,6 @@ const SimilarityScoreBar: React.FC<SimilarityScoreBarProps> = ({
                             </g>
                         );
                     })}
-
-                    {/* End caps */}
                     <rect
                         x={maxX - rectWidth / 2}
                         y={axisYContent - rectHeight / 2}
