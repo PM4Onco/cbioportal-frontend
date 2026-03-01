@@ -14,8 +14,6 @@
     background-color: rgb(249, 249, 249) !important;
 }
 .MutationSimilarityTable tbody tr:nth-of-type(odd) td {
-    /*filter: brightness(110%); */
-    /*background-color: lighten($color: $linkcolour, $amount: 50%); */
     box-shadow: inset 0 0 100px 100px rgba(112, 112, 112, 0.01);
 }
 .MutationSimilarityTable tbody td {
