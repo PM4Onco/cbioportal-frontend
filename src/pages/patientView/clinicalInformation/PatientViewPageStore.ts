@@ -21,7 +21,7 @@ import {
     GenericAssayDataMultipleStudyFilter,
     GenericAssayMetaFilter,
 } from 'cbioportal-ts-api-client';
-import client from '../../../shared/api/cbioportalClientInstance';
+import { getClient } from '../../../shared/api/cbioportalClientInstance';
 import internalClient from '../../../shared/api/cbioportalInternalClientInstance';
 import oncokbClient from '../../../shared/api/oncokbClientInstance';
 import { computed, observable, action, makeObservable } from 'mobx';
@@ -65,7 +65,6 @@ import {
     fetchCnaOncoKbDataForOncoprint,
     fetchCopyNumberData,
     fetchCopyNumberSegments,
-    fetchCosmicData,
     fetchDiscreteCNAData,
     fetchGisticData,
     fetchMutationData,
@@ -151,12 +150,10 @@ import { createVariantAnnotationsByMutationFetcher } from 'shared/components/mut
 import SampleManager from '../SampleManager';
 import { getFilteredMolecularProfilesByAlterationType } from 'pages/studyView/StudyViewUtils';
 import {
-    getMyCancerGenomeData,
     getMyVariantInfoAnnotationsFromIndexedVariantAnnotations,
     ICivicGeneIndex,
     ICivicVariantIndex,
     IHotspotIndex,
-    IMyCancerGenomeData,
     IMyVariantInfoIndex,
     indexHotspotsData,
     IOncoKbData,
@@ -592,8 +589,6 @@ export class PatientViewPageStore {
     //     return this._patientIdsInCohort;
     // }
 
-    readonly myCancerGenomeData: IMyCancerGenomeData = getMyCancerGenomeData();
-
     // get mutational signature molecular profile Ids (contribution and confidence)
     readonly mutationalSignatureMolecularProfiles = remoteData<
         MolecularProfile[]
@@ -641,7 +636,7 @@ export class PatientViewPageStore {
                             });
                         }
                     );
-                    const genericAssayRawData = await client.fetchGenericAssayDataInMultipleMolecularProfilesUsingPOST(
+                    const genericAssayRawData = await getClient().fetchGenericAssayDataInMultipleMolecularProfilesUsingPOST(
                         {
                             genericAssayDataMultipleStudyFilter: {
                                 sampleMolecularIdentifiers,
@@ -759,7 +754,7 @@ export class PatientViewPageStore {
                 .value();
 
             if (mutationalSignatureContributionStableIds.length > 0) {
-                return client.fetchGenericAssayMetaUsingPOST({
+                return getClient().fetchGenericAssayMetaUsingPOST({
                     genericAssayMetaFilter: {
                         genericAssayStableIds: mutationalSignatureContributionStableIds,
                     } as GenericAssayMetaFilter,
@@ -833,7 +828,7 @@ export class PatientViewPageStore {
                 .value();
 
             if (mutationalSignatureCountStableIds.length > 0) {
-                return client.fetchGenericAssayMetaUsingPOST({
+                return getClient().fetchGenericAssayMetaUsingPOST({
                     genericAssayMetaFilter: {
                         genericAssayStableIds: mutationalSignatureCountStableIds,
                     } as GenericAssayMetaFilter,
@@ -957,7 +952,7 @@ export class PatientViewPageStore {
     readonly allSamplesForPatient = remoteData({
         await: () => [this.derivedPatientId],
         invoke: async () => {
-            return await client.getAllSamplesOfPatientInStudyUsingGET({
+            return await getClient().getAllSamplesOfPatientInStudyUsingGET({
                 studyId: this.studyId,
                 patientId: this.derivedPatientId.result,
                 projection: 'DETAILED',
@@ -1058,7 +1053,7 @@ export class PatientViewPageStore {
     readonly studies = remoteData(
         {
             invoke: async () => [
-                await client.getStudyUsingGET({ studyId: this.studyId }),
+                await getClient().getStudyUsingGET({ studyId: this.studyId }),
             ],
         },
         []
@@ -1251,12 +1246,6 @@ export class PatientViewPageStore {
         []
     );
 
-    readonly cosmicData = remoteData({
-        await: () => [this.mutationData, this.uncalledMutationData],
-        invoke: () =>
-            fetchCosmicData(this.mutationData, this.uncalledMutationData),
-    });
-
     readonly mutSigData = remoteData({
         invoke: async () => fetchMutSigData(this.studyId),
     });
@@ -1411,7 +1400,8 @@ export class PatientViewPageStore {
     });
 
     readonly studyMetaData = remoteData({
-        invoke: async () => client.getStudyUsingGET({ studyId: this.studyId }),
+        invoke: async () =>
+            getClient().getStudyUsingGET({ studyId: this.studyId }),
     });
 
     public sampleManager = remoteData<SampleManager>({
@@ -1480,7 +1470,7 @@ export class PatientViewPageStore {
         {
             invoke: async () => {
                 return stringListToSet(
-                    await client.getAllSampleIdsInSampleListUsingGET({
+                    await getClient().getAllSampleIdsInSampleListUsingGET({
                         sampleListId: `${this.studyId}_sequenced`,
                     })
                 );
@@ -1493,7 +1483,7 @@ export class PatientViewPageStore {
     );
 
     readonly molecularProfilesInStudy = remoteData(() => {
-        return client.getAllMolecularProfilesInStudyUsingGET({
+        return getClient().getAllMolecularProfilesInStudyUsingGET({
             studyId: this.studyId,
         });
     }, []);
@@ -1657,7 +1647,7 @@ export class PatientViewPageStore {
                 if (this.molecularProfileIdDiscrete.result) {
                     ret[
                         this.studyId
-                    ] = await client.getMolecularProfileUsingGET({
+                    ] = await getClient().getMolecularProfileUsingGET({
                         molecularProfileId: this.molecularProfileIdDiscrete
                             .result,
                     });
@@ -1741,7 +1731,7 @@ export class PatientViewPageStore {
                 // query for gene panel data using sample molecular identifiers
                 let genePanelData: GenePanelData[] = [];
                 if (sampleMolecularIdentifiers.length) {
-                    genePanelData = await client.fetchGenePanelDataInMultipleMolecularProfilesUsingPOST(
+                    genePanelData = await getClient().fetchGenePanelDataInMultipleMolecularProfilesUsingPOST(
                         {
                             genePanelDataMultipleStudyFilter: {
                                 sampleMolecularIdentifiers,
@@ -1769,7 +1759,7 @@ export class PatientViewPageStore {
                         .filter(id => !!id)
                 );
                 if (genePanelIds.length) {
-                    return client.fetchGenePanelsUsingPOST({
+                    return getClient().fetchGenePanelsUsingPOST({
                         genePanelIds,
                         projection: 'DETAILED',
                     });
@@ -3295,7 +3285,7 @@ export class PatientViewPageStore {
 
                 // Note:
                 // - custom driver annotations are part of the incoming datum
-                // - cbio counts, cosmic and custom driver annnotations are
+                // - cbio counts, and custom driver annotations are
                 //   not used for driver evaluation
                 return evaluatePutativeDriverInfoWithHotspots(
                     mutation,

@@ -59,7 +59,6 @@ export interface IServerConfig {
     google_analytics_profile_id: string | null;
     ptmSources: string[] | undefined;
     oncoprint_hide_vus_default: boolean;
-    mycancergenome_show: boolean | undefined;
     oncokb_public_api_url: string | null;
     digital_slide_archive_iframe_url: string | null;
     digital_slide_archive_meta_url: string | null;
@@ -194,7 +193,9 @@ export interface IServerConfig {
     vaf_log_scale_default: boolean; // this has a default
     skin_study_view_show_sv_table: boolean; // this has a default
     enable_study_tags: boolean;
+    clickhouse_mode: boolean;
     download_custom_buttons_json: string;
+    feature_study_export: boolean;
 }
 
 export interface IFhirsparkConfig {

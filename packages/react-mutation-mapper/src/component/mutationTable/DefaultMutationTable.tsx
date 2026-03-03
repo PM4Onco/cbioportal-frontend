@@ -2,7 +2,6 @@ import {
     ICivicGeneIndex,
     ICivicVariantIndex,
     IHotspotIndex,
-    IMyCancerGenomeData,
     IOncoKbData,
     getRemoteDataGroupStatus,
     MobxCache,
@@ -46,7 +45,6 @@ import { ISharedTherapyRecommendationData } from 'cbioportal-utils/src/model/The
 export type DefaultMutationTableProps = {
     hotspotData?: RemoteData<IHotspotIndex | undefined>;
     oncoKbData?: RemoteData<IOncoKbData | Error | undefined>;
-    myCancerGenomeData?: IMyCancerGenomeData;
     oncoKbCancerGenes?: RemoteData<CancerGene[] | Error | undefined>;
     usingPublicOncoKbInstance: boolean;
     indexedMyVariantInfoAnnotations?: RemoteData<
@@ -124,7 +122,6 @@ export default class DefaultMutationTable extends React.Component<
                       mutation,
                       this.props.oncoKbCancerGenes,
                       this.props.hotspotData,
-                      this.props.myCancerGenomeData,
                       this.props.oncoKbData,
                       this.props.usingPublicOncoKbInstance,
                       this.props.civicGenes,
@@ -222,7 +219,6 @@ export default class DefaultMutationTable extends React.Component<
                         enableOncoKb={true}
                         enableHotspot={true}
                         enableCivic={this.props.enableCivic || false}
-                        enableMyCancerGenome={true}
                         enableRevue={true}
                         enableSharedTR={true}
                         hotspotData={this.props.hotspotData}

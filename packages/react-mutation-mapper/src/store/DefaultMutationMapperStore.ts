@@ -6,7 +6,6 @@ import {
     convertUniprotFeatureToPtm,
     defaultHotspotFilter,
     genomicLocationString,
-    getMyCancerGenomeData,
     groupCancerHotspotDataByPosition,
     groupHotspotsByMutations,
     getMutationsByTranscriptId,
@@ -17,7 +16,6 @@ import {
     ICivicGeneIndex,
     ICivicVariantIndex,
     IHotspotIndex,
-    IMyCancerGenomeData,
     IOncoKbData,
     fetchCivicGenes,
     fetchCivicVariants,
@@ -219,8 +217,6 @@ class DefaultMutationMapperStore<T extends Mutation>
             this.config.groupFilters
         );
     }
-
-    public readonly myCancerGenomeData: IMyCancerGenomeData = getMyCancerGenomeData();
 
     @computed
     public get mutations(): T[] {

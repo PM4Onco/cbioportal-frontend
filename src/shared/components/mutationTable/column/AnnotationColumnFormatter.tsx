@@ -6,14 +6,12 @@ import {
     civicDownload,
     getAnnotationData,
     IAnnotation,
-    myCancerGenomeDownload,
 } from 'react-mutation-mapper';
 import { oncoKbAnnotationDownload } from 'oncokb-frontend-commons';
 import {
     ICivicGeneIndex,
     ICivicVariantIndex,
     IHotspotIndex,
-    IMyCancerGenomeData,
     IOncoKbData,
     RemoteData,
 } from 'cbioportal-utils';
@@ -36,7 +34,6 @@ export default class AnnotationColumnFormatter {
         mutations: Mutation[],
         oncoKbCancerGenes?: RemoteData<CancerGene[] | Error | undefined>,
         hotspotData?: RemoteData<IHotspotIndex | undefined>,
-        myCancerGenomeData?: IMyCancerGenomeData,
         oncoKbData?: RemoteData<IOncoKbData | Error | undefined>,
         usingPublicOncoKbInstance?: boolean,
         civicGenes?: RemoteData<ICivicGeneIndex | undefined>,
@@ -51,7 +48,6 @@ export default class AnnotationColumnFormatter {
             mutations ? mutations[0] : undefined,
             oncoKbCancerGenes,
             hotspotData,
-            myCancerGenomeData,
             oncoKbData,
             usingPublicOncoKbInstance,
             civicGenes,
@@ -67,7 +63,6 @@ export default class AnnotationColumnFormatter {
         mutations: Mutation[] | undefined,
         oncoKbCancerGenes?: RemoteData<CancerGene[] | Error | undefined>,
         hotspotData?: RemoteData<IHotspotIndex | undefined>,
-        myCancerGenomeData?: IMyCancerGenomeData,
         oncoKbData?: RemoteData<IOncoKbData | Error | undefined>,
         usingPublicOncoKbInstance?: boolean,
         civicGenes?: RemoteData<ICivicGeneIndex | undefined>,
@@ -83,7 +78,6 @@ export default class AnnotationColumnFormatter {
             mutations ? mutations[0] : undefined,
             oncoKbCancerGenes,
             hotspotData,
-            myCancerGenomeData,
             oncoKbData,
             usingPublicOncoKbInstance,
             civicGenes,
@@ -121,9 +115,6 @@ export default class AnnotationColumnFormatter {
         }
         annotationDownloadContent.push(
             `CIViC: ${civicDownload(annotationData.civicEntry)}`,
-            `MyCancerGenome: ${myCancerGenomeDownload(
-                annotationData.myCancerGenomeLinks
-            )}`,
             `CancerHotspot: ${annotationData.isHotspot ? 'yes' : 'no'}`,
             `3DHotspot: ${annotationData.is3dHotspot ? 'yes' : 'no'}`
         );

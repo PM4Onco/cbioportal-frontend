@@ -175,6 +175,7 @@ enum EventKey {
     utilities_horizontalBars,
     utilities_showRegressionLine,
     utilities_viewLimitValues,
+    utilities_connectSamples,
     sortByMedian,
 }
 
@@ -391,6 +392,10 @@ export type PlotsTabGeneOption = {
     label: string; // hugo symbol
 };
 
+export type SampleIdsForPatientIds = {
+    [patientId: string]: string[];
+};
+
 const searchInputTimeoutMs = 600;
 
 class PlotsTabScatterPlot extends ScatterPlot<IScatterPlotData> {}
@@ -460,6 +465,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
     @observable percentageBar = false;
     @observable stackedBar = false;
     @observable viewLimitValues: boolean = true;
+    @observable connectSamples: boolean = false;
     @observable _waterfallPlotSortOrder: string | undefined = undefined;
 
     @observable searchCase: string = '';
@@ -530,6 +536,61 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                 !this.coloringMenuSelection.colorByStructuralVariant
             );
         }
+    }
+
+    @computed get patientIdsInBoxPlot(): string[] {
+        let patientIds: string[] = [];
+
+        if (this.boxPlotData.isComplete && this.boxPlotData.result) {
+            const uniqueSampleKeys = _.flatten(
+                _.map(this.boxPlotData.result.data, dataPoint =>
+                    _.map(dataPoint.data, point => point.uniqueSampleKey)
+                )
+            );
+
+            patientIds = _.uniq(
+                uniqueSampleKeys
+                    .map(
+                        sampleKey =>
+                            this.props.sampleKeyToSample.result![sampleKey]
+                                ?.patientId
+                    )
+                    .filter(Boolean)
+            );
+        }
+        return patientIds;
+    }
+
+    @computed get samplesForEachPatient(): SampleIdsForPatientIds[] {
+        const samplesForPatients: SampleIdsForPatientIds[] = [];
+
+        if (this.patientIdsInBoxPlot && this.patientIdsInBoxPlot.length > 0) {
+            this.patientIdsInBoxPlot.forEach(patientId => {
+                const sampleIdsForPatient: SampleIdsForPatientIds = {
+                    [patientId]: [],
+                };
+
+                this.boxPlotData.result?.data.forEach(dataPoint => {
+                    dataPoint.data.forEach(point => {
+                        const sample = this.props.sampleKeyToSample.result![
+                            point.uniqueSampleKey
+                        ];
+                        if (sample && sample.patientId === patientId) {
+                            sampleIdsForPatient[patientId].push(point.sampleId);
+                        }
+                    });
+                });
+                samplesForPatients.push(sampleIdsForPatient);
+            });
+        }
+
+        // if atleast one patient has multiple samples, return the array of sample IDs for each patient, otherwise []
+        const hasPatientWithMultipleSamples = samplesForPatients.some(
+            patientObject =>
+                patientObject[Object.keys(patientObject)[0]].length > 1
+        );
+
+        return hasPatientWithMultipleSamples ? samplesForPatients : [];
     }
 
     // determine whether formatting for points in the scatter plot (based on
@@ -1789,6 +1850,9 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                 break;
             case EventKey.utilities_viewLimitValues:
                 this.viewLimitValues = !this.viewLimitValues;
+                break;
+            case EventKey.utilities_connectSamples:
+                this.connectSamples = !this.connectSamples;
                 break;
             case EventKey.sortByMedian:
                 this.boxPlotSortByMedian = !this.boxPlotSortByMedian;
@@ -3952,6 +4016,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                         <label className="label-text">Data Type</label>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <ReactSelect
+                                aria-label="Data Type Dropdown"
                                 name={`${
                                     vertical ? 'v' : 'h'
                                 }-profile-type-selector`}
@@ -4011,6 +4076,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                                     }}
                                 >
                                     <ReactSelect
+                                        aria-label={`${dataSourceLabel} Dropdown`}
                                         className="data-source-id"
                                         name={`${
                                             vertical ? 'v' : 'h'
@@ -4117,6 +4183,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                                     >
                                         <Then>
                                             <AsyncSelect
+                                                aria-label="Gene Search Dropdown"
                                                 name={`${
                                                     vertical ? 'v' : 'h'
                                                 }-gene-selector`}
@@ -4371,6 +4438,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                                     Filter categories
                                 </label>
                                 <Select
+                                    aria-label="Categories Filter Dropdown"
                                     className="Select"
                                     isClearable={true}
                                     isSearchable={true}
@@ -4547,6 +4615,10 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
         const showRegression =
             this.plotType.isComplete &&
             this.plotType.result === PlotType.ScatterPlot;
+        const showConnectSamples =
+            this.plotType.isComplete &&
+            this.plotType.result === PlotType.BoxPlot &&
+            this.samplesForEachPatient.length > 0;
         if (
             !showSearchOptions &&
             !showSampleColoringOptions &&
@@ -4586,6 +4658,20 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                                     )}
                                 </div>
                             )}
+                        </div>
+                    )}
+                    {showConnectSamples && (
+                        <div className="checkbox" style={{ marginTop: 14 }}>
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    name="utilities_connectSamples"
+                                    value={EventKey.utilities_connectSamples}
+                                    checked={this.connectSamples}
+                                    onClick={this.onInputClick}
+                                />{' '}
+                                Connect samples from the same patient
+                            </label>
                         </div>
                     )}
                     {showDiscreteVsDiscreteOption && (
@@ -5796,6 +5882,10 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                                         LEGEND_TO_BOTTOM_WIDTH_THRESHOLD
                                     }
                                     legendTitle={this.legendTitle}
+                                    renderLinePlot={this.connectSamples}
+                                    samplesForPatients={
+                                        this.samplesForEachPatient
+                                    }
                                 />
                             );
                             break;
@@ -5865,6 +5955,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                                                 >
                                                     <Then>
                                                         <AsyncSelect
+                                                            aria-label="Gene or Clinical Attribute Search Dropdown"
                                                             className={
                                                                 'color-samples-toolbar-elt gene-select'
                                                             }
@@ -6134,6 +6225,7 @@ export default class PlotsTab extends React.Component<IPlotsTabProps, {}> {
                                                 marginTop: -13,
                                             }}
                                             className="hideScrollbar"
+                                            tabIndex={0}
                                             ref={this.assignScrollPaneRef}
                                         >
                                             {plotElt}

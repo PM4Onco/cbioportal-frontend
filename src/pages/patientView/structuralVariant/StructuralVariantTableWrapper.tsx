@@ -308,7 +308,6 @@ export default class StructuralVariantTableWrapper extends React.Component<
                             enableOncoKb: this.props.enableOncoKb,
                             pubMedCache: this.props.store.pubMedCache,
                             enableCivic: false,
-                            enableMyCancerGenome: false,
                             enableHotspot: false,
                             enableRevue: false,
                             enableSharedTR: false,
