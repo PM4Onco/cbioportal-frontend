@@ -1518,11 +1518,16 @@ export class StudyViewPageStore
                 promises,
                 async (
                     selectedSampleSet: ComplexKeyMap<Sample>,
-                    sampleTreatments: SampleTreatmentReport
+                    sampleTreatments:
+                        | SampleTreatmentRow[]
+                        | { treatments: SampleTreatmentRow[] }
                 ) => {
+                    const sampleTreatmentRows = Array.isArray(sampleTreatments)
+                        ? sampleTreatments
+                        : sampleTreatments?.treatments || [];
                     const treatmentKeysMap = _.keyBy(treatmentUniqueKeys);
-                    const desiredTreatments = sampleTreatments.treatments.filter(
-                        t =>
+                    const desiredTreatments = sampleTreatmentRows.filter(
+                        (t: SampleTreatmentRow) =>
                             treatmentUniqueKey(t, isPatientType) in
                             treatmentKeysMap
                     );
@@ -1539,11 +1544,12 @@ export class StudyViewPageStore
                             const selectedSampleIdentifiers = _.flatMap(
                                 treatmentRows,
                                 treatmentRow => {
-                                    return treatmentRow.samples.filter(s =>
-                                        selectedSampleSet.has(s, [
-                                            'sampleId',
-                                            'studyId',
-                                        ])
+                                    return treatmentRow.samples.filter(
+                                        (s: SampleIdentifier) =>
+                                            selectedSampleSet.has(s, [
+                                                'sampleId',
+                                                'studyId',
+                                            ])
                                     );
                                 }
                             ).map(s => ({

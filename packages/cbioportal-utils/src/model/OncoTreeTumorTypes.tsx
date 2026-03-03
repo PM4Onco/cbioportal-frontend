@@ -16,19 +16,30 @@ type tumorType = {
     precursors?: Array<any>;
 };
 
-let getRequest = new XMLHttpRequest();
-let url = '/tumorTypes.json';
-if (
-    window.location.hostname === 'localhost' ||
-    window.location.port === '3000'
-) {
-    url = 'https://oncotree.info/api/tumorTypes';
+function loadOncoTreeTumorTypes(): Array<tumorType> {
+    // Keep tests and offline environments deterministic.
+    if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') {
+        return [];
+    }
+
+    let url = '/tumorTypes.json';
+    if (
+        window.location.hostname === 'localhost' ||
+        window.location.port === '3000'
+    ) {
+        url = 'https://oncotree.info/api/tumorTypes';
+    }
+
+    try {
+        const getRequest = new XMLHttpRequest();
+        getRequest.open('Get', url, false);
+        getRequest.send(null);
+        return JSON.parse(getRequest.responseText || '[]');
+    } catch (error) {
+        return [];
+    }
 }
 
-getRequest.open('Get', url, false);
-getRequest.send(null);
-const oncoTreeTumorTypes: Array<tumorType> = JSON.parse(
-    getRequest.responseText
-);
+const oncoTreeTumorTypes: Array<tumorType> = loadOncoTreeTumorTypes();
 
 export default oncoTreeTumorTypes;
