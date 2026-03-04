@@ -17,6 +17,7 @@ import {
 } from 'pages/studyView/StudyViewComparisonUtils';
 import CTLazyTable from 'pages/studyView/table/LocalCTTable';
 
+// Object representing a clinical trial
 export declare type LocalCTMatchData = {
     matchedTrialNames: string[]; // e.g., "Soratram", ""
     matchtedTrialURLs: string[]; // e.g. "https://clinicaltrials.gov/ct2/show/NCT03434379", "https://www.quickqueck.de/detail/228/"
@@ -26,6 +27,7 @@ export declare type LocalCTMatchData = {
     exclusionCriteria: string[]; // e.g., "TP53:MUT", "TP53:ANY", "TP53:WT"
 };
 
+// Object that combines all alterations associated with a study and patient/sample information
 export declare type CTFilter = {
     patientId: string[];
     sampleId: string[];
@@ -37,14 +39,17 @@ export declare type CTFilter = {
     alterationDescriptions: string[]; // e.g., 'Missense_Mutation', 'Amplification', 'Fusion'
 };
 
+// Helper function to get CNV type
 export declare type NumericGeneMolecularDataWithStatus = NumericGeneMolecularData & {
     copyNumberStatus: 'AMP' | 'DEL' | 'NEUTRAL';
 };
 
+// Helper function to obrain StudyViewPageStore encoding metadata on the currently viewed study
 interface Props {
     store: StudyViewPageStore;
 }
 
+// Search interface for mutations and CNA
 interface MutationsPerPatient {
     mutations: Mutation[];
     cnaExt: NumericGeneMolecularDataWithStatus[];
@@ -53,6 +58,7 @@ interface MutationsPerPatient {
     sampleIds: Set<string>;
 }
 
+// Get client for cBioPortal API calls
 const client = new CBioPortalAPI();
 
 export function useMutationsPerPatient(
@@ -70,9 +76,11 @@ export function useMutationsPerPatient(
                 return;
             }
 
+            // Get all samples and molecular profiles for the study
             const sampleArray: Sample[] = store.samples.result;
             const profiles: MolecularProfile[] = store.molecularProfiles.result;
 
+            // filter profiles for mutations, CNA, and SV
             const mutationProfiles = profiles.filter(
                 p =>
                     p.molecularAlterationType === 'MUTATION_EXTENDED' ||
@@ -87,6 +95,7 @@ export function useMutationsPerPatient(
                 p => p.molecularAlterationType === 'STRUCTURAL_VARIANT'
             );
 
+            // Get mutation, CNA, and SV data for the samples and selected genes with a fail-safe that sets data to empty arrays if there are no mutations/CNA/SV in the study, so that we can still render the page and just show no matches, instead of crashing the page
             let mutations: Mutation[] = [];
 
             try {
