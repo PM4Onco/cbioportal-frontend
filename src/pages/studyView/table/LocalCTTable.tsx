@@ -7,7 +7,7 @@ import {
 } from '../../../shared/components/lazyMobXTable/LazyMobXTable';
 import { getSampleViewUrl } from '../../../shared/api/urls';
 
-import { Mutation } from 'cbioportal-ts-api-client';
+import { Mutation, NumericGeneMolecularData } from 'cbioportal-ts-api-client';
 import {
     MUT_COLOR_INFRAME,
     MUT_COLOR_MISSENSE,
@@ -23,14 +23,14 @@ const mutationColorMap: Record<string, string> = {
     Truncating: MUT_COLOR_TRUNC,
     Splice_Site: MUT_COLOR_SPLICE,
     Promoter: MUT_COLOR_PROMOTER,
-    // ggf. weitere Typen ergänzen
 };
 
 interface Props {
     filteredMutations: Mutation[];
+    filteredCna: NumericGeneMolecularData[];
 }
 
-const CTLazyTable: React.FC<Props> = ({ filteredMutations }) => {
+const CTLazyTable: React.FC<Props> = ({ filteredMutations, filteredCna }) => {
     const columns: Column<Mutation>[] = [
         {
             name: 'Patient ID',
@@ -43,6 +43,9 @@ const CTLazyTable: React.FC<Props> = ({ filteredMutations }) => {
                     {m.patientId}
                 </a>
             ),
+            sortBy: (m: Mutation) => m.patientId,
+            filter: (m, filterString) =>
+                m.patientId.toLowerCase().includes(filterString.toLowerCase()),
             width: 50,
         },
 
@@ -57,6 +60,9 @@ const CTLazyTable: React.FC<Props> = ({ filteredMutations }) => {
                     {m.sampleId}
                 </a>
             ),
+            sortBy: (m: Mutation) => m.sampleId,
+            filter: (m, filterString) =>
+                m.sampleId.toLowerCase().includes(filterString.toLowerCase()),
             width: 50,
         },
 
@@ -71,23 +77,36 @@ const CTLazyTable: React.FC<Props> = ({ filteredMutations }) => {
                     Soratram
                 </a>
             ),
+            sortBy: (m: Mutation) => 'Soratram', // Placeholder for sorting
+            filter: (m, filterString) =>
+                'Soratram'.toLowerCase().includes(filterString.toLowerCase()), // Placeholder for filtering
             width: 50,
         },
 
         {
             name: 'Gene',
             render: m => <span>{m.gene?.hugoGeneSymbol}</span>,
+            sortBy: (m: Mutation) => m.gene?.hugoGeneSymbol || '',
+            filter: (m, filterString) =>
+                m.gene?.hugoGeneSymbol
+                    .toLowerCase()
+                    .includes(filterString.toLowerCase()),
             width: 50,
         },
 
         {
-            name: 'Protein Change',
+            name: 'Alteration',
             render: m => <span>{m.proteinChange}</span>,
+            sortBy: (m: Mutation) => m.proteinChange || '',
+            filter: (m, filterString) =>
+                m.proteinChange
+                    ?.toLowerCase()
+                    .includes(filterString.toLowerCase()) || false,
             width: 50,
         },
 
         {
-            name: 'Mutation Type',
+            name: 'Alteration Type',
             render: (m: Mutation) => {
                 const color = mutationColorMap[m.mutationType] || 'black';
                 const label = m.mutationType.replace(/_Mutation/g, ' ');
@@ -96,6 +115,11 @@ const CTLazyTable: React.FC<Props> = ({ filteredMutations }) => {
                     <span style={{ color, fontWeight: 'bold' }}>{label}</span>
                 );
             },
+            filter: (m, filterString) =>
+                m.mutationType
+                    .toLowerCase()
+                    .includes(filterString.toLowerCase()),
+            sortBy: (m: Mutation) => m.mutationType || '',
             width: 50,
         },
     ];
