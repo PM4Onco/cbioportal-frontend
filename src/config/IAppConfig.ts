@@ -188,6 +188,7 @@ export interface IServerConfig {
     comparison_categorical_na_values: string;
     customMode?: CustomMode;
     customFeatures?: Partial<ICustomFeatureConfig>;
+    fhirspark?: IFhirsparkConfig;
     oncoprint_clinical_tracks_config_json: string;
     oncoprint_clustered_default: boolean; // this has a default
     enable_cross_study_expression: string;
@@ -202,4 +203,9 @@ export interface IServerConfig {
     clickhouse_mode: boolean;
     download_custom_buttons_json: string;
     feature_study_export: boolean;
+}
+
+export interface IFhirsparkConfig {
+    host: string | null;
+    port: string | null;
 }

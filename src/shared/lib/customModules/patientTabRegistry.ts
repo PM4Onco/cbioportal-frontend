@@ -9,7 +9,7 @@ export interface PatientTabRenderContext {
 
 export interface PatientTabExtension {
     id: string;
-    linkText: React.ReactNode;
+    linkText: string | JSX.Element;
     key?: string | number;
     order?: number;
     unmountOnHide?: boolean;

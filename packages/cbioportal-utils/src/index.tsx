@@ -25,6 +25,7 @@ export * from './model/RemoteData';
 export * from './model/SignalMutation';
 export * from './model/SignalMutationStatus';
 export * from './model/SignalGeneFrequencySummary';
+export * from './model/TherapyRecommendation';
 export * from './model/Uniprot';
 
 export * from './mutation/MutationAnnotator';

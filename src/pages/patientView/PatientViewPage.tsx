@@ -36,6 +36,7 @@ import { QueryParams } from 'url';
 import { AppStore } from '../../AppStore';
 import request from 'superagent';
 import { remoteData, getBrowserWindow } from 'cbioportal-frontend-commons';
+import 'cbioportal-frontend-commons/dist/styles.css';
 import 'react-mutation-mapper/dist/styles.css';
 import 'react-table/react-table.css';
 import PatientViewUrlWrapper from './PatientViewUrlWrapper';
@@ -279,11 +280,6 @@ export class PatientViewPageInner extends React.Component<
 
     @computed
     get shouldShowResources(): boolean {
-        const tabId: string = this.urlWrapper.activeTabId;
-        if (tabId === 'filesAndLinks') {
-            return true;
-        }
-
         if (this.pageStore.resourceIdToResourceData.isComplete) {
             return _.some(
                 this.pageStore.resourceIdToResourceData.result,
@@ -319,6 +315,16 @@ export class PatientViewPageInner extends React.Component<
             this.pageStore.detailedTrialMatches.isComplete &&
             this.pageStore.detailedTrialMatches.result.length > 0
         );
+    }
+
+    @computed
+    public get shouldShowMtbTab(): boolean {
+        return true;
+    }
+
+    @computed
+    public get shouldShowFollowUpTab(): boolean {
+        return true;
     }
 
     @autobind

@@ -1,3 +1,6 @@
+import { registerFollowUpPatientTabModule } from './modules/moduleTabFollowUp';
+import { registerMtbPatientTabModule } from './modules/moduleTabMtb';
+
 let initialized = false;
 
 export function initializeCustomModules() {
@@ -6,6 +9,9 @@ export function initializeCustomModules() {
     }
 
     initialized = true;
+
+    registerMtbPatientTabModule();
+    registerFollowUpPatientTabModule();
 }
 
 export function resetCustomModulesForTest() {
