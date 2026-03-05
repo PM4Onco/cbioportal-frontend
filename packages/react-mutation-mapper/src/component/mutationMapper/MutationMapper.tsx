@@ -30,6 +30,7 @@ import {
     TrackName,
     TrackVisibility,
 } from '../track/TrackSelector';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils/src/model/TherapyRecommendation';
 
 export type MutationMapperProps = {
     hugoSymbol?: string;
@@ -104,6 +105,7 @@ export type MutationMapperProps = {
     compactStyle?: boolean;
     collapsePtmTrack?: boolean;
     collapseUniprotTopologyTrack?: boolean;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 };
 
 export function initDefaultMutationMapperStore(props: MutationMapperProps) {
@@ -303,6 +305,7 @@ export default class MutationMapper<
                         this.store.usingPublicOncoKbInstance
                     }
                     oncoKbCancerGenes={this.store.oncoKbCancerGenes}
+                    myCancerGenomeData={this.store.myCancerGenomeData}
                     enableCivic={this.props.enableCivic}
                     enableRevue={this.props.enableRevue}
                     civicGenes={this.store.civicGenes}

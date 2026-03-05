@@ -26,11 +26,13 @@ import ProteinChangeColumnFormatter from './column/ProteinChangeColumnFormatter'
 import MutationTypeColumnFormatter from './column/MutationTypeColumnFormatter';
 import VariantTypeColumnFormatter from './column/VariantTypeColumnFormatter';
 import FunctionalImpactColumnFormatter from './column/FunctionalImpactColumnFormatter';
+import CosmicColumnFormatter from './column/CosmicColumnFormatter';
 import MutationCountColumnFormatter from './column/MutationCountColumnFormatter';
 import CancerTypeColumnFormatter from './column/CancerTypeColumnFormatter';
 import MutationStatusColumnFormatter from './column/MutationStatusColumnFormatter';
 import ValidationStatusColumnFormatter from './column/ValidationStatusColumnFormatter';
 import StudyColumnFormatter from './column/StudyColumnFormatter';
+import { ICosmicData } from 'shared/model/Cosmic';
 import AnnotationColumnFormatter from './column/AnnotationColumnFormatter';
 import ExonColumnFormatter from './column/ExonColumnFormatter';
 import { IMutSigData } from 'shared/model/MutSig';
@@ -52,6 +54,7 @@ import {
     ICivicGeneIndex,
     ICivicVariantIndex,
     IHotspotIndex,
+    IMyCancerGenomeData,
     RemoteData,
     IMyVariantInfoIndex,
     extractGenomicLocation,
@@ -87,6 +90,7 @@ import {
 import { NamespaceColumnConfig } from 'shared/components/namespaceColumns/NamespaceColumnConfig';
 import CustomDriverColumnFormatter from './column/CustomDriverColumnFormatter';
 import CustomDriverTierColumnFormatter from './column/CustomDriverTierColumnFormatter';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
 
 export interface IMutationTableProps {
     studyIdToStudy?: { [studyId: string]: CancerStudy };
@@ -105,11 +109,14 @@ export interface IMutationTableProps {
     genomeNexusMutationAssessorCache?: GenomeNexusMutationAssessorCache;
     mutSigData?: IMutSigData;
     enableOncoKb?: boolean;
+    enableMyCancerGenome?: boolean;
     enableHotspot?: boolean;
     enableCivic?: boolean;
     enableRevue?: boolean;
+    enableSharedTR?: boolean;
     enableCustomDriver?: boolean;
     enableFunctionalImpact?: boolean;
+    myCancerGenomeData?: IMyCancerGenomeData;
     hotspotData?: RemoteData<IHotspotIndex | undefined>;
     indexedVariantAnnotations?: RemoteData<
         { [genomicLocation: string]: VariantAnnotation } | undefined
@@ -117,6 +124,7 @@ export interface IMutationTableProps {
     indexedMyVariantInfoAnnotations?: RemoteData<
         IMyVariantInfoIndex | undefined
     >;
+    cosmicData?: ICosmicData;
     oncoKbData?: RemoteData<IOncoKbData | Error | undefined>;
     oncoKbDataForCancerType?: RemoteData<IOncoKbData | Error | undefined>;
     oncoKbDataForUnknownPrimary?: RemoteData<IOncoKbData | Error | undefined>;
@@ -167,6 +175,7 @@ export interface IMutationTableProps {
     customDriverDescription?: string;
     customDriverTiersName?: string;
     customDriverTiersDescription?: string;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 }
 
 export enum MutationTableColumnType {
@@ -195,6 +204,7 @@ export enum MutationTableColumnType {
     CUSTOM_DRIVER = 'Custom Driver',
     CUSTOM_DRIVER_TIER = 'Custom Driver Tier',
     HGVSG = 'HGVSg',
+    COSMIC = 'COSMIC',
     COPY_NUM = 'Copy #',
     ASCN_COPY_NUM = 'Total Integer Copy #',
     ASCN_METHOD = 'ASCN Method',
@@ -266,13 +276,7 @@ export function defaultFilter(
         return data.reduce((match: boolean, next: Mutation) => {
             const val = (next as any)[dataField];
             if (val) {
-                return (
-                    match ||
-                    val
-                        .toString()
-                        .toUpperCase()
-                        .includes(filterStringUpper)
-                );
+                return match || val.toUpperCase().includes(filterStringUpper);
             } else {
                 return match;
             }
@@ -305,9 +309,11 @@ export default class MutationTable<
         itemsLabel: 'Mutation',
         itemsLabelPlural: 'Mutations',
         enableOncoKb: true,
+        enableMyCancerGenome: true,
         enableHotspot: true,
         enableCivic: false,
         enableRevue: true,
+        enableSharedTR: true,
     };
 
     constructor(props: P) {
@@ -712,11 +718,6 @@ export default class MutationTable<
             sortBy: (d: Mutation[]) => d.map(m => m.startPosition),
             visible: false,
             align: 'right',
-            filter: (
-                d: Mutation[],
-                filterString: string,
-                filterStringUpper: string
-            ) => defaultFilter(d, 'startPosition', filterStringUpper),
         };
 
         this._columns[MutationTableColumnType.END_POS] = {
@@ -727,11 +728,6 @@ export default class MutationTable<
             sortBy: (d: Mutation[]) => d.map(m => m.endPosition),
             visible: false,
             align: 'right',
-            filter: (
-                d: Mutation[],
-                filterString: string,
-                filterStringUpper: string
-            ) => defaultFilter(d, 'endPosition', filterStringUpper),
         };
 
         this._columns[MutationTableColumnType.REF_ALLELE] = {
@@ -763,7 +759,7 @@ export default class MutationTable<
                 filterString: string,
                 filterStringUpper: string
             ) => defaultFilter(d, 'mutationStatus', filterStringUpper),
-            visible: false,
+            visible: true,
         };
 
         this._columns[MutationTableColumnType.VALIDATION_STATUS] = {
@@ -907,11 +903,14 @@ export default class MutationTable<
         this._columns[MutationTableColumnType.FUNCTIONAL_IMPACT] = {
             name: MutationTableColumnType.FUNCTIONAL_IMPACT,
             render: (d: Mutation[]) => {
-                if (this.props.genomeNexusMutationAssessorCache) {
+                if (
+                    this.props.genomeNexusCache ||
+                    this.props.genomeNexusMutationAssessorCache
+                ) {
                     return FunctionalImpactColumnFormatter.renderFunction(
                         d,
-                        this.props.genomeNexusMutationAssessorCache,
-                        this.props.selectedTranscriptId
+                        this.props.genomeNexusCache,
+                        this.props.genomeNexusMutationAssessorCache
                     );
                 } else {
                     return <span></span>;
@@ -920,13 +919,29 @@ export default class MutationTable<
             download: (d: Mutation[]) =>
                 FunctionalImpactColumnFormatter.download(
                     d,
+                    this.props.genomeNexusCache as GenomeNexusCache,
                     this.props
-                        .genomeNexusMutationAssessorCache as GenomeNexusMutationAssessorCache,
-                    this.props.selectedTranscriptId
+                        .genomeNexusMutationAssessorCache as GenomeNexusMutationAssessorCache
                 ),
             headerRender: FunctionalImpactColumnFormatter.headerRender,
-            visible: false,
+            visible: true,
             shouldExclude: () => !this.props.enableFunctionalImpact,
+        };
+
+        this._columns[MutationTableColumnType.COSMIC] = {
+            name: MutationTableColumnType.COSMIC,
+            render: (d: Mutation[]) =>
+                CosmicColumnFormatter.renderFunction(d, this.props.cosmicData),
+            sortBy: (d: Mutation[]) =>
+                CosmicColumnFormatter.getSortValue(d, this.props.cosmicData),
+            download: (d: Mutation[]) =>
+                CosmicColumnFormatter.getDownloadValue(
+                    d,
+                    this.props.cosmicData
+                ),
+            tooltip: <span>COSMIC occurrences</span>,
+            defaultSortDirection: 'desc',
+            align: 'right',
         };
 
         this._columns[MutationTableColumnType.ANNOTATION] = {
@@ -943,6 +958,7 @@ export default class MutationTable<
                 <span id="mutation-annotation">
                     {AnnotationColumnFormatter.renderFunction(d, {
                         hotspotData: this.props.hotspotData,
+                        myCancerGenomeData: this.props.myCancerGenomeData,
                         oncoKbData: this.props.oncoKbData,
                         oncoKbCancerGenes: this.props.oncoKbCancerGenes,
                         usingPublicOncoKbInstance: this.props
@@ -956,12 +972,17 @@ export default class MutationTable<
                         civicVariants: this.props.civicVariants,
                         enableCivic: this.props.enableCivic as boolean,
                         enableOncoKb: this.props.enableOncoKb as boolean,
+                        enableMyCancerGenome: this.props
+                            .enableMyCancerGenome as boolean,
                         enableHotspot: this.props.enableHotspot as boolean,
                         enableRevue:
                             !!this.props.enableRevue && this.shouldShowRevue,
+                        enableSharedTR: this.props.enableSharedTR as boolean,
                         userDisplayName: this.props.userDisplayName,
                         indexedVariantAnnotations: this.props
                             .indexedVariantAnnotations,
+                        sharedTherapyRecommendationData: this.props
+                            .sharedTherapyRecommendationData,
                         resolveTumorType: this.resolveTumorType,
                     })}
                 </span>
@@ -978,11 +999,13 @@ export default class MutationTable<
                             d ? d[0] : undefined,
                             this.props.oncoKbCancerGenes,
                             this.props.hotspotData,
+                            this.props.myCancerGenomeData,
                             this.props.oncoKbData,
                             this.props.usingPublicOncoKbInstance,
                             this.props.civicGenes,
                             this.props.civicVariants,
                             this.props.indexedVariantAnnotations,
+                            this.props.sharedTherapyRecommendationData,
                             this.resolveTumorType
                         );
 
@@ -1019,11 +1042,13 @@ export default class MutationTable<
                     d,
                     this.props.oncoKbCancerGenes,
                     this.props.hotspotData,
+                    this.props.myCancerGenomeData,
                     this.props.oncoKbData,
                     this.props.usingPublicOncoKbInstance,
                     this.props.civicGenes,
                     this.props.civicVariants,
                     this.props.indexedVariantAnnotations,
+                    this.props.sharedTherapyRecommendationData,
                     this.resolveTumorType,
                     !!this.props.enableRevue && this.shouldShowRevue
                 );
@@ -1033,11 +1058,13 @@ export default class MutationTable<
                     d,
                     this.props.oncoKbCancerGenes,
                     this.props.hotspotData,
+                    this.props.myCancerGenomeData,
                     this.props.oncoKbData,
                     this.props.usingPublicOncoKbInstance,
                     this.props.civicGenes,
                     this.props.civicVariants,
                     this.props.indexedVariantAnnotations,
+                    this.props.sharedTherapyRecommendationData,
                     this.resolveTumorType
                 );
             },
@@ -1273,7 +1300,7 @@ export default class MutationTable<
                 </span>
             ),
             defaultSortDirection: 'desc',
-            visible: false,
+            visible: true,
             align: 'left',
         };
 

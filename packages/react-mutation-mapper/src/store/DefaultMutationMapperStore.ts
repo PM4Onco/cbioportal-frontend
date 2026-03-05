@@ -6,6 +6,7 @@ import {
     convertUniprotFeatureToPtm,
     defaultHotspotFilter,
     genomicLocationString,
+    getMyCancerGenomeData,
     groupCancerHotspotDataByPosition,
     groupHotspotsByMutations,
     getMutationsByTranscriptId,
@@ -16,6 +17,7 @@ import {
     ICivicGeneIndex,
     ICivicVariantIndex,
     IHotspotIndex,
+    IMyCancerGenomeData,
     IOncoKbData,
     fetchCivicGenes,
     fetchCivicVariants,
@@ -81,6 +83,7 @@ interface DefaultMutationMapperStoreConfig {
     enableCivic?: boolean;
     enableOncoKb?: boolean;
     enableRevue?: boolean;
+    enableSharedTR?: boolean;
     cachePostMethodsOnClients?: boolean;
     apiCacheLimit?: number;
     getMutationCount?: (mutation: Partial<Mutation>) => number;
@@ -216,6 +219,8 @@ class DefaultMutationMapperStore<T extends Mutation>
             this.config.groupFilters
         );
     }
+
+    public readonly myCancerGenomeData: IMyCancerGenomeData = getMyCancerGenomeData();
 
     @computed
     public get mutations(): T[] {

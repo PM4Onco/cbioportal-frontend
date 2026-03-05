@@ -25,6 +25,7 @@ import { ExtendedMutationTableColumnType } from 'shared/components/mutationTable
 import _ from 'lodash';
 import { extractColumnNames } from 'shared/components/mutationMapper/MutationMapperUtils';
 import SampleNotProfiledAlert from 'shared/components/SampleNotProfiledAlert';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
 
 export interface IPatientViewMutationsTabProps {
     patientViewPageStore: PatientViewPageStore;
@@ -224,6 +225,9 @@ export default class PatientViewMutationsTab extends React.Component<
             this.props.patientViewPageStore.studyIdToStudy,
             this.props.patientViewPageStore.sampleToMutationGenePanelId,
             this.props.patientViewPageStore.genePanelIdToEntrezGeneIds,
+            this.props.patientViewPageStore.localTherapyRecommendations,
+            this.props.patientViewPageStore.localFollowUps,
+            this.props.patientViewPageStore.getDiagnosisFromSamples,
         ],
         renderPending: () => <LoadingIndicator isLoading={true} size="small" />,
         render: () => (
@@ -310,8 +314,14 @@ export default class PatientViewMutationsTab extends React.Component<
                     mutSigData={
                         this.props.patientViewPageStore.mutSigData.result
                     }
+                    myCancerGenomeData={
+                        this.props.patientViewPageStore.myCancerGenomeData
+                    }
                     hotspotData={
                         this.props.patientViewPageStore.indexedHotspotData
+                    }
+                    cosmicData={
+                        this.props.patientViewPageStore.cosmicData.result
                     }
                     oncoKbData={this.props.patientViewPageStore.oncoKbData}
                     oncoKbCancerGenes={
@@ -331,8 +341,10 @@ export default class PatientViewMutationsTab extends React.Component<
                     enableOncoKb={getServerConfig().show_oncokb}
                     enableFunctionalImpact={getServerConfig().show_genomenexus}
                     enableHotspot={getServerConfig().show_hotspot}
+                    enableMyCancerGenome={getServerConfig().mycancergenome_show}
                     enableCivic={getServerConfig().show_civic}
                     enableRevue={getServerConfig().show_revue}
+                    enableSharedTR={getServerConfig().show_sharedTR}
                     columnVisibility={this.props.mutationTableColumnVisibility}
                     columnVisibilityProps={{
                         onColumnToggled: this.props
@@ -379,6 +391,25 @@ export default class PatientViewMutationsTab extends React.Component<
                     customDriverTiersDescription={
                         getServerConfig()
                             .oncoprint_custom_driver_annotation_tiers_menu_description!
+                    }
+                    sharedTherapyRecommendationData={
+                        {
+                            localTherapyRecommendations: this.props
+                                .patientViewPageStore
+                                .localTherapyRecommendations.result,
+                            sharedTherapyRecommendations: this.props
+                                .patientViewPageStore
+                                .sharedTherapyRecommendations,
+                            localFollowUps: this.props.patientViewPageStore
+                                .localFollowUps.result,
+                            sharedFollowUps: this.props.patientViewPageStore
+                                .sharedFollowUps,
+                            diagnosis: this.props.patientViewPageStore.getDiagnosisFromSamples.result.map(
+                                cd => cd.value
+                            ),
+                            studyId: this.props.patientViewPageStore.getSafeStudyId(),
+                            caseId: this.props.patientViewPageStore.getSafePatientId(),
+                        } as ISharedTherapyRecommendationData
                     }
                 />
             </div>

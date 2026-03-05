@@ -53,11 +53,23 @@ export type LegendDescription = {
 export enum AnnotationSources {
     ONCOKB = 'oncokb',
     CIVIC = 'civic',
+    MY_CANCER_GENOME = 'myCancerGenome',
     CANCER_HOTSPOTS = 'cancerHotspots',
     REVUE = 'reVue',
+    BZKF = 'bzkf',
 }
 
 export const sourceTooltipInfo = {
+    [AnnotationSources.BZKF]: [
+        {
+            sourceUrl: 'https://bzkf.de/',
+            sourceName: 'BZKF',
+            sourceDescription:
+                'supporting the developement of features enabling the reuse and exchange of historic therapyrecommendation- and followup-data. ',
+            reference: '',
+            referenceUrl: 'https://bzkf.de',
+        },
+    ],
     [AnnotationSources.ONCOKB]: [
         {
             sourceUrl: 'https://www.oncokb.org/',
@@ -76,6 +88,14 @@ export const sourceTooltipInfo = {
                 'a community knowledgebase for expert crowdsourcing the clinical interpretation of variants in cancer',
             reference: 'Griffith et al 2017',
             referenceUrl: 'https://pubmed.ncbi.nlm.nih.gov/28138153/',
+        },
+    ],
+    [AnnotationSources.MY_CANCER_GENOME]: [
+        {
+            sourceUrl: 'https://www.mycancergenome.org/',
+            sourceName: 'My Cancer Genome',
+            sourceDescription:
+                'a precision cancer medicine knowledge resource (data version Mar 2016)',
         },
     ],
     [AnnotationSources.CANCER_HOTSPOTS]: [
@@ -106,12 +126,73 @@ export const sourceTooltipInfo = {
     ],
 };
 
+export const bzkfData: LegendDescription[] = [
+    {
+        legend: (
+            <img
+                src={require('../../../../../../packages/react-mutation-mapper/src/images/genome_full_match.png')}
+                style={{
+                    height: 20,
+                    width: 20,
+                }}
+            />
+        ),
+        description: (
+            <span>
+                Therapyrecommendations with matching alteration and diagnosis
+                have been found
+            </span>
+        ),
+    },
+    {
+        legend: (
+            <img
+                src={require('../../../../../../packages/react-mutation-mapper/src/images/genome_part_match.png')}
+                style={{
+                    height: 20,
+                    width: 20,
+                }}
+            />
+        ),
+        description: <span>Partial matches based on the alteration</span>,
+    },
+    {
+        legend: (
+            <img
+                src={require('../../../../../../packages/react-mutation-mapper/src/images/genome_diag_match.png')}
+                style={{
+                    height: 20,
+                    width: 20,
+                }}
+            />
+        ),
+        description: <span>Partial matches based on the diagnosis</span>,
+    },
+    {
+        legend: (
+            <img
+                src={require('../../../../../../packages/react-mutation-mapper/src/images/genome_no_match.png')}
+                style={{
+                    height: 20,
+                    width: 20,
+                }}
+            />
+        ),
+        description: <span>No matching therapyrecommendations</span>,
+    },
+    {
+        legend: <i className="fa fa-exclamation-triangle text-danger" />,
+        description: (
+            <span>Cancer type / Alteration is differing from the patients</span>
+        ),
+    },
+];
+
 export const civicData: LegendDescription[] = [
     {
         legend: (
             <img
                 src={require('../../../../../../src/rootImages/civic-logo.png')}
-                alt="Civic Logo"
                 style={{ height: 14, width: 14, marginLeft: 6 }}
             />
         ),
@@ -123,7 +204,6 @@ export const civicData: LegendDescription[] = [
         legend: (
             <img
                 src={require('../../../../../../src/rootImages/civic-logo-no-variants.png')}
-                alt="Civic Logo with No Variants"
                 style={{ height: 14, width: 14, marginLeft: 6 }}
             />
         ),
@@ -137,12 +217,27 @@ export const civicData: LegendDescription[] = [
     },
 ];
 
+export const myCancerGenomeData: LegendDescription[] = [
+    {
+        legend: (
+            <img
+                src={require('../../../../../../src/rootImages/mcg_logo.png')}
+                style={{ height: 14, width: 14, marginLeft: 8 }}
+            />
+        ),
+        description: <span>Is in My Cancer Genome</span>,
+    },
+    {
+        legend: <span />,
+        description: <span>Not in My Cancer Genome</span>,
+    },
+];
+
 export const cancerHotspotsData: LegendDescription[] = [
     {
         legend: (
             <img
                 src={require('../../../../../../src/rootImages/cancer-hotspots.svg')}
-                alt="Cancer Hotspots SVG"
                 style={{ height: 14, width: 14, marginLeft: 8 }}
             />
         ),
@@ -152,7 +247,6 @@ export const cancerHotspotsData: LegendDescription[] = [
         legend: (
             <img
                 src={require('../../../annotation/images/3d-hotspots.svg')}
-                alt="3D Clustered Hotspot"
                 style={{ height: 14, width: 14, marginLeft: 8 }}
             />
         ),
@@ -355,6 +449,31 @@ const AnnotationHeader: React.FunctionComponent<{
         <span>
             {props.name}
             <br />
+            {getServerConfig().show_sharedTR && (
+                <DefaultTooltip
+                    placement="top"
+                    overlay={
+                        <AnnotationHeaderTooltipCard
+                            infoProps={
+                                sourceTooltipInfo[AnnotationSources.BZKF]
+                            }
+                            legendDescriptions={bzkfData}
+                        />
+                    }
+                >
+                    <img
+                        src={require('../../../../../../packages/react-mutation-mapper/src/images/genome.png')}
+                        style={{
+                            height: 20,
+                            width: 20,
+                            marginLeft: 5,
+                            marginBottom: 0,
+                            marginRight:
+                                props.width - 21 > 0 ? props.width - 21 : 0,
+                        }}
+                    />
+                </DefaultTooltip>
+            )}
             {getServerConfig().show_oncokb && (
                 <DefaultTooltip
                     placement="top"
@@ -376,7 +495,6 @@ const AnnotationHeader: React.FunctionComponent<{
                 >
                     <img
                         src={require('oncokb-styles/images/oncogenic.svg')}
-                        alt="OncoGenic SVG"
                         style={{
                             height: 16,
                             width: 16,
@@ -402,7 +520,6 @@ const AnnotationHeader: React.FunctionComponent<{
                 >
                     <img
                         src={require('../../../../../../src/rootImages/vue_logo.png')}
-                        alt="VUE Logo"
                         style={{
                             height: 14,
                             width: 14,
@@ -426,7 +543,31 @@ const AnnotationHeader: React.FunctionComponent<{
                 >
                     <img
                         src={require('../../../../../../src/rootImages/civic-logo.png')}
-                        alt="Civic Logo"
+                        style={{
+                            height: 14,
+                            width: 14,
+                            marginLeft: 7,
+                            marginRight: 1,
+                        }}
+                    />
+                </DefaultTooltip>
+            )}
+            {getServerConfig().mycancergenome_show && (
+                <DefaultTooltip
+                    placement="top"
+                    overlay={
+                        <AnnotationHeaderTooltipCard
+                            infoProps={
+                                sourceTooltipInfo[
+                                    AnnotationSources.MY_CANCER_GENOME
+                                ]
+                            }
+                            legendDescriptions={myCancerGenomeData}
+                        />
+                    }
+                >
+                    <img
+                        src={require('../../../../../../src/rootImages/mcg_logo.png')}
                         style={{
                             height: 14,
                             width: 14,
@@ -452,7 +593,6 @@ const AnnotationHeader: React.FunctionComponent<{
                 >
                     <img
                         src={require('../../../../../../src/rootImages/cancer-hotspots.svg')}
-                        alt="Cancer Hotspots SVG"
                         style={{ height: 14, width: 14, marginLeft: 7 }}
                     />
                 </DefaultTooltip>

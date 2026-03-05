@@ -1,11 +1,13 @@
 import {
     getCivicEntry,
+    getMyCancerGenomeLinks,
     getRemoteDataGroupStatus,
     getVariantAnnotation,
     ICivicEntry,
     ICivicGeneIndex,
     ICivicVariantIndex,
     IHotspotIndex,
+    IMyCancerGenomeData,
     IOncoKbData,
     is3dHotspot,
     isLinearClusterHotspot,
@@ -25,6 +27,9 @@ import {
 } from 'oncokb-frontend-commons';
 import { defaultArraySortMethod } from 'cbioportal-utils';
 import Civic, { sortValue as civicSortValue } from '../civic/Civic';
+import MyCancerGenome, {
+    sortValue as myCancerGenomeSortValue,
+} from '../myCancerGenome/MyCancerGenome';
 import {
     OncoKB,
     oncoKbAnnotationSortValue as oncoKbSortValue,
@@ -37,13 +42,17 @@ import { CanonicalMutationType } from 'cbioportal-frontend-commons';
 import { VariantAnnotation, Vues as VUE } from 'genome-nexus-ts-api-client';
 import { RevueCell, sortValue as revueSortValue } from '../revue/Revue';
 import annotationStyles from './annotation.module.scss';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils/src/model/TherapyRecommendation';
+import BzkfAnnotation from '../bzkfAnnotation/BzkfAnnotation';
 
 export type AnnotationProps = {
     mutation?: Mutation;
     enableOncoKb: boolean;
+    enableMyCancerGenome: boolean;
     enableHotspot: boolean;
     enableCivic: boolean;
     enableRevue: boolean;
+    enableSharedTR: boolean;
     hotspotData?: RemoteData<IHotspotIndex | undefined>;
     oncoKbData?: RemoteData<IOncoKbData | Error | undefined>;
     oncoKbCancerGenes?: RemoteData<CancerGene[] | Error | undefined>;
@@ -53,6 +62,7 @@ export type AnnotationProps = {
     pubMedCache?: MobxCache;
     resolveEntrezGeneId?: (mutation: Mutation) => number;
     resolveTumorType?: (mutation: Mutation) => string;
+    myCancerGenomeData?: IMyCancerGenomeData;
     civicGenes?: RemoteData<ICivicGeneIndex | undefined>;
     civicVariants?: RemoteData<ICivicVariantIndex | undefined>;
     indexedVariantAnnotations?: RemoteData<
@@ -60,14 +70,17 @@ export type AnnotationProps = {
     >;
     userDisplayName?: string;
     hasMultipleCancerTypes?: boolean;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 };
 
 export type GenericAnnotationProps = {
     annotation: IAnnotation;
     enableCivic: boolean;
     enableHotspot: boolean;
+    enableMyCancerGenome: boolean;
     enableOncoKb: boolean;
     enableRevue: boolean;
+    enableSharedTR: boolean;
     mergeOncoKbIcons?: boolean;
     oncoKbContentPadding?: number;
     pubMedCache?: MobxCache;
@@ -85,11 +98,13 @@ export interface IAnnotation {
     oncoKbGeneExist: boolean;
     isOncoKbCancerGene: boolean;
     usingPublicOncoKbInstance: boolean;
+    myCancerGenomeLinks: string[];
     civicEntry?: ICivicEntry | null;
     civicStatus: 'pending' | 'error' | 'complete';
     hasCivicVariants: boolean;
     hugoGeneSymbol: string;
     vue?: VUE;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 }
 
 export const DEFAULT_ANNOTATION_DATA: IAnnotation = {
@@ -103,7 +118,16 @@ export const DEFAULT_ANNOTATION_DATA: IAnnotation = {
     hotspotStatus: 'complete',
     hugoGeneSymbol: '',
     hasCivicVariants: true,
+    myCancerGenomeLinks: [],
     civicStatus: 'complete',
+    sharedTherapyRecommendationData: {
+        localTherapyRecommendations: [],
+        localFollowUps: [],
+        sharedTherapyRecommendations: [],
+        sharedFollowUps: [],
+        diagnosis: [],
+        proteinChange: '',
+    },
 };
 
 function getDefaultEntrezGeneId(mutation: Mutation): number {
@@ -119,6 +143,7 @@ export function getAnnotationData(
     mutation?: Mutation,
     oncoKbCancerGenes?: RemoteData<CancerGene[] | Error | undefined>,
     hotspotData?: RemoteData<IHotspotIndex | undefined>,
+    myCancerGenomeData?: IMyCancerGenomeData,
     oncoKbData?: RemoteData<IOncoKbData | Error | undefined>,
     usingPublicOncoKbInstance?: boolean,
     civicGenes?: RemoteData<ICivicGeneIndex | undefined>,
@@ -126,6 +151,7 @@ export function getAnnotationData(
     indexedVariantAnnotations?: RemoteData<
         { [genomicLocation: string]: VariantAnnotation } | undefined
     >,
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData,
     resolveTumorType: (mutation: Mutation) => string = getDefaultTumorType,
     resolveEntrezGeneId: (mutation: Mutation) => number = getDefaultEntrezGeneId
 ): IAnnotation {
@@ -136,10 +162,12 @@ export function getAnnotationData(
         const memoize =
             oncoKbCancerGenes?.isComplete &&
             hotspotData?.isComplete &&
+            !!myCancerGenomeData &&
             oncoKbData?.isComplete &&
             civicGenes?.isComplete &&
             civicVariants?.isComplete &&
-            indexedVariantAnnotations?.isComplete;
+            indexedVariantAnnotations?.isComplete &&
+            !!sharedTherapyRecommendationData;
 
         if (memoize) {
             key = JSON.stringify(mutation) + !!usingPublicOncoKbInstance;
@@ -202,6 +230,9 @@ export function getAnnotationData(
                     ? getRemoteDataGroupStatus(civicGenes, civicVariants)
                     : 'pending',
             hasCivicVariants: true,
+            myCancerGenomeLinks: myCancerGenomeData
+                ? getMyCancerGenomeLinks(mutation, myCancerGenomeData)
+                : [],
             isHotspot:
                 hotspotData?.isComplete && hotspotData.result
                     ? isLinearClusterHotspot(mutation, hotspotData.result)
@@ -276,6 +307,24 @@ export function getAnnotationData(
                 oncoKbIndicator: undefined,
             };
         }
+
+        value = {
+            ...value,
+            sharedTherapyRecommendationData: sharedTherapyRecommendationData
+                ? {
+                      ...sharedTherapyRecommendationData,
+                      proteinChange: mutation.proteinChange,
+                  }
+                : {
+                      localTherapyRecommendations: [],
+                      sharedTherapyRecommendations: [],
+                      localFollowUps: [],
+                      sharedFollowUps: [],
+                      diagnosis: [],
+                      proteinChange: mutation.proteinChange,
+                  },
+        };
+
         if (memoize) {
             memoized.set(key, value as any);
         }
@@ -294,6 +343,7 @@ export function sortValue(annotation: IAnnotation): number[] {
     return _.flatten([
         oncoKbSortValue(annotation.oncoKbIndicator),
         civicSortValue(annotation.civicEntry),
+        myCancerGenomeSortValue(annotation.myCancerGenomeLinks),
         hotspotSortValue(annotation.isHotspot, annotation.is3dHotspot),
         revueSortValue(annotation.vue),
         annotation.isOncoKbCancerGene ? 1 : 0,
@@ -305,8 +355,10 @@ export function GenericAnnotation(props: GenericAnnotationProps): JSX.Element {
         annotation,
         enableCivic,
         enableHotspot,
+        enableMyCancerGenome,
         enableOncoKb,
         enableRevue,
+        enableSharedTR,
         pubMedCache,
         userDisplayName,
         mergeOncoKbIcons,
@@ -316,6 +368,16 @@ export function GenericAnnotation(props: GenericAnnotationProps): JSX.Element {
 
     return (
         <span style={{ display: 'flex', minWidth: 100 }}>
+            {enableSharedTR && (
+                <BzkfAnnotation
+                    status={'complete'}
+                    hugoGeneSymbol={annotation.hugoGeneSymbol}
+                    sharedTherapyRecommendationData={
+                        annotation.sharedTherapyRecommendationData ||
+                        ({} as ISharedTherapyRecommendationData)
+                    }
+                />
+            )}
             {enableOncoKb && (
                 <OncoKB
                     usingPublicOncoKbInstance={
@@ -352,6 +414,9 @@ export function GenericAnnotation(props: GenericAnnotationProps): JSX.Element {
                     hasCivicVariants={annotation.hasCivicVariants}
                 />
             )}
+            {enableMyCancerGenome && (
+                <MyCancerGenome linksHTML={annotation.myCancerGenomeLinks} />
+            )}
             {enableHotspot && (
                 <HotspotAnnotation
                     isHotspot={annotation.isHotspot}
@@ -375,6 +440,7 @@ export default class Annotation extends React.Component<AnnotationProps, {}> {
             mutation,
             oncoKbCancerGenes,
             hotspotData,
+            myCancerGenomeData,
             oncoKbData,
             usingPublicOncoKbInstance,
             resolveEntrezGeneId,
@@ -382,17 +448,20 @@ export default class Annotation extends React.Component<AnnotationProps, {}> {
             civicGenes,
             civicVariants,
             indexedVariantAnnotations,
+            sharedTherapyRecommendationData,
         } = props;
 
         return getAnnotationData(
             mutation,
             oncoKbCancerGenes,
             hotspotData,
+            myCancerGenomeData,
             oncoKbData,
             usingPublicOncoKbInstance,
             civicGenes,
             civicVariants,
             indexedVariantAnnotations,
+            sharedTherapyRecommendationData,
             resolveTumorType,
             resolveEntrezGeneId
         );

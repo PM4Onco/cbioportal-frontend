@@ -2,6 +2,7 @@ import {
     ICivicGeneIndex,
     ICivicVariantIndex,
     IHotspotIndex,
+    IMyCancerGenomeData,
     IOncoKbData,
     getRemoteDataGroupStatus,
     MobxCache,
@@ -40,10 +41,12 @@ import { MutationColumn } from './MutationColumnHelper';
 
 import './defaultMutationTable.scss';
 import { getClinvarData } from '../clinvar/ClinvarHelper';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils/src/model/TherapyRecommendation';
 
 export type DefaultMutationTableProps = {
     hotspotData?: RemoteData<IHotspotIndex | undefined>;
     oncoKbData?: RemoteData<IOncoKbData | Error | undefined>;
+    myCancerGenomeData?: IMyCancerGenomeData;
     oncoKbCancerGenes?: RemoteData<CancerGene[] | Error | undefined>;
     usingPublicOncoKbInstance: boolean;
     indexedMyVariantInfoAnnotations?: RemoteData<
@@ -55,11 +58,13 @@ export type DefaultMutationTableProps = {
     selectedTranscriptId?: string;
     enableCivic?: boolean;
     enableRevue?: boolean;
+    enableSharedTR?: boolean;
     civicGenes?: RemoteData<ICivicGeneIndex | undefined>;
     civicVariants?: RemoteData<ICivicVariantIndex | undefined>;
     pubMedCache?: MobxCache;
     columns: Column<Partial<Mutation>>[];
     appendColumns?: boolean;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 } & DataTableProps<Partial<Mutation>>;
 
 @observer
@@ -119,11 +124,13 @@ export default class DefaultMutationTable extends React.Component<
                       mutation,
                       this.props.oncoKbCancerGenes,
                       this.props.hotspotData,
+                      this.props.myCancerGenomeData,
                       this.props.oncoKbData,
                       this.props.usingPublicOncoKbInstance,
                       this.props.civicGenes,
                       this.props.civicVariants,
-                      this.props.indexedVariantAnnotations
+                      this.props.indexedVariantAnnotations,
+                      this.props.sharedTherapyRecommendationData
                   );
     }
 
@@ -215,7 +222,9 @@ export default class DefaultMutationTable extends React.Component<
                         enableOncoKb={true}
                         enableHotspot={true}
                         enableCivic={this.props.enableCivic || false}
+                        enableMyCancerGenome={true}
                         enableRevue={true}
+                        enableSharedTR={true}
                         hotspotData={this.props.hotspotData}
                         oncoKbData={this.props.oncoKbData}
                         oncoKbCancerGenes={this.props.oncoKbCancerGenes}
@@ -227,6 +236,9 @@ export default class DefaultMutationTable extends React.Component<
                         civicVariants={this.props.civicVariants}
                         indexedVariantAnnotations={
                             this.props.indexedVariantAnnotations
+                        }
+                        sharedTherapyRecommendationData={
+                            this.props.sharedTherapyRecommendationData
                         }
                     />
                 );

@@ -39,10 +39,14 @@ import MutationRateSummary from 'pages/resultsView/mutation/MutationRateSummary'
 import ResultsViewMutationMapperStore from 'pages/resultsView/mutation/ResultsViewMutationMapperStore';
 import ResultsViewMutationTable from 'pages/resultsView/mutation/ResultsViewMutationTable';
 import { submitToStudyViewPage } from '../querySummary/QuerySummaryUtils';
-import { ExtendedMutationTableColumnType } from 'shared/components/mutationTable/MutationTable';
+import {
+    ExtendedMutationTableColumnType,
+    MutationTableColumnType,
+} from 'shared/components/mutationTable/MutationTable';
 import { extractColumnNames } from 'shared/components/mutationMapper/MutationMapperUtils';
 import { PatientSampleSummary } from '../querySummary/PatientSampleSummary';
 import { getServerConfig } from 'config/config';
+import AnnotationColumnFormatter from 'shared/components/mutationTable/column/AnnotationColumnFormatter';
 
 export interface IResultsViewMutationMapperProps extends IMutationMapperProps {
     store: ResultsViewMutationMapperStore;
@@ -216,6 +220,7 @@ export default class ResultsViewMutationMapper extends MutationMapper<
                 }
                 itemsLabelPlural={this.itemsLabelPlural}
                 downloadDataFetcher={this.props.store.downloadDataFetcher}
+                myCancerGenomeData={this.props.store.myCancerGenomeData}
                 hotspotData={this.props.store.indexedHotspotData}
                 indexedVariantAnnotations={
                     this.props.store.indexedVariantAnnotations
@@ -223,6 +228,7 @@ export default class ResultsViewMutationMapper extends MutationMapper<
                 indexedMyVariantInfoAnnotations={
                     this.props.store.indexedMyVariantInfoAnnotations
                 }
+                cosmicData={this.props.store.cosmicData.result}
                 oncoKbData={this.props.store.oncoKbData}
                 usingPublicOncoKbInstance={
                     getServerConfig().show_oncokb &&
@@ -236,6 +242,7 @@ export default class ResultsViewMutationMapper extends MutationMapper<
                 enableOncoKb={this.props.enableOncoKb}
                 enableFunctionalImpact={this.props.enableGenomeNexus}
                 enableHotspot={this.props.enableHotspot}
+                enableMyCancerGenome={this.props.enableMyCancerGenome}
                 enableCivic={this.props.enableCivic}
                 enableRevue={this.props.enableRevue}
                 enableCustomDriver={this.props.enableCustomDriver}
