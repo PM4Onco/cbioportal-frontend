@@ -37,6 +37,7 @@ import { HelpWidget } from 'shared/components/HelpWidget/HelpWidget';
 import MutationTableWrapper from './mutation/MutationTableWrapper';
 import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
 import { Else, If } from 'react-if';
+import { getVisiblePatientTabExtensions } from 'shared/lib/customModules';
 
 export enum PatientViewPageTabs {
     Summary = 'summary',
@@ -49,6 +50,10 @@ export enum PatientViewPageTabs {
     TrialMatchTab = 'trialMatchTab',
     MutationalSignatures = 'mutationalSignatures',
     PathwayMapper = 'pathways',
+    Mtb = 'mtb',
+    FollowUp = 'followUp',
+    ClinicalTrialsGov = 'clinicaltrialsGov',
+    Proms = 'proms',
 }
 
 export const PatientViewResourceTabPrefix = 'openResource_';
@@ -646,6 +651,39 @@ export function tabs(
             </MSKTab>
         );
 
+    const moduleTabContext = {
+        pageComponent,
+        sampleManager,
+        urlWrapper,
+    };
+    const moduleTabs = getVisiblePatientTabExtensions(moduleTabContext);
+    const getModuleTabOrder = (moduleTab: { order?: number }) =>
+        moduleTab.order === undefined
+            ? Number.MAX_SAFE_INTEGER
+            : moduleTab.order;
+    const appendModuleTabs = (targetTabs: typeof moduleTabs) => {
+        targetTabs.forEach(moduleTab => {
+            tabs.push(
+                <MSKTab
+                    key={
+                        moduleTab.key === undefined
+                            ? moduleTab.id
+                            : moduleTab.key
+                    }
+                    id={moduleTab.id}
+                    linkText={moduleTab.linkText}
+                    unmountOnHide={moduleTab.unmountOnHide}
+                >
+                    {moduleTab.render(moduleTabContext)}
+                </MSKTab>
+            );
+        });
+    };
+
+    appendModuleTabs(
+        moduleTabs.filter(moduleTab => getModuleTabOrder(moduleTab) < 500)
+    );
+
     pageComponent.patientViewPageStore.hasMutationalSignatureData.result &&
         pageComponent.patientViewPageStore.initialMutationalSignatureVersion
             .isComplete &&
@@ -701,6 +739,10 @@ export function tabs(
                 />
             </MSKTab>
         );
+
+    appendModuleTabs(
+        moduleTabs.filter(moduleTab => getModuleTabOrder(moduleTab) >= 500)
+    );
 
     pageComponent.resourceTabs.component &&
         /* @ts-ignore */

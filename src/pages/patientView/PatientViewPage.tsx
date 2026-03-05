@@ -63,6 +63,7 @@ import setWindowVariable from 'shared/lib/setWindowVariable';
 import { getNavCaseIdsCache } from 'shared/lib/handleLongUrls';
 import PatientViewPageHeader from 'pages/patientView/PatientViewPageHeader';
 import { MAX_URL_LENGTH } from 'pages/studyView/studyPageHeader/ActionButtons';
+import { initializeCustomModules } from 'shared/lib/customModules';
 
 export interface IPatientViewPageProps {
     routing: any;
@@ -187,6 +188,7 @@ export class PatientViewPageInner extends React.Component<
         }, this.urlWrapper);
 
         getBrowserWindow().patientViewPageStore = this.pageStore;
+        initializeCustomModules();
 
         this.setOpenResourceTabs();
 
