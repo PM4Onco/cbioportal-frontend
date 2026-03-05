@@ -34,6 +34,16 @@ export type StudyView = {
     priority: { [id: string]: number };
 };
 
+export type CustomMode = 'off' | 'compat' | 'full';
+
+export interface ICustomFeatureConfig {
+    mtb: boolean;
+    followUp: boolean;
+    clinicalTrialsGov: boolean;
+    proms: boolean;
+    absoluteTimeline: boolean;
+}
+
 export interface IServerConfig {
     app_name: string | null;
     app_version: string | null; // default: "1.0"
@@ -176,6 +186,8 @@ export interface IServerConfig {
     skin_patient_view_tables_default_sort_column: string;
     skin_patient_view_custom_sample_type_colors_json: string;
     comparison_categorical_na_values: string;
+    customMode?: CustomMode;
+    customFeatures?: Partial<ICustomFeatureConfig>;
     oncoprint_clinical_tracks_config_json: string;
     oncoprint_clustered_default: boolean; // this has a default
     enable_cross_study_expression: string;

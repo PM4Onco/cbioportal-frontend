@@ -209,6 +209,14 @@ export const ServerConfigDefaults: Partial<IServerConfig> = {
     skin_home_page_unauthorized_studies_global_message:
         'The study is unauthorized. You need to request access.',
     comparison_categorical_na_values: 'NA',
+    customMode: 'full',
+    customFeatures: {
+        mtb: true,
+        followUp: true,
+        clinicalTrialsGov: true,
+        proms: true,
+        absoluteTimeline: true,
+    },
     skin_hide_download_controls: 'show',
 
     oncoprint_clinical_tracks_config_json: '',
