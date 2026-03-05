@@ -1,12 +1,15 @@
 import {
     formatDate,
     getAttributeValue,
-    ITimelineConfig,
-    POINT_COLOR,
+    renderStack,
+    renderSuperscript,
+    TIMELINE_TRACK_HEIGHT,
     TimelineEvent,
-    TimelineLegendItem,
     TimelineTrackSpecification,
     TimelineTrackType,
+    ITimelineConfig,
+    POINT_COLOR,
+    useDateFormat,
 } from 'cbioportal-clinical-timeline';
 import {
     getEventColor,
@@ -22,6 +25,7 @@ import { ISampleMetaDeta } from 'pages/patientView/timeline/TimelineWrapper';
 import { ClinicalEvent } from 'cbioportal-ts-api-client';
 import { getColor } from 'cbioportal-frontend-commons';
 import ReactMarkdown from 'react-markdown';
+import { TimelineLegendItem } from 'cbioportal-clinical-timeline';
 
 const OTHER = 'Other';
 
@@ -106,31 +110,6 @@ export function configureTimelineToxicityColors(baseConfig: ITimelineConfig) {
         'SUBTYPE',
         'TOX_OTHER_SPECIFY',
     ]);
-
-    baseConfig.trackStructures!.push(['MEASUREMENTS', 'TEST']);
-
-    baseConfig.trackEventRenderers?.push({
-        trackTypeMatch: /BMI/i,
-        configureTrack: (cat: TimelineTrackSpecification) => {
-            //     psaTrack.trackType = TimelineTrackType.LINE_CHART;
-            //     psaTrack.getLineChartValue = (e: TimelineEvent) => {}
-            cat.trackType = TimelineTrackType.LINE_CHART;
-            cat.getLineChartValue = (e: TimelineEvent) => {
-                try {
-                    const val = e?.event?.attributes?.find(
-                        e => e.key === 'RESULT'
-                    )?.value;
-                    if (val !== undefined) {
-                        return parseFloat(val);
-                    } else {
-                        return null;
-                    }
-                } catch (ex) {
-                    return null;
-                }
-            };
-        },
-    });
 
     baseConfig.eventColorGetter = function(e: TimelineEvent) {
         const grade = e.event.attributes.find(
@@ -309,10 +288,8 @@ export function buildBaseConfig(
             'Diagnostic',
             'Imaging',
             'Imaging Assessment',
-            'Treatment',
-            'Diagnosis',
             'Lab_test',
-            'Measurements',
+            'Treatment',
         ],
         trackStructures: [
             ['TREATMENT', 'TREATMENT_TYPE', 'SUBTYPE', 'AGENT'],
@@ -325,25 +302,6 @@ export function buildBaseConfig(
                 trackTypeMatch: /TOXICITY/,
                 configureTrack: (cat: TimelineTrackSpecification) => {},
             },
-
-            {
-                trackTypeMatch: /MEASUREMENTS/i,
-                configureTrack: (cat: TimelineTrackSpecification) => {
-                    if (cat.tracks) {
-                        cat.tracks.forEach(track => {
-                            if (track.items.length) {
-                                if (allResultValuesAreNumerical(track.items)) {
-                                    track.trackType =
-                                        TimelineTrackType.LINE_CHART;
-                                    track.getLineChartValue = e =>
-                                        getNumericalAttrVal('RESULT', e);
-                                }
-                            }
-                        });
-                    }
-                },
-            },
-
             {
                 trackTypeMatch: /LAB_TEST/i,
                 configureTrack: (cat: TimelineTrackSpecification) => {
@@ -461,6 +419,9 @@ export function buildBaseConfig(
                                 attr => attr.key
                             );
 
+                            // Use Context for date format and day of diagnosis
+                            const { startDate } = useDateFormat();
+
                             return (
                                 <table>
                                     <tbody>
@@ -501,7 +462,21 @@ export function buildBaseConfig(
                                         <tr>
                                             <th>START DATE</th>
                                             <td className={'nowrap'}>
-                                                {formatDate(event.start)}
+                                                {/* 1. Relative Date (Always) */}
+                                                {formatDate(
+                                                    event.start,
+                                                    startDate,
+                                                    false
+                                                )}
+                                                {/* 2. Absolute Date (If start date exists) */}
+                                                {startDate &&
+                                                    ' (' +
+                                                        formatDate(
+                                                            event.start,
+                                                            startDate,
+                                                            true
+                                                        ) +
+                                                        ')'}
                                             </td>
                                         </tr>
                                     </tbody>

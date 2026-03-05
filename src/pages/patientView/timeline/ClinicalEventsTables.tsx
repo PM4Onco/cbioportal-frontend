@@ -3,6 +3,7 @@ import { ClinicalEvent } from 'cbioportal-ts-api-client';
 import { groupTimelineData } from 'pages/patientView/timeline/timelineDataUtils.ts';
 import LazyMobXTable from 'shared/components/lazyMobXTable/LazyMobXTable';
 import _ from 'lodash';
+import parse from 'html-react-parser';
 import { DownloadControlOption } from 'cbioportal-frontend-commons';
 import { getServerConfig } from 'config/config';
 
@@ -12,7 +13,7 @@ function makeColumns(data: string[][]) {
     return data[0].map((item, i: number) => {
         return {
             name: item,
-            render: (data: string[]) => <span>{data[i]}</span>,
+            render: (data: string[]) => <span>{parse(data[i])}</span>,
             download: (data: string[]) => data[i],
             sortBy: (data: string[]) => data[i],
             filter: (
@@ -51,9 +52,28 @@ const ClinicalEventsTables: React.FunctionComponent<{
                 );
 
                 const cleanedDataCategory = dataCategory.map((row, i) => {
-                    return row.filter((item, i) => {
-                        return !hiddenColumnIndex.includes(i);
-                    });
+                    return row
+                        .filter((item, i) => {
+                            return !hiddenColumnIndex.includes(i);
+                        })
+                        .map(item => {
+                            const search = [
+                                'Ã¤',
+                                'Ã¼',
+                                'Ã¶',
+                                'Ã„',
+                                'Ã–',
+                                'Ãœ',
+                                'ÃŸ',
+                            ];
+                            const replace = ['ä', 'ü', 'ö', 'Ä', 'Ö', 'Ü', 'ß'];
+                            let regex;
+                            for (let i = 0; i < search.length; i++) {
+                                regex = new RegExp(search[i], 'g');
+                                item = item.replace(regex, replace[i]);
+                            }
+                            return item;
+                        });
                 });
 
                 return (
