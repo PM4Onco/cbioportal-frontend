@@ -47,10 +47,11 @@ export const StudySearch: FunctionComponent<StudySearchProps> = observer(
         }, []);
 
         const onKeyDownSearchBox = useCallback(
-            async (e: React.KeyboardEvent<HTMLInputElement>) => {
-                if (store.isMenuOpen) {
-                    await sleep(500);
+            (e: React.KeyboardEvent<HTMLInputElement>) => {
+                if ([13, 27].includes(e.keyCode)) {
                     store.setMenuOpen(false);
+                } else {
+                    store.setMenuOpen(true);
                 }
             },
             []

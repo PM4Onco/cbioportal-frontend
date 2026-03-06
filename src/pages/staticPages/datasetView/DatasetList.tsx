@@ -2,11 +2,12 @@ import * as React from 'react';
 import _ from 'lodash';
 import { CancerStudy } from 'cbioportal-ts-api-client';
 import { ThreeBounce } from 'better-react-spinkit';
+import request from 'superagent';
 import LazyMobXTable from 'shared/components/lazyMobXTable/LazyMobXTable';
-import { getNCBIlink } from 'cbioportal-frontend-commons';
+import { getStudyDownloadListUrl } from '../../../shared/api/urls';
+import { getBrowserWindow, getNCBIlink } from 'cbioportal-frontend-commons';
 import { StudyLink } from '../../../shared/components/StudyLink/StudyLink';
 import { StudyDataDownloadLink } from '../../../shared/components/StudyDataDownloadLink/StudyDataDownloadLink';
-import { getServerConfig } from 'config/config';
 
 interface IDataTableRow {
     name: string;
@@ -57,13 +58,11 @@ class CancerStudyCell extends React.Component<ICancerStudyCellProps, {}> {
 
 class ReferenceCell extends React.Component<IReferenceCellProps, {}> {
     render() {
-        return this.props.citation ? (
+        return (
             <a target="_blank" href={getNCBIlink(`/pubmed/${this.props.pmid}`)}>
                 {' '}
                 {this.props.citation}{' '}
             </a>
-        ) : (
-            <></>
         );
     }
 }
@@ -132,11 +131,7 @@ export default class DataSetsPageTable extends React.Component<
                                     const studyIsDownloadable = this.props.downloadables.includes(
                                         data.studyId
                                     );
-                                    if (
-                                        getServerConfig()
-                                            .feature_study_export ||
-                                        studyIsDownloadable
-                                    ) {
+                                    if (studyIsDownloadable) {
                                         return (
                                             <StudyDataDownloadLink
                                                 studyId={data.studyId}

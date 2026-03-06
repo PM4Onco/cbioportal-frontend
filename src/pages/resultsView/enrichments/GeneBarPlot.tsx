@@ -7,7 +7,7 @@ import {
     DownloadControlOption,
 } from 'cbioportal-frontend-commons';
 import autobind from 'autobind-decorator';
-import MultipleCategoryBarPlot from 'shared/components/plots/MultipleCategoryBarPlot';
+import MultipleCategoryBarPlot from 'pages/groupComparison/MultipleCategoryBarPlot';
 import ReactSelect from 'react-select';
 import OQLTextArea, {
     GeneBoxType,

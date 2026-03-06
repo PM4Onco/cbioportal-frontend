@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { configure, toJS } from 'mobx';
+import { configure } from 'mobx';
 import { Provider } from 'mobx-react';
 import { Router } from 'react-router-dom';
 import { createBrowserHistory } from 'history';
@@ -27,12 +27,7 @@ import browser from 'bowser';
 import { setNetworkListener } from './shared/lib/ajaxQuiet';
 import { initializeTracking, sendToLoggly } from 'shared/lib/tracking';
 import superagentCache from 'superagent-cache';
-import {
-    getBrowserWindow,
-    hashString,
-    isWebdriver,
-    onMobxPromise,
-} from 'cbioportal-frontend-commons';
+import { getBrowserWindow, onMobxPromise } from 'cbioportal-frontend-commons';
 import { AppStore } from './AppStore';
 import { handleLongUrls } from 'shared/lib/handleLongUrls';
 import 'shared/polyfill/canvasToBlob';
@@ -44,7 +39,6 @@ import { FeatureFlagStore } from 'shared/FeatureFlagStore';
 import eventBus from 'shared/events/eventBus';
 import { SiteError } from 'shared/model/appMisc';
 import load from 'little-loader';
-import internalClient from 'shared/api/cbioportalInternalClientInstance';
 
 export interface ICBioWindow {
     globalStores: {
@@ -149,8 +143,8 @@ browserWindow.postLoadForMskCIS = () => {};
 // this is the only supported way to disable tracking for the $3Dmol.js
 (browserWindow as any).$3Dmol = { notrack: true };
 
-// expose lodash on window
-getBrowserWindow()._ = _;
+// make sure lodash doesn't overwrite (or set) global underscore
+_.noConflict();
 
 const routingStore = new ExtendedRoutingStore();
 
@@ -212,69 +206,6 @@ superagent.Request.prototype.end = function(callback) {
         }
     });
 };
-
-function enableDataDogTracking(store: AppStore) {
-    datadogLogs.init({
-        clientToken: 'pub9a94ebb002f105ff44d8e427b6549775',
-        site: 'datadoghq.com',
-        service: 'cbioportalinternal',
-        forwardErrorsToLogs: true,
-        sessionSampleRate: 100,
-    } as any);
-
-    const match = [
-        /filtered-samples/,
-        /clinical-data-bin-counts/,
-        /generic-assay-data-bin-counts/,
-        /mutated-genes/,
-        /molecular-profile-sample-counts/,
-        /cna-genes/,
-        /structuralvariant-genes/,
-        /clinical-data-counts/,
-        /sample-lists-counts/,
-        /clinical-data-density-plot/,
-        /clinical-data-violin-plots/,
-        /genomic-data-counts/,
-        /mutation-data-counts/,
-        /clinical-event-type-counts/,
-        /treatments\/patient-counts/,
-        /treatments\/sample-counts/,
-        /genomic-data-bin-counts/,
-        /clinical-event-type-counts/,
-    ];
-
-    const oldRequest = (internalClient as any).request;
-    (internalClient as any).request = function(...args: any) {
-        try {
-            let url = args[1];
-
-            if (Object.keys(args[4]).length) {
-                url = url + '?' + $.param(args[4]);
-            }
-
-            const data = args[2];
-
-            const studyIds = data.studyIds || data.studyViewFilter.studyIds;
-
-            const appName = store.serverConfig.app_name;
-
-            if (studyIds.length < 4 && _.some(match, re => re.test(url))) {
-                const hash = hashString(url + JSON.stringify(toJS(data)));
-                datadogLogs.logger.info('study view request', {
-                    url,
-                    data,
-                    hash,
-                    appName,
-                });
-            }
-        } catch (ex) {
-            // fail silently
-        }
-
-        return oldRequest.apply(this, args);
-    };
-}
-
 //
 browserWindow.routingStore = routingStore;
 
@@ -303,6 +234,24 @@ let render = (key?: number) => {
             "visualize_image_src": "https://github.com/user-attachments/assets/5c17f5ed-0357-4ffa-a6e1-5a9d435dd3c5"
         }
     ]`;
+    }
+
+    if (stores.appStore.serverConfig.app_name === 'mskcc-portal') {
+        datadogLogs.init({
+            clientToken: 'pub9a94ebb002f105ff44d8e427b6549775',
+            site: 'datadoghq.com',
+            service: 'cbioportalinternal',
+            forwardErrorsToLogs: true,
+            sessionSampleRate: 100,
+            beforeSend: (log: any) => {
+                switch (log.origin) {
+                    case 'console':
+                        return false;
+                    default:
+                    // let dd send log
+                }
+            },
+        } as any);
     }
 
     const rootNode = document.getElementById('reactRoot');
@@ -369,15 +318,6 @@ $(document).ready(async () => {
     initializeAPIClients();
 
     initializeAppStore(stores.appStore);
-
-    // if (
-    //     ['genie-public-portal', 'public-portal'].includes(
-    //         stores.appStore.serverConfig.app_name!
-    //     ) &&
-    //     !isWebdriver()
-    // ) {
-    //     enableDataDogTracking(stores.appStore);
-    // }
 
     await loadCustomJs();
 

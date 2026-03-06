@@ -45,8 +45,7 @@ describe('MSKTabs', () => {
 
     it('creates two tab buttons and toggles them properly', done => {
         setTimeout(() => {
-            // the number of actual tabs are 2, but we have an additional 'li' element for the loader icon
-            assert.equal(tabs.update().find('li').length, 3);
+            assert.equal(tabs.update().find('li').length, 2);
             assert.isTrue(
                 tabs
                     .find('li')

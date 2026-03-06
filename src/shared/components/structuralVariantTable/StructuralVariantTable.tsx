@@ -475,8 +475,10 @@ export default class StructuralVariantTable<
                         ),
                         enableOncoKb: getServerConfig().show_oncokb as boolean,
                         enableCivic: false,
+                        enableMyCancerGenome: false,
                         enableHotspot: false,
                         enableRevue: false,
+                        enableSharedTR: false,
                         userDisplayName: ServerConfigHelpers.getUserDisplayName(),
                         studyIdToStudy: this.props.studyIdToStudy,
                     })}

@@ -181,7 +181,6 @@ export default class AlterationFilterWarning extends React.Component<
                         <div className="alert alert-info">
                             <img
                                 src={require('../../../rootImages/funnel.svg')}
-                                alt="Funnel SVG"
                                 style={{
                                     marginRight: 6,
                                     width: 15,
@@ -277,7 +276,6 @@ export default class AlterationFilterWarning extends React.Component<
                         <div className="alert alert-info">
                             <img
                                 src={require('../../../rootImages/funnel.svg')}
-                                alt="Funnel SVG"
                                 style={{
                                     marginRight: 6,
                                     width: 15,

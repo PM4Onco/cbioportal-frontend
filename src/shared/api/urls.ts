@@ -139,15 +139,6 @@ export function getSampleViewUrlWithPathname(
     return buildCBioPortalPageUrl(pathname, { sampleId, studyId }, hash);
 }
 
-export function getResourceViewUrlWithPathname(
-    studyId: string,
-    pathname: string,
-    patientId: string
-) {
-    let caseId: string = `${patientId}`;
-    return buildCBioPortalPageUrl(pathname, { studyId, caseId });
-}
-
 export function getPatientViewUrl(
     studyId: string,
     caseId: string,
@@ -330,11 +321,8 @@ export function getStudyDownloadListUrl() {
     return getServerConfig().study_download_url + 'study_list.json';
 }
 
-export function getStudyDownloadUrl(study_id: string) {
-    if (getServerConfig().feature_study_export) {
-        return '/export/study/' + study_id + '.zip';
-    }
-    return getServerConfig().study_download_url + study_id + '.tar.gz';
+export function getStudyDownloadUrl() {
+    return getServerConfig().study_download_url;
 }
 
 export function getMDAndersonHeatmapPatientUrl(patientId: string) {

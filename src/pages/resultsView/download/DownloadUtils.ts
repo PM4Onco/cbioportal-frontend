@@ -262,7 +262,7 @@ export function generateMutationDownloadData(
               extractMutationValue,
               undefined,
               'WT',
-              'NP'
+              'NS'
           )
         : [];
 }

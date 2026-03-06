@@ -20,7 +20,6 @@ export type IDataTypeFilterProps = {
     store: QueryStore;
     samplePerFilter: number[];
     studyPerFilter: number[];
-    toggleFilter: (id: string) => void;
 };
 
 export const DataTypeFilter: FunctionComponent<IDataTypeFilterProps> = props => {
@@ -123,9 +122,9 @@ export const DataTypeFilter: FunctionComponent<IDataTypeFilterProps> = props => 
                                         <input
                                             type="checkbox"
                                             style={{ marginRight: 2 }}
-                                            checked={type.checked}
+                                            defaultChecked={type.checked}
                                             onClick={() => {
-                                                props.toggleFilter(type.id);
+                                                type.checked = !type.checked;
                                                 props.store.dataTypeFilters = createDataTypeUpdate(
                                                     props.dataFilterActive!
                                                 );

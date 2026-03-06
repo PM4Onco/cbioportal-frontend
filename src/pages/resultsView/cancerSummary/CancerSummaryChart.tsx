@@ -62,7 +62,6 @@ interface CancerSummaryChartProps {
     countsByGroup: { [groupName: string]: IAlterationData };
     xLabels: string[];
     xAxisString: string;
-    countAlterationsBy: string;
     representedAlterations: { [alterationType: string]: boolean };
     isPercentage: boolean;
     showLinks: boolean;
@@ -110,43 +109,6 @@ export function mergeAlterationDataAcrossAlterationTypes(
             alterationType: 'whatever',
         };
     });
-}
-
-export function formatGeneAlteredText(
-    useSampleCounts: boolean,
-    tooltipModel: ITooltipModel
-) {
-    const alteredPercentage = percentageRounder(
-        tooltipModel.alterationData.alteredCount /
-            tooltipModel.alterationData.profiledTotal
-    );
-
-    const profiledTotal = tooltipModel.alterationData.profiledTotal;
-
-    const patientsOrSamples = useSampleCounts ? 'samples' : 'patients';
-
-    return `Gene altered in ${alteredPercentage}% of ${profiledTotal} ${patientsOrSamples}`;
-}
-
-export function formatFrequencyText(
-    useSampleCounts: boolean,
-    tooltipModel: ITooltipModel,
-    alterationType: string
-) {
-    const alterationCount = (tooltipModel!.alterationData
-        .alterationTypeCounts as any)[alterationType];
-    const profiledTotal = tooltipModel!.alterationData.profiledTotal;
-
-    const alteredPercentage = percentageRounder(
-        alterationCount / profiledTotal
-    );
-
-    const patientsOrSamples = useSampleCounts ? 'sample' : 'patient';
-
-    return `${alteredPercentage}% (${alterationCount} ${pluralize(
-        patientsOrSamples,
-        alterationCount
-    )})`;
 }
 
 @observer
@@ -246,9 +208,7 @@ export class CancerSummaryChart extends React.Component<
             let tooltipMessage = 'Not profiled';
             if (profiledCount > 0) {
                 tooltipMessage = `${profiledCount} ${pluralize(
-                    this.props.countAlterationsBy === 'sampleCounts'
-                        ? 'sample'
-                        : 'patient',
+                    'sample',
                     profiledCount
                 )}  profiled`;
             }
@@ -288,8 +248,6 @@ export class CancerSummaryChart extends React.Component<
         if (!this.barPlotTooltipModel) {
             return null;
         } else {
-            const useSampleCounts =
-                this.props.countAlterationsBy === 'sampleCounts';
             const tooltipModel = this.barPlotTooltipModel;
             const maxWidth = 400;
             let tooltipPlacement =
@@ -345,10 +303,15 @@ export class CancerSummaryChart extends React.Component<
                             </Else>
                         </If>
                         <p>
-                            {formatGeneAlteredText(
-                                useSampleCounts,
-                                tooltipModel
+                            Gene altered in{' '}
+                            {percentageRounder(
+                                tooltipModel.alterationData.alteredSampleCount /
+                                    tooltipModel.alterationData
+                                        .profiledSampleTotal
                             )}
+                            % of{' '}
+                            {tooltipModel.alterationData.profiledSampleTotal}{' '}
+                            cases
                         </p>
                         <table className="table table-striped">
                             <thead>
@@ -370,15 +333,31 @@ export class CancerSummaryChart extends React.Component<
                                                 key
                                             ] > 0
                                         ) {
+                                            const alterationCount = (tooltipModel!
+                                                .alterationData
+                                                .alterationTypeCounts as any)[
+                                                key
+                                            ];
                                             memo.push(
                                                 <tr>
                                                     <td>{name}</td>
                                                     <td>
-                                                        {formatFrequencyText(
-                                                            useSampleCounts,
-                                                            tooltipModel,
-                                                            key
+                                                        {percentageRounder(
+                                                            (tooltipModel!
+                                                                .alterationData
+                                                                .alterationTypeCounts as any)[
+                                                                key
+                                                            ] /
+                                                                tooltipModel!
+                                                                    .alterationData
+                                                                    .profiledSampleTotal
                                                         )}
+                                                        % ({alterationCount}{' '}
+                                                        {pluralize(
+                                                            'case',
+                                                            alterationCount
+                                                        )}
+                                                        )
                                                     </td>
                                                 </tr>
                                             );
@@ -787,7 +766,6 @@ export class CancerSummaryChart extends React.Component<
                                 height: this.svgHeight,
                                 pointerEvents: 'all',
                             }}
-                            aria-label="Cancer Summary Chart"
                             height={this.svgHeight}
                             width={this.svgWidth}
                             role="img"

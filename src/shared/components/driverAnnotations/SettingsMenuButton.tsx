@@ -128,7 +128,6 @@ export default class SettingsMenuButton extends React.Component<
                             height: 18,
                         }}
                         className="btn btn-primary"
-                        aria-label="Slider Button"
                     >
                         <i
                             className="fa fa-sliders"
@@ -161,7 +160,6 @@ export default class SettingsMenuButton extends React.Component<
                             marginLeft: 5,
                         }}
                         className="btn btn-primary"
-                        aria-label="Slider Button"
                     >
                         <i className="fa fa-sliders fa-lg" />
                     </button>

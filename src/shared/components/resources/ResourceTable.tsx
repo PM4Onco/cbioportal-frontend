@@ -9,7 +9,6 @@ export interface IResourceTableProps {
     resources: ResourceData[];
     isTabOpen: (resourceId: string) => boolean;
     openResource: (resource: ResourceData) => void;
-    sampleId?: React.ReactNode;
 }
 
 function icon(resource: ResourceData) {
@@ -46,65 +45,51 @@ function icon(resource: ResourceData) {
 }
 
 const ResourceTable = observer(
-    ({ resources, isTabOpen, openResource, sampleId }: IResourceTableProps) => {
+    ({ resources, isTabOpen, openResource }: IResourceTableProps) => {
         const resourceTable = useLocalObservable(() => ({
             get data() {
                 return _.sortBy(resources, r => r.resourceDefinition.priority);
             },
         }));
 
-        return resourceTable.data.length === 0 ? (
-            <p>There are no resources for this sample.</p>
-        ) : (
+        return (
             <table className="simple-table table table-striped table-border-top">
                 <thead>
                     <tr>
-                        {sampleId && <th>Sample ID</th>}
                         <th>Resource</th>
                         <th></th>
-                        {resourceTable.data.length > 0 && <th>Description</th>}
+                        <th>Description</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {resourceTable.data.length === 0 ? (
+                    {resourceTable.data.map(resource => (
                         <tr>
-                            <td colSpan={3} style={{ textAlign: 'center' }}>
-                                There are no results
+                            <td>
+                                <a onClick={() => openResource(resource)}>
+                                    {icon(resource)}
+                                    {resource.resourceDefinition.displayName ||
+                                        resource.url}
+                                </a>
                             </td>
+                            <td>
+                                <a
+                                    href={resource.url}
+                                    style={{ fontSize: 10 }}
+                                    target={'_blank'}
+                                >
+                                    <i
+                                        className={`fa fa-external-link fa-sm`}
+                                        style={{
+                                            marginRight: 5,
+                                            color: 'black',
+                                        }}
+                                    />
+                                    Open in new window
+                                </a>
+                            </td>
+                            <td>{resource.resourceDefinition.description}</td>
                         </tr>
-                    ) : (
-                        resourceTable.data.map(resource => (
-                            <tr>
-                                {sampleId && <td>{sampleId}</td>}
-                                <td>
-                                    <a onClick={() => openResource(resource)}>
-                                        {icon(resource)}
-                                        {resource.resourceDefinition
-                                            .displayName || resource.url}
-                                    </a>
-                                </td>
-                                <td>
-                                    <a
-                                        href={resource.url}
-                                        style={{ fontSize: 10 }}
-                                        target={'_blank'}
-                                    >
-                                        <i
-                                            className={`fa fa-external-link fa-sm`}
-                                            style={{
-                                                marginRight: 5,
-                                                color: 'black',
-                                            }}
-                                        />
-                                        Open in new window
-                                    </a>
-                                </td>
-                                <td>
-                                    {resource.resourceDefinition.description}
-                                </td>
-                            </tr>
-                        ))
-                    )}
+                    ))}
                 </tbody>
             </table>
         );

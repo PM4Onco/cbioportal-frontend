@@ -30,6 +30,7 @@ export default class PatientHeader extends React.Component<
                         this.props.studyId,
                         this.props.sampleManager
                     )}
+                {this.getDarwinUrl(this.props.darwinUrl)}
             </div>
         );
     }
@@ -49,7 +50,6 @@ export default class PatientHeader extends React.Component<
                             width: '29px',
                         }}
                         src={darwinImgSrc}
-                        alt="Darwin Logo"
                     />
                 </a>
             );

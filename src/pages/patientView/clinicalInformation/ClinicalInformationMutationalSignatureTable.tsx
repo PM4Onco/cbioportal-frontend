@@ -190,7 +190,6 @@ export default class ClinicalInformationMutationalSignatureTable extends React.C
                     showPagination={false}
                     initialItemsPerPage={SHOW_ALL_PAGE_SIZE}
                     showColumnVisibility={false}
-                    initialSortColumn={this.uniqueSamples[0].id}
                     initialSortDirection="desc"
                     onRowClick={this.props.onRowClick}
                     onRowMouseEnter={this.props.onRowMouseEnter}

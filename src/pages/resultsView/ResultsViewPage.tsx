@@ -265,10 +265,7 @@ export default class ResultsViewPage extends React.Component<
                                 entrezGeneIdToGene={store.entrezGeneIdToGene}
                                 sampleKeyToSample={store.sampleKeyToSample}
                                 genes={store.genes}
-                                clinicalAttributes={
-                                    store.plotClinicalAttributes
-                                }
-                                customAttributes={store.customAttributes}
+                                clinicalAttributes={store.clinicalAttributes}
                                 genesets={store.genesets}
                                 genericAssayEntitiesGroupByMolecularProfileId={
                                     store.genericAssayEntitiesGroupByMolecularProfileId

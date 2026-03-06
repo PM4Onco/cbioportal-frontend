@@ -7,7 +7,6 @@ import {
     getOverlapComputations,
     getSampleIdentifiers,
     getStudyIds,
-    getStudyMutationEnrichmentProfileMap,
     IOverlapComputations,
     isGroupEmpty,
     partitionCasesByGroupMembership,
@@ -64,9 +63,7 @@ import {
     makeGenericAssayBinaryEnrichmentDataPromise,
     makeGenericAssayCategoricalEnrichmentDataPromise,
 } from '../../../pages/resultsView/ResultsViewPageStoreUtils';
-import internalClient, {
-    getInternalClient,
-} from '../../api/cbioportalInternalClientInstance';
+import internalClient from '../../api/cbioportalInternalClientInstance';
 import autobind from 'autobind-decorator';
 import { PatientSurvival } from 'shared/model/PatientSurvival';
 import { getPatientSurvivals } from 'pages/resultsView/SurvivalStoreHelper';
@@ -209,8 +206,6 @@ export default abstract class ComparisonStore extends AnalysisStore
             this.tabHasBeenShownReactionDisposer();
     }
 
-    internalClient = getInternalClient();
-
     @computed get selectedCopyNumberEnrichmentEventTypes() {
         if (this.urlWrapper.selectedEnrichmentEventTypes) {
             return stringListToMap(
@@ -229,7 +224,6 @@ export default abstract class ComparisonStore extends AnalysisStore
         }
     }
 
-    // pertains to selected mutation types in Genomic Alterations tab
     @computed get selectedMutationEnrichmentEventTypes() {
         if (this.urlWrapper.selectedEnrichmentEventTypes) {
             return stringListToMap(
@@ -241,14 +235,10 @@ export default abstract class ComparisonStore extends AnalysisStore
             );
         } else {
             // default
-            return this.mutationEnrichmentEventTypes;
+            return mutationEventTypeSelectInit(
+                this.alterationEnrichmentProfiles.result?.mutationProfiles || []
+            );
         }
-    }
-
-    @computed get mutationEnrichmentEventTypes() {
-        return mutationEventTypeSelectInit(
-            this.alterationEnrichmentProfiles.result?.mutationProfiles || []
-        );
     }
 
     @computed get isStructuralVariantEnrichmentSelected() {
@@ -721,26 +711,34 @@ export default abstract class ComparisonStore extends AnalysisStore
             [studyId: string]: MolecularProfile;
         };
     } = {};
-    // pertains to selected mutations types in Genomic Alterations tab
     readonly selectedStudyMutationEnrichmentProfileMap = remoteData({
         await: () => [this.mutationEnrichmentProfiles],
-        invoke: async () => {
-            return getStudyMutationEnrichmentProfileMap(
-                this.selectedMutationEnrichmentEventTypes,
-                this.mutationEnrichmentProfiles.result!,
-                this._mutationEnrichmentProfileMap
-            );
-        },
-    });
-
-    readonly studyMutationEnrichmentProfileMap = remoteData({
-        await: () => [this.mutationEnrichmentProfiles],
-        invoke: async () => {
-            return getStudyMutationEnrichmentProfileMap(
-                this.mutationEnrichmentEventTypes,
-                this.mutationEnrichmentProfiles.result!,
-                this._mutationEnrichmentProfileMap
-            );
+        invoke: () => {
+            //Only return Mutation profile if any mutation type is selected, otherwise return {}
+            if (
+                _(this.selectedMutationEnrichmentEventTypes)
+                    .values()
+                    .some()
+            ) {
+                // set default enrichmentProfileMap if not selected yet
+                if (_.isEmpty(this._mutationEnrichmentProfileMap)) {
+                    const molecularProfilesbyStudyId = _.groupBy(
+                        this.mutationEnrichmentProfiles.result!,
+                        profile => profile.studyId
+                    );
+                    // Select only one molecular profile for each study
+                    return Promise.resolve(
+                        _.mapValues(
+                            molecularProfilesbyStudyId,
+                            molecularProfiles => molecularProfiles[0]
+                        )
+                    );
+                } else {
+                    return Promise.resolve(this._mutationEnrichmentProfileMap);
+                }
+            } else {
+                return Promise.resolve({});
+            }
         },
     });
 
@@ -1227,11 +1225,11 @@ export default abstract class ComparisonStore extends AnalysisStore
     readonly mutationsEnrichmentDataRequestGroups = remoteData({
         await: () => [
             this.alterationsEnrichmentAnalysisGroups,
-            this.studyMutationEnrichmentProfileMap,
+            this.selectedStudyMutationEnrichmentProfileMap,
         ],
         invoke: () => {
             if (
-                _(this.mutationEnrichmentEventTypes)
+                _(this.selectedMutationEnrichmentEventTypes)
                     .values()
                     .some()
             ) {
@@ -1244,7 +1242,8 @@ export default abstract class ComparisonStore extends AnalysisStore
                             }[] = [];
                             group.samples.forEach(sample => {
                                 if (
-                                    this.studyMutationEnrichmentProfileMap
+                                    this
+                                        .selectedStudyMutationEnrichmentProfileMap
                                         .result![sample.studyId]
                                 ) {
                                     molecularProfileCaseIdentifiers.push({
@@ -1252,7 +1251,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                                             ? sample.patientId
                                             : sample.sampleId,
                                         molecularProfileId: this
-                                            .studyMutationEnrichmentProfileMap
+                                            .selectedStudyMutationEnrichmentProfileMap
                                             .result![sample.studyId]
                                             .molecularProfileId,
                                     });
@@ -1285,7 +1284,7 @@ export default abstract class ComparisonStore extends AnalysisStore
             this.selectedStudyStructuralVariantEnrichmentProfileMap.result!,
         ],
         referenceGenesPromise: this.hugoGeneSymbolToReferenceGene,
-        fetchData: async () => {
+        fetchData: () => {
             if (
                 (!_.isEmpty(
                     this.alterationsEnrichmentDataRequestGroups.result
@@ -1326,21 +1325,12 @@ export default abstract class ComparisonStore extends AnalysisStore
                     } as unknown) as AlterationFilter,
                 };
 
-                const data = await this.internalClient.fetchAlterationEnrichmentsUsingPOST(
-                    {
-                        enrichmentType: this.usePatientLevelEnrichments
-                            ? 'PATIENT'
-                            : 'SAMPLE',
-                        molecularProfileCasesGroupAndAlterationTypeFilter: groupsAndAlterationTypes,
-                    }
-                );
-
-                // this is a temporary cludge till these are filtered out server side
-                const onlyWithSomeAlterations = data.filter(d => {
-                    return _.some(d.counts, count => count.alteredCount > 0);
+                return internalClient.fetchAlterationEnrichmentsUsingPOST({
+                    enrichmentType: this.usePatientLevelEnrichments
+                        ? 'PATIENT'
+                        : 'SAMPLE',
+                    molecularProfileCasesGroupAndAlterationTypeFilter: groupsAndAlterationTypes,
                 });
-
-                return onlyWithSomeAlterations;
             }
             return Promise.resolve([]);
         },
@@ -1368,14 +1358,14 @@ export default abstract class ComparisonStore extends AnalysisStore
         await: () => [this.mutationsEnrichmentDataRequestGroups],
         resultsViewPageStore: this.resultsViewStore,
         getSelectedProfileMaps: () => [
-            this.studyMutationEnrichmentProfileMap.result!,
+            this.selectedStudyMutationEnrichmentProfileMap.result!,
         ],
         referenceGenesPromise: this.hugoGeneSymbolToReferenceGene,
         fetchData: () => {
             if (
                 this.mutationsEnrichmentDataRequestGroups.result &&
                 this.mutationsEnrichmentDataRequestGroups.result.length > 1 &&
-                _(this.mutationEnrichmentEventTypes)
+                _(this.selectedMutationEnrichmentEventTypes)
                     .values()
                     .some()
             ) {
@@ -1384,7 +1374,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                         .mutationsEnrichmentDataRequestGroups.result!,
                     alterationEventTypes: ({
                         mutationEventTypes: getMutationEventTypesAPIParameter(
-                            this.mutationEnrichmentEventTypes
+                            this.selectedMutationEnrichmentEventTypes
                         ),
                         includeDriver: this.driverAnnotationSettings
                             .includeDriver,
@@ -1402,7 +1392,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                     } as unknown) as AlterationFilter,
                 };
 
-                return this.internalClient.fetchAlterationEnrichmentsUsingPOST({
+                return internalClient.fetchAlterationEnrichmentsUsingPOST({
                     enrichmentType: this.usePatientLevelEnrichments
                         ? 'PATIENT'
                         : 'SAMPLE',
@@ -1522,7 +1512,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                 this.mrnaEnrichmentDataRequestGroups.result &&
                 this.mrnaEnrichmentDataRequestGroups.result.length > 1
             ) {
-                return this.internalClient.fetchGenomicEnrichmentsUsingPOST({
+                return internalClient.fetchGenomicEnrichmentsUsingPOST({
                     enrichmentType: 'SAMPLE',
                     groupsContainingSampleAndMolecularProfileIdentifiers: this
                         .mrnaEnrichmentDataRequestGroups.result!,
@@ -1609,7 +1599,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                 this.proteinEnrichmentDataRequestGroups.result &&
                 this.proteinEnrichmentDataRequestGroups.result.length > 1
             ) {
-                return this.internalClient.fetchGenomicEnrichmentsUsingPOST({
+                return internalClient.fetchGenomicEnrichmentsUsingPOST({
                     enrichmentType: 'SAMPLE',
                     groupsContainingSampleAndMolecularProfileIdentifiers: this
                         .proteinEnrichmentDataRequestGroups.result!,
@@ -1695,7 +1685,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                 this.methylationEnrichmentDataRequestGroups.result &&
                 this.methylationEnrichmentDataRequestGroups.result.length > 1
             ) {
-                return this.internalClient.fetchGenomicEnrichmentsUsingPOST({
+                return internalClient.fetchGenomicEnrichmentsUsingPOST({
                     enrichmentType: 'SAMPLE',
                     groupsContainingSampleAndMolecularProfileIdentifiers: this
                         .methylationEnrichmentDataRequestGroups.result!,
@@ -1991,7 +1981,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                                     genericAssayEnrichmentDataRequestGroups.length >
                                         1
                                 ) {
-                                    return this.internalClient.fetchGenericAssayEnrichmentsUsingPOST(
+                                    return internalClient.fetchGenericAssayEnrichmentsUsingPOST(
                                         {
                                             enrichmentType: 'SAMPLE',
                                             groupsContainingSampleAndMolecularProfileIdentifiers: genericAssayEnrichmentDataRequestGroups,
@@ -2030,7 +2020,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                                     genericAssayEnrichmentDataRequestGroups.length >
                                         1
                                 ) {
-                                    return this.internalClient.fetchGenericAssayBinaryDataEnrichmentInMultipleMolecularProfilesUsingPOST(
+                                    return internalClient.fetchGenericAssayBinaryDataEnrichmentInMultipleMolecularProfilesUsingPOST(
                                         {
                                             enrichmentType: 'SAMPLE',
                                             groupsContainingSampleAndMolecularProfileIdentifiers: genericAssayEnrichmentDataRequestGroups,
@@ -2070,7 +2060,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                                         genericAssayEnrichmentDataRequestGroups.length >
                                             1
                                     ) {
-                                        return this.internalClient.fetchGenericAssayCategoricalDataEnrichmentInMultipleMolecularProfilesUsingPOST(
+                                        return internalClient.fetchGenericAssayCategoricalDataEnrichmentInMultipleMolecularProfilesUsingPOST(
                                             {
                                                 enrichmentType: 'SAMPLE',
                                                 groupsContainingSampleAndMolecularProfileIdentifiers: genericAssayEnrichmentDataRequestGroups,
@@ -2729,13 +2719,11 @@ export default abstract class ComparisonStore extends AnalysisStore
                     };
                 });
                 if (groups.length > 1) {
-                    return this.internalClient.fetchClinicalEnrichmentsUsingPOST(
-                        {
-                            groupFilter: {
-                                groups: groups,
-                            },
-                        }
-                    );
+                    return internalClient.fetchClinicalEnrichmentsUsingPOST({
+                        groupFilter: {
+                            groups: groups,
+                        },
+                    });
                 } else {
                     return Promise.resolve([]);
                 }
@@ -2939,7 +2927,7 @@ export default abstract class ComparisonStore extends AnalysisStore
                     this.customDriverAnnotationProfiles.result,
                     (p: MolecularProfile) => p.molecularProfileId
                 );
-                const report = await this.internalClient.fetchAlterationDriverAnnotationReportUsingPOST(
+                const report = await internalClient.fetchAlterationDriverAnnotationReportUsingPOST(
                     {
                         molecularProfileIds,
                     }

@@ -128,7 +128,9 @@ const PathWayMapperContainer: React.FunctionComponent<IPathwayMapperContainerPro
         urlWrapper,
     }: IPathwayMapperContainerProps) {
         const store = useLocalObservable(() => ({
-            activeTab: urlWrapper.subTab,
+            activeTab:
+                urlWrapper.query.pathways_source ||
+                ResultsViewPathwaysSubTab.PATHWAY_MAPPER,
         }));
 
         return (
@@ -147,7 +149,9 @@ const PathWayMapperContainer: React.FunctionComponent<IPathwayMapperContainerPro
                     onTabClick={(id: ResultsViewPathwaysSubTab) => {
                         runInAction(() => {
                             store.activeTab = id;
-                            urlWrapper.setSubTab(id);
+                            urlWrapper.updateURL({
+                                pathways_source: id,
+                            });
                         });
                     }}
                     className="pillTabs resultsPagePathwaysTabs"

@@ -136,7 +136,8 @@ export default class QueryAndDownloadTabs extends React.Component<
                         id={QUICK_SEARCH_TAB_ID}
                         linkText={
                             <span>
-                                Quick Search
+                                Quick Search{' '}
+                                <strong className={'beta-text'}>Beta!</strong>
                             </span>
                         }
                         hide={!this.props.showQuickSearchTab}

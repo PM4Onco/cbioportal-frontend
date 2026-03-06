@@ -13,6 +13,7 @@ import {
 import styles from './style/sampleTable.module.scss';
 import { SHOW_ALL_PAGE_SIZE } from '../../../shared/components/paginationControls/PaginationControls';
 import { sortByClinicalAttributePriorityThenName } from '../../../shared/lib/SortUtils';
+import parse from 'html-react-parser';
 import { DownloadControlOption, isUrl } from 'cbioportal-frontend-commons';
 import { getServerConfig } from 'config/config';
 
@@ -34,6 +35,16 @@ export default class ClinicalInformationSamplesTable extends React.Component<
     public render() {
         const sampleInvertedData = convertSamplesData(this.props.samples);
         const tableData = this.prepareData(sampleInvertedData);
+        const replaceArray = function(replaceString: string) {
+            const search = ['Ã¤', 'Ã¼', 'Ã¶', 'Ã„', 'Ã–', 'Ãœ', 'ÃŸ'];
+            const replace = ['ä', 'ü', 'ö', 'Ä', 'Ö', 'Ü', 'ß'];
+            let regex;
+            for (let i = 0; i < search.length; i++) {
+                regex = new RegExp(search[i], 'g');
+                replaceString = replaceString.replace(regex, replace[i]);
+            }
+            return replaceString;
+        };
         const columns: Column<ISampleRow>[] = [
             { id: 'attribute' },
             ...sampleInvertedData.columns,
@@ -47,7 +58,9 @@ export default class ClinicalInformationSamplesTable extends React.Component<
                         </a>
                     );
                 }
-                return <span>{data[col.id]}</span>;
+                return (
+                    <span>{parse(replaceArray(data[col.id].toString()))}</span>
+                );
             },
             download: (data: ISampleRow) => `${data[col.id]}`,
             filter: (

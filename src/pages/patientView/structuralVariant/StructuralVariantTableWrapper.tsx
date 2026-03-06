@@ -29,6 +29,7 @@ import { getSamplesProfiledStatus } from 'pages/patientView/PatientViewPageUtils
 import SampleNotProfiledAlert from 'shared/components/SampleNotProfiledAlert';
 import { NamespaceColumnConfig } from 'shared/components/namespaceColumns/NamespaceColumnConfig';
 import { createNamespaceColumns } from 'shared/components/namespaceColumns/namespaceColumnsUtils';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
 import CustomDriverTierColumnFormatter from './column/CustomDriverTierColumnFormatter';
 import CustomDriverColumnFormatter from './column/CustomDriverColumnFormatter';
 
@@ -93,6 +94,9 @@ export default class StructuralVariantTableWrapper extends React.Component<
             this.props.store.oncoKbAnnotatedGenes,
             this.props.store.studyIdToStudy,
             this.props.store.oncoKbCancerGenes,
+            this.props.store.localTherapyRecommendations,
+            this.props.store.localFollowUps,
+            this.props.store.getDiagnosisFromSamples,
         ],
         invoke: async () => {
             const columns: SVTableColumn[] = [];
@@ -304,11 +308,28 @@ export default class StructuralVariantTableWrapper extends React.Component<
                             enableOncoKb: this.props.enableOncoKb,
                             pubMedCache: this.props.store.pubMedCache,
                             enableCivic: false,
+                            enableMyCancerGenome: false,
                             enableHotspot: false,
                             enableRevue: false,
+                            enableSharedTR: false,
                             userDisplayName: ServerConfigHelpers.getUserDisplayName(),
                             studyIdToStudy: this.props.store.studyIdToStudy
                                 .result,
+                            sharedTherapyRecommendationData: {
+                                localTherapyRecommendations: this.props.store
+                                    .localTherapyRecommendations.result,
+                                sharedTherapyRecommendations: this.props.store
+                                    .sharedTherapyRecommendations,
+                                localFollowUps: this.props.store.localFollowUps
+                                    .result,
+                                sharedFollowUps: this.props.store
+                                    .sharedFollowUps,
+                                diagnosis: this.props.store.getDiagnosisFromSamples.result.map(
+                                    cd => cd.value
+                                ),
+                                studyId: this.props.store.getSafeStudyId(),
+                                caseId: this.props.store.getSafePatientId(),
+                            } as ISharedTherapyRecommendationData,
                         })}
                     </span>
                 ),

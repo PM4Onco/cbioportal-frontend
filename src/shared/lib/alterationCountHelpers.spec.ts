@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { countSampleAlterationOccurences } from './alterationCountHelpers';
+import { countAlterationOccurences } from './alterationCountHelpers';
 
 describe('alterationCountHelpers', () => {
     describe('#countAlterationOccurences', () => {
@@ -280,7 +280,7 @@ describe('alterationCountHelpers', () => {
         });
 
         it('count total samples and alteration totals', () => {
-            const ret = countSampleAlterationOccurences(
+            const ret = countAlterationOccurences(
                 groupedSamples,
                 alterationsBySampleId,
                 molecularProfileIdsByAlterationType,
@@ -289,7 +289,7 @@ describe('alterationCountHelpers', () => {
 
             const expectedResult = {
                 'Hepatobiliary Cancer': {
-                    profiledTotal: 3,
+                    profiledSampleTotal: 3,
                     alterationTotal: 2,
                     alterationTypeCounts: {
                         mutated: 2,
@@ -304,16 +304,16 @@ describe('alterationCountHelpers', () => {
                         protExpressionLow: 0,
                         multiple: 0,
                     },
-                    alteredCount: 2,
+                    alteredSampleCount: 2,
                     parentCancerType: 'Hepatobiliary Cancer',
-                    profiledCounts: {
+                    profiledSamplesCounts: {
                         mutation: 3,
                         cna: 0,
                         expression: 0,
                         protein: 0,
                         structuralVariant: 0,
                     },
-                    notProfiledCounts: {
+                    notProfiledSamplesCounts: {
                         mutation: 5,
                         cna: 0,
                         expression: 0,
@@ -351,7 +351,7 @@ describe('alterationCountHelpers', () => {
                 },
             ];
 
-            const ret = countSampleAlterationOccurences(
+            const ret = countAlterationOccurences(
                 groupedSamples,
                 alterationsBySampleId,
                 molecularProfileIdsByAlterationType,
@@ -360,7 +360,7 @@ describe('alterationCountHelpers', () => {
 
             const expectedResult = {
                 'Hepatobiliary Cancer': {
-                    profiledTotal: 3,
+                    profiledSampleTotal: 3,
                     alterationTotal: 5,
                     alterationTypeCounts: {
                         mutated: 2,
@@ -375,16 +375,16 @@ describe('alterationCountHelpers', () => {
                         protExpressionLow: 0,
                         multiple: 0,
                     },
-                    alteredCount: 5,
+                    alteredSampleCount: 5,
                     parentCancerType: 'Hepatobiliary Cancer',
-                    profiledCounts: {
+                    profiledSamplesCounts: {
                         mutation: 3,
                         cna: 0,
                         expression: 0,
                         protein: 0,
                         structuralVariant: 0,
                     },
-                    notProfiledCounts: {
+                    notProfiledSamplesCounts: {
                         mutation: 5,
                         cna: 0,
                         expression: 0,
@@ -397,7 +397,7 @@ describe('alterationCountHelpers', () => {
             assert.deepEqual(ret, expectedResult);
         });
 
-        it('samples with multiple mutations are only counted as "multiple"; alteration total reflects ALL alterations; does not double count multiple alterations to same sample in alteredCount', () => {
+        it('samples with multiple mutations are only counted as "multiple"; alteration total reflects ALL alterations; does not double count multiple alterations to same sample in alteredSampleCount', () => {
             alterationsBySampleId['VTA0NDpjaG9sX251c18yMDEy'] = [
                 {
                     uniqueSampleKey: 'VTA0NDpjaG9sX251c18yMDEy',
@@ -409,7 +409,7 @@ describe('alterationCountHelpers', () => {
                 },
             ];
 
-            const ret = countSampleAlterationOccurences(
+            const ret = countAlterationOccurences(
                 groupedSamples,
                 alterationsBySampleId,
                 molecularProfileIdsByAlterationType,
@@ -418,7 +418,7 @@ describe('alterationCountHelpers', () => {
 
             const expectedResult = {
                 'Hepatobiliary Cancer': {
-                    profiledTotal: 3,
+                    profiledSampleTotal: 3,
                     alterationTotal: 4,
                     alterationTypeCounts: {
                         mutated: 2,
@@ -433,16 +433,16 @@ describe('alterationCountHelpers', () => {
                         protExpressionLow: 0,
                         multiple: 1,
                     },
-                    alteredCount: 3,
+                    alteredSampleCount: 3,
                     parentCancerType: 'Hepatobiliary Cancer',
-                    profiledCounts: {
+                    profiledSamplesCounts: {
                         mutation: 3,
                         cna: 0,
                         expression: 0,
                         protein: 0,
                         structuralVariant: 0,
                     },
-                    notProfiledCounts: {
+                    notProfiledSamplesCounts: {
                         mutation: 5,
                         cna: 0,
                         expression: 0,
@@ -473,7 +473,7 @@ describe('alterationCountHelpers', () => {
                 },
             ];
 
-            const ret = countSampleAlterationOccurences(
+            const ret = countAlterationOccurences(
                 groupedSamples,
                 alterationsBySampleId,
                 molecularProfileIdsByAlterationType,
@@ -510,7 +510,7 @@ describe('alterationCountHelpers', () => {
                 },
             ];
 
-            const ret = countSampleAlterationOccurences(
+            const ret = countAlterationOccurences(
                 groupedSamples,
                 alterationsBySampleId,
                 molecularProfileIdsByAlterationType,
