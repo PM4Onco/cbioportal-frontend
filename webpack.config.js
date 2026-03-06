@@ -121,6 +121,12 @@ var config = {
             styles: join(src, 'styles'),
             pages: join(src, 'pages'),
             shared: join(src, 'shared'),
+            // Use the in-repo custom mutation mapper build to keep API aligned
+            // with custom patient-view integration.
+            'react-mutation-mapper$': join(
+                root,
+                'packages/react-mutation-mapper/dist/index.js'
+            ),
             pako: join(
                 path.join(__dirname + '/node_modules/pako/dist/pako.es5.js')
             ),
@@ -155,6 +161,12 @@ var config = {
                       cleanAndValidateUrl(process.env.GENOME_NEXUS_URL)
                   )
                 : '"replace_me_env_genome_nexus_url"',
+            ENV_FHIRSPARK_HOST: JSON.stringify(process.env.FHIRSPARK_HOST),
+            ENV_FHIRSPARK_PORT: JSON.stringify(process.env.FHIRSPARK_PORT),
+            ENV_CANCERDRUGS_URL: JSON.stringify(process.env.CANCERDRUGS_URL),
+            ENV_CANCERDRUGSJSON_URL: JSON.stringify(
+                process.env.CANCERDRUGSJSON_URL
+            ),
         }),
         new HtmlWebpackPlugin({ cache: false, template: 'my-index.ejs' }),
         new ProgressBarPlugin(),
@@ -184,6 +196,10 @@ var config = {
                 {
                     from: './src/globalStyles/prefixed-bootstrap.min.css.map',
                     to: 'reactapp/prefixed-bootstrap.min.css.map',
+                },
+                {
+                    from: './attributes.json',
+                    to: 'attributes.json',
                 },
             ],
         }), // destination is relative to dist directory

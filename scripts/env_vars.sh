@@ -30,16 +30,21 @@ if [[ "$CIRCLECI" ]] || [[ "$NETLIFY" ]]; then
     fi
     if test -f "$SCRIPT_DIR/../env/${BRANCH}.sh"; then
         cat $SCRIPT_DIR/../env/${BRANCH}.sh
+        printf '\n'
     else
         echo Branch name was not recognized. Please add env script to /env/ directory or test the branch as part of a github pull request.
     fi
     echo "export BRANCH_ENV=$BRANCH"
 elif [[ "$BRANCH_ENV" ]]; then
-    cat $SCRIPT_DIR/../env/${BRANCH_ENV}.sh
+    # tolerate accidental trailing punctuation/whitespace (e.g. BRANCH_ENV="master,")
+    SANITIZED_BRANCH_ENV=$(echo "$BRANCH_ENV" | tr -d '[:space:],')
+    cat $SCRIPT_DIR/../env/${SANITIZED_BRANCH_ENV}.sh
+    printf '\n'
 
     # override with custom exports if they exist
     if [[ -f ${SCRIPT_DIR}/../env/custom.sh ]]; then
         cat ${SCRIPT_DIR}/../env/custom.sh
+        printf '\n'
     fi
 else
     echo -e "${RED}No desired BRANCH_ENV variable set${NC}"

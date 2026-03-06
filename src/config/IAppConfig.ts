@@ -88,6 +88,7 @@ export interface IServerConfig {
     show_transcript_dropdown: boolean;
     show_signal: boolean;
     show_ndex: boolean;
+    show_sharedTR: boolean;
     survival_initial_x_axis_limit: number;
     survival_show_p_q_values_in_survival_type_table: boolean;
     survival_min_group_threshold: number;
@@ -189,6 +190,8 @@ export interface IServerConfig {
     customMode?: CustomMode;
     customFeatures?: Partial<ICustomFeatureConfig>;
     fhirspark?: IFhirsparkConfig;
+    cancerdrugsUrl?: string;
+    cancerdrugsJsonUrl?: string;
     oncoprint_clinical_tracks_config_json: string;
     oncoprint_clustered_default: boolean; // this has a default
     enable_cross_study_expression: string;
