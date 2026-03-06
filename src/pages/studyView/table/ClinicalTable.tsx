@@ -31,7 +31,6 @@ export interface IClinicalTableProps {
     width?: number;
     height?: number;
     showAddRemoveAllButtons?: boolean;
-    title?: string;
 }
 
 class ClinicalTableComponent extends FixedHeaderTable<

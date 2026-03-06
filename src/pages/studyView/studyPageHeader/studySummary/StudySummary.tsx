@@ -121,8 +121,7 @@ export default class StudySummary extends React.Component<
     @computed
     get showDownload() {
         return (
-            (this.props.hasRawDataForDownload ||
-                getServerConfig().feature_study_export) &&
+            this.props.hasRawDataForDownload &&
             getServerConfig().skin_hide_download_controls ===
                 DownloadControlOption.SHOW_ALL
         );

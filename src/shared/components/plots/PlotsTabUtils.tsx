@@ -85,7 +85,6 @@ import { AnnotatedNumericGeneMolecularData } from 'shared/model/AnnotatedNumeric
 import { CustomDriverNumericGeneMolecularData } from 'shared/model/CustomDriverNumericGeneMolecularData';
 
 export const CLIN_ATTR_DATA_TYPE = 'clinical_attribute';
-export const CUSTOM_ATTR_DATA_TYPE = 'custom_attribute';
 export const GENESET_DATA_TYPE = 'GENESET_SCORE';
 export const dataTypeToDisplayType: { [s: string]: string } = {
     [AlterationTypeConstants.MUTATION_EXTENDED]: 'Mutation',
@@ -96,7 +95,6 @@ export const dataTypeToDisplayType: { [s: string]: string } = {
     [AlterationTypeConstants.METHYLATION]: 'DNA Methylation',
     [CLIN_ATTR_DATA_TYPE]: 'Clinical Attribute',
     [GENESET_DATA_TYPE]: 'Gene Sets',
-    [CUSTOM_ATTR_DATA_TYPE]: 'Custom Data',
 };
 
 export const NO_GENE_OPTION = {
@@ -117,7 +115,6 @@ export const mutationTypeToDisplayName: {
 
 export const dataTypeDisplayOrder = [
     CLIN_ATTR_DATA_TYPE,
-    CUSTOM_ATTR_DATA_TYPE,
     AlterationTypeConstants.MUTATION_EXTENDED,
     AlterationTypeConstants.STRUCTURAL_VARIANT,
     AlterationTypeConstants.COPY_NUMBER_ALTERATION,
@@ -416,37 +413,16 @@ export function scatterPlotLegendData(
     onClickLegendItem?: (ld: LegendDataWithId) => void
 ): LegendDataWithId[] {
     let legend: any[] = [];
-    const uniqueVisibleValues = new Set<string>();
-    if (ColoringType.ClinicalData in viewType && data && data.length > 0) {
-        data.forEach(point => {
-            if (point.dispClinicalValue) {
-                uniqueVisibleValues.add(String(point.dispClinicalValue));
-            }
-        });
-    }
-
     if (ColoringType.ClinicalData in viewType) {
         if (
             coloringClinicalDataCacheEntry &&
             coloringClinicalDataCacheEntry.categoryToColor
         ) {
-            const allLegendEntries = scatterPlotStringClinicalLegendData(
+            legend = scatterPlotStringClinicalLegendData(
                 coloringClinicalDataCacheEntry,
                 plotType,
                 onClickLegendItem
             );
-            const hasNoDataPoints = data.some(d => !d.dispClinicalValue);
-            // Filter legend entries to only show:
-            // 1. Categories that exist in the current visible data (uniqueVisibleValues)
-            // 2. The "No Data" entry ONLY if there are points with missing clinical values (hasNoDataPoints)
-            legend = allLegendEntries.filter(item => {
-                const itemName = String(item.name);
-                return (
-                    uniqueVisibleValues.has(itemName) ||
-                    (itemName === NO_DATA_CLINICAL_LEGEND_LABEL &&
-                        hasNoDataPoints)
-                );
-            });
         } else if (
             coloringClinicalDataCacheEntry &&
             coloringClinicalDataCacheEntry.numericalValueToColor
@@ -469,7 +445,6 @@ export function scatterPlotLegendData(
                 )
             );
         }
-
         if (
             ColoringType.CopyNumber in viewType ||
             ColoringType.StructuralVariant in viewType
@@ -1448,9 +1423,6 @@ export function makeAxisDataPromise(
     clinicalAttributeIdToClinicalAttribute: MobxPromise<{
         [clinicalAttributeId: string]: ClinicalAttribute;
     }>,
-    customAttributeIdToClinicalAttribute: MobxPromise<{
-        [clinicalAttributeId: string]: ClinicalAttribute;
-    }>,
     molecularProfileIdSuffixToMolecularProfiles: MobxPromise<{
         [molecularProfileIdSuffix: string]: MolecularProfile[];
     }>,
@@ -1523,21 +1495,6 @@ export function makeAxisDataPromise(
                 );
             }
             break;
-        case CUSTOM_ATTR_DATA_TYPE:
-            if (
-                selection.dataSourceId !== undefined &&
-                customAttributeIdToClinicalAttribute.isComplete
-            ) {
-                const attribute = customAttributeIdToClinicalAttribute.result![
-                    selection.dataSourceId
-                ];
-                ret = makeAxisDataPromise_Clinical(
-                    attribute,
-                    clinicalDataCache,
-                    patientKeyToSamples
-                );
-            }
-            break;
         case GENESET_DATA_TYPE:
             if (
                 selection.genesetId !== undefined &&
@@ -1596,9 +1553,6 @@ export function getAxisLabel(
     clinicalAttributeIdToClinicalAttribute: {
         [clinicalAttributeId: string]: ClinicalAttribute;
     },
-    customAttributeIdToClinicalAttribute: {
-        [clinicalAttributeId: string]: ClinicalAttribute;
-    },
     logScaleFunc: IAxisLogScaleParams | undefined
 ) {
     let label = '';
@@ -1615,13 +1569,6 @@ export function getAxisLabel(
     }
     switch (selection.dataType) {
         case NONE_SELECTED_OPTION_STRING_VALUE:
-            break;
-        case CUSTOM_ATTR_DATA_TYPE:
-            const customAttr =
-                customAttributeIdToClinicalAttribute[selection.dataSourceId!];
-            if (customAttr) {
-                label = customAttr.displayName;
-            }
             break;
         case CLIN_ATTR_DATA_TYPE:
             const attribute =
@@ -1676,20 +1623,10 @@ export function getAxisDescription(
     },
     clinicalAttributeIdToClinicalAttribute: {
         [clinicalAttributeId: string]: ClinicalAttribute;
-    },
-    customAttributeIdToClinicalAttribute: {
-        [clinicalAttributeId: string]: ClinicalAttribute;
     }
 ) {
     let ret = '';
     switch (selection.dataType) {
-        case CUSTOM_ATTR_DATA_TYPE:
-            const customAttr =
-                customAttributeIdToClinicalAttribute[selection.dataSourceId!];
-            if (customAttr) {
-                ret = customAttr.description;
-            }
-            break;
         case CLIN_ATTR_DATA_TYPE:
             const attribute =
                 clinicalAttributeIdToClinicalAttribute[selection.dataSourceId!];
@@ -2605,12 +2542,11 @@ export function logScalePossible(
     ) {
         return true;
     } else if (
-        axisData &&
         isGenericAssaySelected(axisSelection) &&
         axisSelection.genericAssayDataType === DataTypeConstants.LIMITVALUE
     ) {
-        // Check negative values in log scale
-        return axisHasNegativeNumbers(axisData) ? false : true;
+        // Generic Assay numeric profile is log scale possible
+        return true;
     } else {
         // molecular profile
         return !!(
@@ -3233,7 +3169,6 @@ export function bothAxesNoMolecularProfile(
     vertSelection: AxisMenuSelection
 ): boolean {
     const noMolecularProfileDataTypes = [
-        CUSTOM_ATTR_DATA_TYPE,
         CLIN_ATTR_DATA_TYPE,
         NONE_SELECTED_OPTION_STRING_VALUE,
     ];

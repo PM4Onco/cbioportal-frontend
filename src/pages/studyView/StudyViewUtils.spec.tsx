@@ -2959,7 +2959,7 @@ describe('StudyViewUtils', () => {
             assert.isTrue(getCNAByAlteration(0) === 'DIPLOID');
             assert.isTrue(getCNAByAlteration(1) === 'GAIN');
             assert.isTrue(getCNAByAlteration(2) === 'AMP');
-            assert.isTrue(getCNAByAlteration('NA') === 'Not Profiled');
+            assert.isTrue(getCNAByAlteration('NA') === 'NA');
         });
 
         it('return empty string when alteration is not valid', () => {

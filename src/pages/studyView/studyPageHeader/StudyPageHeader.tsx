@@ -98,9 +98,6 @@ export default class StudyPageHeader extends React.Component<
                         removeMutationDataFilter={
                             this.props.store.removeMutationDataFilter
                         }
-                        removeNamespaceDataFilter={
-                            this.props.store.removeNamespaceDataFilter
-                        }
                         updateGenericAssayDataFilter={
                             this.props.store
                                 .updateGenericAssayDataFiltersByValues

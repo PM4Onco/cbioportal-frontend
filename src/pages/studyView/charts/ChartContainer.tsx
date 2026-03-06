@@ -100,7 +100,6 @@ const COMPARISON_CHART_TYPES: ChartType[] = [
     ChartTypeEnum.TABLE,
     ChartTypeEnum.BAR_CHART,
     ChartTypeEnum.MUTATED_GENES_TABLE,
-    ChartTypeEnum.VARIANT_ANNOTATIONS_TABLE,
     ChartTypeEnum.CNA_GENES_TABLE,
     ChartTypeEnum.SAMPLE_TREATMENTS_TABLE,
     ChartTypeEnum.SAMPLE_TREATMENT_GROUPS_TABLE,
@@ -202,8 +201,6 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
     @observable private selectedRowsKeys: string[] = [];
 
     @observable alertContent: JSX.Element | string | null = null;
-
-    @observable renderPieChartForDownload: boolean = false;
 
     constructor(props: IChartContainerProps) {
         super(props);
@@ -393,19 +390,11 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
         this.handlers.onChangeChartType(chartType);
     }
 
-    // toggle function to render pie chart to access its ref for table svg and pdf download options
-    @action.bound
-    toggleRenderPieChartForDownload(): void {
-        this.renderPieChartForDownload = !this.renderPieChartForDownload;
-    }
-
     @computed
     get comparisonPagePossible(): boolean {
         return (
             this.props.promise.isComplete &&
-            (this.props.promise.result.treatments ??
-                this.props.promise.result.patientTreatments ??
-                this.props.promise.result)!.length > 1 &&
+            this.props.promise.result!.length > 1 &&
             COMPARISON_CHART_TYPES.indexOf(this.props.chartType) > -1 &&
             !this.props.chartMeta.mutationOptionType
         );
@@ -503,7 +492,6 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                 content: (
                     <div
                         data-tour="mutated-genes-table-compare-btn"
-                        data-test="table-compare-btn"
                         style={{ display: 'flex', alignItems: 'center' }}
                     >
                         <ComparisonVsIcon
@@ -581,60 +569,22 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
             }
             case ChartTypeEnum.TABLE: {
                 return () => (
-                    <>
-                        <ClinicalTable
-                            data={this.props.promise.result}
-                            width={getWidthByDimension(
-                                this.props.dimension,
-                                this.borderWidth
-                            )}
-                            height={getTableHeightByDimension(
-                                this.props.dimension,
-                                this.chartHeaderHeight
-                            )}
-                            filters={this.props.filters}
-                            onUserSelection={this.handlers.onValueSelection}
-                            labelDescription={this.props.chartMeta.description}
-                            patientAttribute={
-                                this.props.chartMeta.patientAttribute
-                            }
-                            showAddRemoveAllButtons={this.mouseInChart}
-                            title={this.props.title}
-                        />
-                        {this.renderPieChartForDownload && (
-                            <div className="hiddenByPosition">
-                                <PieChart
-                                    width={getWidthByDimension(
-                                        this.props.dimension,
-                                        this.borderWidth
-                                    )}
-                                    height={getHeightByDimension(
-                                        this.props.dimension,
-                                        this.chartHeaderHeight
-                                    )}
-                                    ref={this.handlers.ref}
-                                    onUserSelection={
-                                        this.handlers.onValueSelection
-                                    }
-                                    openComparisonPage={
-                                        this.comparisonPagePossible
-                                            ? this.openComparisonPage
-                                            : undefined
-                                    }
-                                    filters={this.props.filters}
-                                    data={this.props.promise.result}
-                                    placement={this.placement}
-                                    label={this.props.title}
-                                    labelDescription={
-                                        this.props.chartMeta.description
-                                    }
-                                    patientAttribute={
-                                        this.props.chartMeta.patientAttribute
-                                    }
-                                />
-                            </div>
+                    <ClinicalTable
+                        data={this.props.promise.result}
+                        width={getWidthByDimension(
+                            this.props.dimension,
+                            this.borderWidth
                         )}
-                    </>
+                        height={getTableHeightByDimension(
+                            this.props.dimension,
+                            this.chartHeaderHeight
+                        )}
+                        filters={this.props.filters}
+                        onUserSelection={this.handlers.onValueSelection}
+                        labelDescription={this.props.chartMeta.description}
+                        patientAttribute={this.props.chartMeta.patientAttribute}
+                        showAddRemoveAllButtons={this.mouseInChart}
+                    />
                 );
             }
             case ChartTypeEnum.MUTATED_GENES_TABLE: {
@@ -852,9 +802,7 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                                         MultiSelectionTableColumnKey.FREQ,
                                 },
                             ]}
-                            defaultSortBy={
-                                MultiSelectionTableColumnKey.NUMBER_STRUCTURAL_VARIANTS
-                            }
+                            defaultSortBy={MultiSelectionTableColumnKey.FREQ}
                             setOperationsButtonText={
                                 this.props.store.hesitateUpdate
                                     ? 'Add Filters '
@@ -1046,62 +994,6 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                         />
                     );
                 };
-            }
-            case ChartTypeEnum.VARIANT_ANNOTATIONS_TABLE: {
-                return () => (
-                    <MultiSelectionTable
-                        tableType={FreqColumnTypeEnum.VA}
-                        promise={this.props.promise}
-                        width={getWidthByDimension(
-                            this.props.dimension,
-                            this.borderWidth
-                        )}
-                        height={getTableHeightByDimension(
-                            this.props.dimension,
-                            this.chartHeaderHeight
-                        )}
-                        filters={this.props.filters}
-                        onSubmitSelection={this.handlers.onValueSelection}
-                        onChangeSelectedRows={
-                            this.handlers.onChangeSelectedRows
-                        }
-                        extraButtons={
-                            this.comparisonButtonForTables && [
-                                this.comparisonButtonForTables,
-                            ]
-                        }
-                        selectedRowsKeys={this.selectedRowsKeys}
-                        cancerGeneFilterEnabled={
-                            this.props.cancerGeneFilterEnabled
-                        }
-                        filterByCancerGenes={this.props.filterByCancerGenes!}
-                        onChangeCancerGeneFilter={
-                            this.props.onChangeCancerGeneFilter!
-                        }
-                        columns={[
-                            {
-                                columnKey:
-                                    MultiSelectionTableColumnKey.ANNOTATION,
-                            },
-                            {
-                                columnKey:
-                                    MultiSelectionTableColumnKey.NUMBER_VARIANT_ANNOTATIONS,
-                            },
-                            {
-                                columnKey: MultiSelectionTableColumnKey.NUMBER,
-                            },
-                            {
-                                columnKey: MultiSelectionTableColumnKey.FREQ,
-                            },
-                        ]}
-                        defaultSortBy={MultiSelectionTableColumnKey.FREQ}
-                        setOperationsButtonText={
-                            this.props.store.hesitateUpdate
-                                ? 'Add Filters '
-                                : 'Select Samples '
-                        }
-                    />
-                );
             }
             case ChartTypeEnum.GENOMIC_PROFILES_TABLE: {
                 return () => (
@@ -1615,9 +1507,6 @@ export class ChartContainer extends React.Component<IChartContainerProps, {}> {
                         toggleNAValue={this.handlers.onToggleNAValue}
                         chartControls={this.chartControls}
                         changeChartType={this.changeChartType}
-                        toggleRenderPieChartForDownload={
-                            this.toggleRenderPieChartForDownload
-                        }
                         getSVG={() => Promise.resolve(this.toSVGDOMNode())}
                         getData={this.props.getData}
                         downloadTypes={this.props.downloadTypes}

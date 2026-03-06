@@ -7,10 +7,7 @@ import {
     Column,
     SortDirection,
 } from '../../../../shared/components/lazyMobXTable/LazyMobXTable';
-import {
-    PatientTreatmentReport,
-    PatientTreatment,
-} from 'cbioportal-ts-api-client';
+import { PatientTreatmentRow } from 'cbioportal-ts-api-client';
 import { correctColumnWidth } from 'pages/studyView/StudyViewUtils';
 import LabeledCheckbox from 'shared/components/labeledCheckbox/LabeledCheckbox';
 import styles from 'pages/studyView/table/tables.module.scss';
@@ -39,7 +36,7 @@ export type PatientTreatmentsTableColumn = {
 
 export type PatientTreatmentsTableProps = {
     tableType: TreatmentTableType;
-    promise: MobxPromise<PatientTreatmentReport>;
+    promise: MobxPromise<PatientTreatmentRow[]>;
     width: number;
     height: number;
     filters: string[][];
@@ -62,7 +59,9 @@ const DEFAULT_COLUMN_WIDTH_RATIO: {
     [PatientTreatmentsTableColumnKey.COUNT]: 0.2,
 };
 
-class MultiSelectionTableComponent extends FixedHeaderTable<PatientTreatment> {}
+class MultiSelectionTableComponent extends FixedHeaderTable<
+    PatientTreatmentRow
+> {}
 
 @observer
 export class PatientTreatmentsTable extends TreatmentsTable<
@@ -81,7 +80,7 @@ export class PatientTreatmentsTable extends TreatmentsTable<
     }
 
     createNubmerColumnCell(
-        row: PatientTreatment,
+        row: PatientTreatmentRow,
         cellMargin: number
     ): JSX.Element {
         return (
@@ -112,7 +111,9 @@ export class PatientTreatmentsTable extends TreatmentsTable<
         cellMargin: number
     ) => {
         const defaults: {
-            [key in PatientTreatmentsTableColumnKey]: Column<PatientTreatment>;
+            [key in PatientTreatmentsTableColumnKey]: Column<
+                PatientTreatmentRow
+            >;
         } = {
             [PatientTreatmentsTableColumnKey.TREATMENT]: {
                 name: columnKey,
@@ -122,10 +123,10 @@ export class PatientTreatmentsTable extends TreatmentsTable<
                         headerName={columnKey}
                     />
                 ),
-                render: (data: PatientTreatment) => (
+                render: (data: PatientTreatmentRow) => (
                     <TreatmentColumnCell row={data} />
                 ),
-                sortBy: (data: PatientTreatment) => data.treatment,
+                sortBy: (data: PatientTreatmentRow) => data.treatment,
                 defaultSortDirection: 'asc' as 'asc',
                 filter: filterTreatmentCell,
                 width: columnWidth,
@@ -139,9 +140,9 @@ export class PatientTreatmentsTable extends TreatmentsTable<
                         headerName={columnKey}
                     />
                 ),
-                render: (data: PatientTreatment) =>
+                render: (data: PatientTreatmentRow) =>
                     this.createNubmerColumnCell(data, 28),
-                sortBy: (data: PatientTreatment) =>
+                sortBy: (data: PatientTreatmentRow) =>
                     data.count + toNumericValue(data.treatment),
                 defaultSortDirection: 'desc' as 'desc',
                 filter: filterTreatmentCell,
@@ -180,8 +181,8 @@ export class PatientTreatmentsTable extends TreatmentsTable<
         );
     }
 
-    @computed get tableData(): PatientTreatment[] {
-        return this.props.promise.result?.patientTreatments || [];
+    @computed get tableData(): PatientTreatmentRow[] {
+        return this.props.promise.result || [];
     }
 
     @computed
@@ -205,7 +206,7 @@ export class PatientTreatmentsTable extends TreatmentsTable<
             .filter(data =>
                 this.flattenedFilters.includes(treatmentUniqueKey(data))
             )
-            .sortBy<PatientTreatment>(data =>
+            .sortBy<PatientTreatmentRow>(data =>
                 ifNotDefined(
                     order[treatmentUniqueKey(data)],
                     Number.POSITIVE_INFINITY

@@ -48,7 +48,6 @@ export interface IChartHeaderProps {
     hideLabel?: boolean;
     chartControls?: ChartControls;
     changeChartType: (chartType: ChartType) => void;
-    toggleRenderPieChartForDownload: () => void;
     getSVG?: () => Promise<SVGElement | null>;
     getData?:
         | ((dataType?: DataType) => Promise<string | null>)
@@ -217,7 +216,6 @@ export class ChartHeader extends React.Component<IChartHeaderProps, {}> {
                     </div>
                 );
             case ChartTypeEnum.MUTATED_GENES_TABLE:
-            case ChartTypeEnum.VARIANT_ANNOTATIONS_TABLE:
             case ChartTypeEnum.CNA_GENES_TABLE:
             case ChartTypeEnum.STRUCTURAL_VARIANT_GENES_TABLE:
             case ChartTypeEnum.SAMPLE_TREATMENT_GROUPS_TABLE:
@@ -663,9 +661,6 @@ export class ChartHeader extends React.Component<IChartHeaderProps, {}> {
                                     getServerConfig()
                                         .skin_hide_download_controls ===
                                     DownloadControlOption.SHOW_ALL
-                                }
-                                toggleRenderSvgForDownload={
-                                    this.props.toggleRenderPieChartForDownload
                                 }
                             />
                         )}

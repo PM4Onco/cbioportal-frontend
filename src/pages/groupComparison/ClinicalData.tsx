@@ -121,7 +121,6 @@ export const categoryPlotTypeOptions = [
         label: '100% stacked bar chart',
     },
     { value: CategoryPlotType.Heatmap, label: 'Heatmap' },
-    { value: CategoryPlotType.Table, label: 'Table' },
 ];
 
 function isNumerical(datatype?: string) {
@@ -151,10 +150,7 @@ export default class ClinicalData extends React.Component<
 
     readonly tabUI = MakeMobxView({
         await: () => {
-            const ret: any[] = [
-                this.props.store.activeGroups,
-                this.props.store._activeGroupsNotOverlapRemoved,
-            ];
+            const ret: any[] = [this.props.store.activeGroups];
             if (
                 this.props.store.activeGroups.isComplete &&
                 this.props.store.activeGroups.result.length < 2
@@ -281,14 +277,7 @@ export default class ClinicalData extends React.Component<
     }
 
     @computed get showHorizontalBarControls() {
-        return (
-            !this.showLogScaleControls &&
-            !this.isHeatmap &&
-            !(
-                !this.isNumericalPlot &&
-                this.categoryPlotType === CategoryPlotType.Table
-            )
-        );
+        return !this.showLogScaleControls && !this.isHeatmap;
     }
 
     @computed get showSwapAxisControls() {
@@ -297,11 +286,9 @@ export default class ClinicalData extends React.Component<
 
     @computed get isTable() {
         return (
-            (this.isNumericalPlot &&
-                this.numericalVisualisationType ===
-                    ClinicalNumericalVisualisationType.Table) ||
-            (!this.isNumericalPlot &&
-                this.categoryPlotType === CategoryPlotType.Table)
+            this.isNumericalPlot &&
+            this.numericalVisualisationType ===
+                ClinicalNumericalVisualisationType.Table
         );
     }
 

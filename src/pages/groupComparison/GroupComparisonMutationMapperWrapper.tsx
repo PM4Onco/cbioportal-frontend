@@ -149,17 +149,12 @@ export default class GroupComparisonMutationMapperWrapper extends React.Componen
             this.props.store.coverageInformation,
             this.props.store.groupToProfiledPatients,
             this.props.store.profiledPatientCounts,
-            this.props.store.genes,
-            this.props.store.genesSortedByMutationFrequency,
         ],
         render: () => {
-            let mutationMapperStore;
-            if (
-                this.props.store.activeMutationMapperGene &&
-                (mutationMapperStore = this.mutationMapperToolStore.getMutationMapperStore(
-                    this.props.store.activeMutationMapperGene.hugoGeneSymbol
-                ))
-            ) {
+            const mutationMapperStore = this.mutationMapperToolStore.getMutationMapperStore(
+                this.props.store.activeMutationMapperGene!.hugoGeneSymbol
+            );
+            if (mutationMapperStore) {
                 return (
                     <div
                         data-test="ComparisonPageMutationsTabPlot"
@@ -167,7 +162,7 @@ export default class GroupComparisonMutationMapperWrapper extends React.Componen
                     >
                         <h3>
                             {this.props.store.activeMutationMapperGene
-                                .hugoGeneSymbol +
+                                ?.hugoGeneSymbol +
                                 ' mutations: ' +
                                 this.props.store.activeGroups
                                     .result!.map(g => g.nameWithOrdinal)
