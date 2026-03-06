@@ -26,7 +26,6 @@ import {
     makePlotData,
     makeBarSpecs,
     sortDataByCategory,
-    getSortedMajorCategories,
 } from './MultipleCategoryBarPlotUtils';
 import * as ReactDOM from 'react-dom';
 import { Popover } from 'react-bootstrap';
@@ -34,7 +33,6 @@ import classnames from 'classnames';
 import { toConditionalPrecisionWithMinimum } from 'shared/lib/FormatUtils';
 import { IStringAxisData } from 'shared/components/plots/PlotsTabUtils';
 import WindowStore from 'shared/components/window/WindowStore';
-import { SortByOptions } from 'shared/components/plots/PlotsTab';
 export interface IMultipleCategoryBarPlotProps {
     svgId?: string;
     domainPadding?: number;
@@ -431,18 +429,6 @@ export default class MultipleCategoryBarPlot extends React.Component<
 
     @computed get labels() {
         if (this.data.length > 0) {
-            if (
-                this.props.sortByOption === SortByOptions.SortByTotalSum ||
-                (this.props.sortByOption &&
-                    this.props.sortByOption !== '' &&
-                    this.props.sortByOption !== SortByOptions.Alphabetically)
-            ) {
-                return getSortedMajorCategories(
-                    this.data,
-                    this.props.sortByOption,
-                    !!this.props.percentage
-                );
-            }
             return sortDataByCategory(
                 this.data[0].counts.map(c => c.majorCategory),
                 x => x,
@@ -699,7 +685,7 @@ export default class MultipleCategoryBarPlot extends React.Component<
 
     @computed get biggestCategoryLabelSize() {
         const maxSize = Math.max(
-            ...this.labels.map(x =>
+            ...this.labels.map((x: string) =>
                 getTextWidth(
                     x,
                     axisTickLabelStyles.fontFamily,
@@ -769,8 +755,7 @@ export default class MultipleCategoryBarPlot extends React.Component<
             this.categoryCoord,
             !!this.props.horizontalBars,
             !!this.props.stacked,
-            !!this.props.percentage,
-            this.props.sortByOption
+            !!this.props.percentage
         );
         return barSpecs.map(spec => (
             <VictoryBar

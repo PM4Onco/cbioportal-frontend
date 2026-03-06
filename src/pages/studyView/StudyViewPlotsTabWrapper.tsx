@@ -26,7 +26,6 @@ export const PlotsTabWrapper: React.FunctionComponent<{
             genericAssayEntitiesGroupByMolecularProfileId={
                 store.genericAssayEntitiesGroupedByProfileId
             }
-            customAttributes={store.customAttributes}
             studyIds={store.queriedPhysicalStudyIds}
             molecularProfilesWithData={store.molecularProfilesInStudies}
             molecularProfilesInStudies={store.molecularProfilesInStudies}

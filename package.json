@@ -196,6 +196,7 @@
     "genome-nexus-ts-api-client": "^1.1.35",
     "git-revision-webpack-plugin": "^5.0.0",
     "history": "4.10.1",
+    "html-react-parser": "1.4.12",
     "html-webpack-plugin": "^5.3.2",
     "igv": "^2.11.2",
     "imports-loader": "^0.8.0",

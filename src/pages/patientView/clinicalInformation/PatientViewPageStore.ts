@@ -63,6 +63,7 @@ import {
     fetchClinicalDataForPatient,
     fetchCnaOncoKbData,
     fetchCnaOncoKbDataForOncoprint,
+    fetchCosmicData,
     fetchCopyNumberData,
     fetchCopyNumberSegments,
     fetchDiscreteCNAData,
@@ -185,6 +186,7 @@ import {
     IMutationalSignatureMeta,
     IMutationalCounts,
 } from 'shared/model/MutationalSignature';
+import { ICosmicData } from 'shared/model/Cosmic';
 import {
     getGenericAssayMetaPropertyOrDefault,
     getGenericAssayCategoryFromName,
@@ -592,6 +594,12 @@ export class PatientViewPageStore {
     // }
 
     readonly myCancerGenomeData: IMyCancerGenomeData = getMyCancerGenomeData();
+
+    readonly cosmicData = remoteData<ICosmicData | undefined>({
+        await: () => [this.mutationData, this.uncalledMutationData],
+        invoke: () =>
+            fetchCosmicData(this.mutationData, this.uncalledMutationData),
+    });
 
     // get mutational signature molecular profile Ids (contribution and confidence)
     readonly mutationalSignatureMolecularProfiles = remoteData<

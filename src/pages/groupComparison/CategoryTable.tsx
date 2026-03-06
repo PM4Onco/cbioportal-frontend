@@ -5,8 +5,6 @@ import LazyMobXTable, {
     Column,
 } from 'shared/components/lazyMobXTable/LazyMobXTable';
 
-import styles from './styles.module.scss';
-
 type CategoryTableProps = {
     data: IMultipleCategoryBarPlotData[];
     labels: string[];
@@ -40,9 +38,7 @@ export const CategoryTable: FunctionComponent<CategoryTableProps> = (
                     name: label,
                     align: 'right',
                     render: (d: IMultipleCategoryBarPlotData) => (
-                        <div className={styles.numericalData}>
-                            {getColumnDatum(d, label)}
-                        </div>
+                        <div>{getColumnDatum(d, label)}</div>
                     ),
                     sortBy: (d: IMultipleCategoryBarPlotData) =>
                         getColumnDatum(d, label),

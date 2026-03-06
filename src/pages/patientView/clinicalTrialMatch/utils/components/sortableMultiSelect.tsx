@@ -1,10 +1,6 @@
 import React, { FC } from 'react';
 import { CreatableSelect, components } from 'react-select';
 import {
-    MultiValueGenericProps,
-    Options,
-} from 'react-select/dist/declarations/src';
-import {
     SortEnd,
     SortableContainer,
     SortableElement,
@@ -30,9 +26,7 @@ const SortableMultiValue = SortableElement((props: any) => {
     return <components.MultiValue {...props} innerProps={innerProps} />;
 });
 
-const SortableMultiValueLabel = SortableHandle<
-    MultiValueGenericProps<OptionTypeBase>
->((props: MultiValueGenericProps<OptionTypeBase>) => (
+const SortableMultiValueLabel = SortableHandle<any>((props: any) => (
     <components.MultiValueLabel {...props} />
 ));
 
@@ -43,9 +37,7 @@ export type SortableMultiSelectProps = {
     options: OptionTypeBase[];
     value: OptionTypeBase[];
     onSortEnd: ({ oldIndex, newIndex }: SortEnd) => void;
-    onChange: (
-        selectedOptions: OptionTypeBase | Options<OptionTypeBase>
-    ) => void;
+    onChange: (selectedOptions: OptionTypeBase | OptionTypeBase[]) => void;
 };
 
 const SortableMultiSelect: FC<SortableMultiSelectProps> = ({

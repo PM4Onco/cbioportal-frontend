@@ -6,7 +6,6 @@ import {
     civicDownload,
     getAnnotationData,
     IAnnotation,
-    myCancerGenomeDownload,
 } from 'react-mutation-mapper';
 import { oncoKbAnnotationDownload } from 'oncokb-frontend-commons';
 import {
@@ -29,6 +28,24 @@ export interface IAnnotationColumnProps extends AnnotationProps {
     pubMedCache?: OncokbPubMedCache;
     studyIdToStudy?: { [studyId: string]: CancerStudy };
     uniqueSampleKeyToTumorType?: { [sampleId: string]: string };
+    myCancerGenomeData?: IMyCancerGenomeData;
+    enableMyCancerGenome?: boolean;
+    enableSharedTR?: boolean;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
+}
+
+function myCancerGenomeDownload(links?: string[]) {
+    if (!links || links.length === 0) {
+        return 'no';
+    }
+    return links
+        .map(link =>
+            link
+                .replace(/<[^>]*>/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+        )
+        .join('|');
 }
 
 export default class AnnotationColumnFormatter {
