@@ -24,13 +24,7 @@ function loadOncoTreeTumorTypes(): TumorType[] {
         return [];
     }
 
-    let url = '/tumorTypes.json';
-    if (
-        window.location.hostname === 'localhost' ||
-        window.location.port === '3000'
-    ) {
-        url = 'https://oncotree.info/api/tumorTypes';
-    }
+    const url = '/tumorTypes.json';
 
     try {
         const getRequest = new XMLHttpRequest();
