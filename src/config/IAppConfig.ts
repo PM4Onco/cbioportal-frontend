@@ -83,6 +83,7 @@ export interface IServerConfig {
     show_revue: boolean;
     show_genomenexus: boolean;
     show_genomenexus_annotation_sources: string;
+    mycancergenome_show: boolean | undefined;
     show_pathway_mapper: boolean;
     show_mutation_mapper_tool_grch38: boolean;
     show_transcript_dropdown: boolean;
