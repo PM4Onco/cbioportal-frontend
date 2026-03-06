@@ -5,5 +5,10 @@
     "types": ["jest", "node"],
     "jsx": "react",
     "esModuleInterop": true
-  }
+  },
+  "include": [
+    "./typings/**/*",
+    "./src/**/*",
+    "./packages/typings/**/*"
+  ]
 }
