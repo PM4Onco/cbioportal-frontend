@@ -10,7 +10,6 @@ export const ServerConfigDefaults: Partial<IServerConfig> = {
     genomenexus_website_url: 'https://www.genomenexus.org',
     genomenexus_isoform_override_source: 'mskcc',
     g2s_url: 'https://g2s.genomenexus.org',
-    mycancergenome_show: false,
 
     digital_slide_archive_iframe_url: 'https://cancer.digitalslidearchive.org/',
     digital_slide_archive_meta_url:
@@ -27,9 +26,12 @@ export const ServerConfigDefaults: Partial<IServerConfig> = {
     mygene_info_url:
         'https://mygene.info/v3/gene/<%= entrezGeneId %>?fields=uniprot',
 
-    oncoprint_custom_driver_annotation_binary_menu_label:
-        'Custom driver annotations',
-    oncoprint_custom_driver_annotation_tiers_menu_label: 'Driver tiers',
+    oncoprint_custom_driver_annotation_binary_menu_label: 'Custom Driver',
+    oncoprint_custom_driver_annotation_binary_menu_description:
+        'Custom driver annotation',
+    oncoprint_custom_driver_annotation_tiers_menu_label: 'Custom Driver Tiers',
+    oncoprint_custom_driver_annotation_tiers_menu_description:
+        'Custom driver tiers',
     oncoprint_custom_driver_annotation_binary_default: true,
     oncoprint_custom_driver_annotation_tiers_default: true,
     oncoprint_oncokb_default: true,
@@ -37,18 +39,20 @@ export const ServerConfigDefaults: Partial<IServerConfig> = {
     oncoprint_hide_vus_default: false,
     oncokb_public_api_url: 'oncokb.org/api/v1',
     oncokb_merge_icons_by_default: true,
-
+    oncoprint_defaultview: 'patient',
     pubmed_url: 'https://www.ncbi.nlm.nih.gov/pubmed/<%=pmid%>',
 
     show_hotspot: true,
     show_oncokb: true,
     show_civic: false,
     show_revue: true,
+    mycancergenome_show: false,
     show_pathway_mapper: true,
     show_mutation_mapper_tool_grch38: true,
     show_transcript_dropdown: false,
     show_signal: true,
     show_ndex: true,
+    show_sharedTR: true,
     survival_show_p_q_values_in_survival_type_table: true,
     survival_min_group_threshold: 3,
     skin_description:
@@ -126,6 +130,8 @@ export const ServerConfigDefaults: Partial<IServerConfig> = {
     enable_darwin: false,
 
     session_url_length_threshold: '1500',
+
+    enable_study_tags: true,
 
     study_view: {
         tableAttrs: ['CANCER_TYPE', 'CANCER_TYPE_DETAILED'],
@@ -205,6 +211,14 @@ export const ServerConfigDefaults: Partial<IServerConfig> = {
     skin_home_page_unauthorized_studies_global_message:
         'The study is unauthorized. You need to request access.',
     comparison_categorical_na_values: 'NA',
+    customMode: 'full',
+    customFeatures: {
+        mtb: true,
+        followUp: true,
+        clinicalTrialsGov: true,
+        proms: true,
+        absoluteTimeline: true,
+    },
     skin_hide_download_controls: 'show',
 
     oncoprint_clinical_tracks_config_json: '',
@@ -219,9 +233,15 @@ export const ServerConfigDefaults: Partial<IServerConfig> = {
 
     skin_patient_view_structural_variant_table_columns_show_on_init: '',
 
+    skin_results_view_tables_default_sort_column: 'Annotation',
+
+    skin_patient_view_tables_default_sort_column: 'Annotation',
+
     skin_patient_view_custom_sample_type_colors_json: '',
 
     studyview_max_samples_selected: 0,
+
+    studyview_clinical_attribute_chart_count: 20,
 
     study_download_url: '',
 
@@ -232,6 +252,12 @@ export const ServerConfigDefaults: Partial<IServerConfig> = {
     vaf_log_scale_default: false,
 
     skin_study_view_show_sv_table: false,
+
+    clickhouse_mode: false,
+
+    download_custom_buttons_json: '',
+
+    feature_study_export: false,
 };
 
 export default ServerConfigDefaults;

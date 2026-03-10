@@ -53,48 +53,57 @@ export default class SignificantMutationalSignatures extends React.Component<
     private makeTooltipContent(
         significantMutationalSignaturesForSample: IMutationalSignature[]
     ) {
+        const dataToShow =
+            significantMutationalSignaturesForSample.length <= 5
+                ? significantMutationalSignaturesForSample
+                : significantMutationalSignaturesForSample.slice(0, 10);
+        const numberSignatures =
+            significantMutationalSignaturesForSample.length <= 5
+                ? significantMutationalSignaturesForSample.length
+                : 10;
         return (
             <div
                 style={{ maxWidth: 250 }}
                 data-test="SignificantMutationalSignaturesTooltip"
             >
                 <div>
-                    {_.map(
-                        significantMutationalSignaturesForSample,
-                        significantSignature => (
-                            <div>
-                                <a href={significantSignature.meta.url}>
-                                    {significantSignature.meta.name}
-                                </a>
-                                :
-                                <span>
-                                    {significantSignature.meta.description}
-                                </span>
-                            </div>
-                        )
+                    {significantMutationalSignaturesForSample.length <= 5 ? (
+                        <h5>Significant signatures</h5>
+                    ) : (
+                        <h5>Top {numberSignatures} signatures</h5>
                     )}
+                    {_.map(dataToShow, significantSignature => (
+                        <div>
+                            <a href={significantSignature.meta?.url || '#'}>
+                                {significantSignature.meta?.name || 'NA'}
+                            </a>
+                            <span>: </span>
+                            <span>
+                                {significantSignature.meta?.description || 'NA'}
+                            </span>
+                        </div>
+                    ))}
                 </div>
                 <hr style={{ marginTop: 10, marginBottom: 10 }} />
                 <table>
                     <th>Significant Mutational Signatures</th>
                     <th>Exposure</th>
-                    {significantMutationalSignaturesForSample.map(
-                        significantSignature => (
-                            <tr>
-                                <td style={{ paddingTop: 3 }}>
-                                    {significantSignature.meta.name}
-                                </td>
-                                <td style={{ paddingTop: 3 }}>
-                                    <SampleProgressBar
-                                        contribution={significantSignature.value.toString()}
-                                        color={getColorByMutationalSignatureCategory(
-                                            significantSignature.meta.category
-                                        )}
-                                    />
-                                </td>
-                            </tr>
-                        )
-                    )}
+                    {dataToShow.map(significantSignature => (
+                        <tr>
+                            <td style={{ paddingTop: 3 }}>
+                                {significantSignature.meta?.name || 'NA'}
+                            </td>
+                            <td style={{ paddingTop: 3 }}>
+                                <SampleProgressBar
+                                    contribution={significantSignature.value.toString()}
+                                    color={getColorByMutationalSignatureCategory(
+                                        significantSignature.meta?.category ||
+                                            'NA'
+                                    )}
+                                />
+                            </td>
+                        </tr>
+                    ))}
                 </table>
             </div>
         );
@@ -107,7 +116,7 @@ export default class SignificantMutationalSignatures extends React.Component<
             significantMutationalSignaturesForSample,
             (acc, significantSignature) => {
                 const color = getColorByMutationalSignatureCategory(
-                    significantSignature.meta.category
+                    significantSignature.meta?.category
                 );
                 if (color in acc) {
                     acc[color] += significantSignature.value;

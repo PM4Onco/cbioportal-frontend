@@ -2,6 +2,7 @@ import * as $ from 'jquery';
 import _ from 'underscore';
 import * as React from 'react';
 import * as styleConsts from './clinicalAttributesStyleConsts.ts';
+import { isString } from 'lodash';
 import { getServerConfig, ServerConfigHelpers } from 'config/config';
 
 /**
@@ -140,6 +141,8 @@ function derive(clinicalData) {
                     caseTypeLower.indexOf('pdx') >= 0
                 ) {
                     caseTypeNormalized = 'Xenograft';
+                } else if (caseTypeLower.indexOf('organoid') >= 0) {
+                    caseTypeNormalized = 'Organoid';
                 } else if (caseTypeLower.indexOf('cfdna') >= 0) {
                     caseTypeNormalized = 'cfDNA';
                 } else if (caseTypeLower.indexOf('prim') >= 0) {
@@ -228,8 +231,49 @@ function getSpanElements(clinicalData) {
     return getSpanElementsFromCleanData(cleanAndDerive(clinicalData));
 }
 
+function parseIt(json) {
+    return JSON.parse(json, function(key, value) {
+        if (
+            typeof value === 'string' &&
+            value.startsWith('/Function(') &&
+            value.endsWith(')/')
+        ) {
+            value = value.substring(10, value.length - 2);
+            var string = value.slice(
+                value.indexOf('(') + 1,
+                value.indexOf(')')
+            );
+            if (/\S+/g.test(string)) {
+                return new Function(
+                    string,
+                    value.slice(value.indexOf('{') + 1, value.lastIndexOf('}'))
+                );
+            } else {
+                return new Function(
+                    value.slice(value.indexOf('{') + 1, value.lastIndexOf('}'))
+                );
+            }
+        }
+        if (
+            typeof value === 'string' &&
+            value.startsWith('/String(') &&
+            value.endsWith(')/')
+        ) {
+            value = value.substring(8, value.length - 2);
+        }
+        return value;
+    });
+}
+
 function getSpanElementsFromCleanData(clinicalAttributesCleanDerived) {
     const config = styleConsts.config;
+    try {
+        fetch('/attributes.json').then(res =>
+            res.text().then(t => Object.assign(config, parseIt(t)))
+        );
+    } catch (error) {
+        console.log(error);
+    }
     const sortedKeys = Object.keys(clinicalAttributesCleanDerived)
         .sort((a, b) => {
             return styleConsts.compare(a, b, config);
@@ -239,7 +283,7 @@ function getSpanElementsFromCleanData(clinicalAttributesCleanDerived) {
         });
 
     return sortedKeys.map(key => {
-        let value = clinicalAttributesCleanDerived[key];
+        let value = replaceArray(clinicalAttributesCleanDerived[key]);
         const [prefix, middle, suffix] = styleConsts.stringBuilder(
             value,
             key,
@@ -285,6 +329,21 @@ function addFirstOrderClass() {
         $(orderSortedAttributes[0]).addClass('first-order');
     });
 }
+
+const replaceArray = function(replaceString) {
+    if (!isString(replaceString)) {
+        return replaceString;
+    }
+    const search = ['Ã¤', 'Ã¼', 'Ã¶', 'Ã„', 'Ã–', 'Ãœ', 'ÃŸ'];
+    const replace = ['ä', 'ü', 'ö', 'Ä', 'Ö', 'Ü', 'ß'];
+    let regex;
+    for (let i = 0; i < search.length; i++) {
+        regex = new RegExp(search[i], 'g');
+        replaceString = replaceString.replace(regex, replace[i]);
+        replaceString.re;
+    }
+    return replaceString;
+};
 
 export {
     cleanAndDerive,

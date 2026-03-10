@@ -534,8 +534,13 @@ export default class FunctionalImpactColumnFormatter {
         if (!mutationAssessorDataCache) {
             return undefined;
         } else {
-            return mutationAssessorDataCache.mutation_assessor
-                ? mutationAssessorDataCache.mutation_assessor.annotation
+            const mutationAssessor = mutationAssessorDataCache.mutation_assessor as
+                | MutationAssessorData
+                | { annotation?: MutationAssessorData }
+                | undefined;
+            return mutationAssessor
+                ? (mutationAssessor as { annotation?: MutationAssessorData })
+                      .annotation || (mutationAssessor as MutationAssessorData)
                 : undefined;
         }
     }

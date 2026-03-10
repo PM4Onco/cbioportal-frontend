@@ -34,12 +34,25 @@ export type StudyView = {
     priority: { [id: string]: number };
 };
 
+export type CustomMode = 'off' | 'compat' | 'full';
+
+export interface ICustomFeatureConfig {
+    mtb: boolean;
+    followUp: boolean;
+    clinicalTrialsGov: boolean;
+    proms: boolean;
+    absoluteTimeline: boolean;
+}
+
 export interface IServerConfig {
     app_name: string | null;
     app_version: string | null; // default: "1.0"
     authenticationMethod: string | undefined;
     bitly_access_token: string | null;
-    oncoprint_custom_driver_annotation_binary_menu_label: string | null; // default:
+    oncoprint_custom_driver_annotation_binary_menu_label: string | null;
+    oncoprint_custom_driver_annotation_binary_menu_description: string | null;
+    oncoprint_custom_driver_annotation_tiers_menu_label: string | null;
+    oncoprint_custom_driver_annotation_tiers_menu_description: string | null;
     disabled_tabs: string | null;
     custom_tabs: any[];
     custom_js_urls: string; // comma delimited string
@@ -56,7 +69,6 @@ export interface IServerConfig {
     google_analytics_profile_id: string | null;
     ptmSources: string[] | undefined;
     oncoprint_hide_vus_default: boolean;
-    mycancergenome_show: boolean | undefined;
     oncokb_public_api_url: string | null;
     digital_slide_archive_iframe_url: string | null;
     digital_slide_archive_meta_url: string | null;
@@ -71,11 +83,13 @@ export interface IServerConfig {
     show_revue: boolean;
     show_genomenexus: boolean;
     show_genomenexus_annotation_sources: string;
+    mycancergenome_show: boolean | undefined;
     show_pathway_mapper: boolean;
     show_mutation_mapper_tool_grch38: boolean;
     show_transcript_dropdown: boolean;
     show_signal: boolean;
     show_ndex: boolean;
+    show_sharedTR: boolean;
     survival_initial_x_axis_limit: number;
     survival_show_p_q_values_in_survival_type_table: boolean;
     survival_min_group_threshold: number;
@@ -117,6 +131,7 @@ export interface IServerConfig {
     skin_show_tutorials_tab: boolean;
     skin_show_web_api_tab: boolean;
     skin_show_tweet_button: boolean;
+    skin_show_donate_button: boolean;
     skin_show_tissue_image_tab: boolean;
     skin_hide_logout_button: boolean;
     skin_show_settings_menu: boolean;
@@ -137,7 +152,6 @@ export interface IServerConfig {
     studiesWithGermlineConsentedSamples: string[] | undefined;
     mdacc_heatmap_study_meta_url: string | null;
     mdacc_heatmap_study_url: string | null;
-    oncoprint_custom_driver_annotation_tiers_menu_label: string | null;
     enable_darwin: boolean;
     query_sets_of_genes: string | null;
     skin_quick_select_buttons: string | null;
@@ -170,14 +184,32 @@ export interface IServerConfig {
     skin_comparison_view_mutation_table_columns_show_on_init: string;
     skin_patient_view_copy_number_table_columns_show_on_init: string;
     skin_patient_view_structural_variant_table_columns_show_on_init: string;
+    skin_results_view_tables_default_sort_column: string;
+    skin_patient_view_tables_default_sort_column: string;
     skin_patient_view_custom_sample_type_colors_json: string;
     comparison_categorical_na_values: string;
+    customMode?: CustomMode;
+    customFeatures?: Partial<ICustomFeatureConfig>;
+    fhirspark?: IFhirsparkConfig;
+    cancerdrugsUrl?: string;
+    cancerdrugsJsonUrl?: string;
     oncoprint_clinical_tracks_config_json: string;
     oncoprint_clustered_default: boolean; // this has a default
     enable_cross_study_expression: string;
+    oncoprint_defaultview: string; // this has a default
     studyview_max_samples_selected: number;
     study_download_url: string;
+    studyview_clinical_attribute_chart_count: number;
     vaf_sequential_mode_default: boolean; // this has a default
     vaf_log_scale_default: boolean; // this has a default
     skin_study_view_show_sv_table: boolean; // this has a default
+    enable_study_tags: boolean;
+    clickhouse_mode: boolean;
+    download_custom_buttons_json: string;
+    feature_study_export: boolean;
+}
+
+export interface IFhirsparkConfig {
+    host: string | null;
+    port: string | null;
 }

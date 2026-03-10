@@ -6,6 +6,10 @@ const config: InitialOptionsTsJest = {
         '\\.(css|sass|less|scss)$': 'identity-obj-proxy',
         '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
             '<rootDir>/fileMock.js',
+        '^cbioportal-utils$':
+            '<rootDir>/packages/cbioportal-utils/src/index.tsx',
+        '^cbioportal-utils/(.*)$': '<rootDir>/packages/cbioportal-utils/$1',
+        '^axios$': '<rootDir>/src/shared/lib/testMocks/axiosMock.ts',
         '^containers(.*)$': '<rootDir>/src/containers$1',
         '^components(.*)$': '<rootDir>/src/components$1',
         '^config(.*)$': '<rootDir>/src/config$1',

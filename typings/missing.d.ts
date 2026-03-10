@@ -2,6 +2,7 @@
 declare module '*.scss';
 declare module '*.json';
 declare module '*.md';
+declare module '*.svg';
 
 // these packages are missing typings
 declare module 'fmin';
@@ -43,6 +44,10 @@ declare module 'regression';
 declare module 'react-select1';
 declare module 'react-select';
 declare module 'react-select/async';
+declare module 'react-select/creatable';
+declare module 'react-select/dist/declarations/src' {
+    export * from 'react-select';
+}
 declare module 'pluralize';
 declare module 'svg2pdf.js';
 declare module 'jspdf-yworks';
@@ -53,6 +58,15 @@ declare module 'react-column-resizer';
 declare module 'linear-algebra';
 declare module 'Cheerio';
 declare module 'superagent-cache';
+declare module 'html-react-parser';
+declare module '@testing-library/jest-dom';
+
+declare namespace jest {
+    interface Matchers<R> {
+        toBeInTheDocument(): R;
+        toHaveStyle(css: string | Record<string, unknown>): R;
+    }
+}
 
 // this is to silence annoying Cheerio ts error from enzyme
 type Cheerio = any;

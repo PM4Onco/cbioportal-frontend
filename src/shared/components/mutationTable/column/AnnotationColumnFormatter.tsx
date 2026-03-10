@@ -6,7 +6,6 @@ import {
     civicDownload,
     getAnnotationData,
     IAnnotation,
-    myCancerGenomeDownload,
 } from 'react-mutation-mapper';
 import { oncoKbAnnotationDownload } from 'oncokb-frontend-commons';
 import {
@@ -23,11 +22,30 @@ import { CancerGene } from 'oncokb-ts-api-client';
 import AnnotationHeader from './annotation/AnnotationHeader';
 import { VariantAnnotation } from 'genome-nexus-ts-api-client';
 import _ from 'lodash';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
 
 export interface IAnnotationColumnProps extends AnnotationProps {
     pubMedCache?: OncokbPubMedCache;
     studyIdToStudy?: { [studyId: string]: CancerStudy };
     uniqueSampleKeyToTumorType?: { [sampleId: string]: string };
+    myCancerGenomeData?: IMyCancerGenomeData;
+    enableMyCancerGenome?: boolean;
+    enableSharedTR?: boolean;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
+}
+
+function myCancerGenomeDownload(links?: string[]) {
+    if (!links || links.length === 0) {
+        return 'no';
+    }
+    return links
+        .map(link =>
+            link
+                .replace(/<[^>]*>/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+        )
+        .join('|');
 }
 
 export default class AnnotationColumnFormatter {
@@ -43,6 +61,7 @@ export default class AnnotationColumnFormatter {
         indexedVariantAnnotations?: RemoteData<
             { [genomicLocation: string]: VariantAnnotation } | undefined
         >,
+        sharedTherapyRecommendationData?: ISharedTherapyRecommendationData,
         resolveTumorType?: (mutation: Mutation) => string
     ): number[] {
         const annotationData: IAnnotation = getAnnotationData(
@@ -55,6 +74,7 @@ export default class AnnotationColumnFormatter {
             civicGenes,
             civicVariants,
             indexedVariantAnnotations,
+            sharedTherapyRecommendationData,
             resolveTumorType
         );
         return annotationSortValue(annotationData);
@@ -72,6 +92,7 @@ export default class AnnotationColumnFormatter {
         indexedVariantAnnotations?: RemoteData<
             { [genomicLocation: string]: VariantAnnotation } | undefined
         >,
+        sharedTherapyRecommendationData?: ISharedTherapyRecommendationData,
         resolveTumorType?: (mutation: Mutation) => string,
         shouldShowRevue?: boolean
     ) {
@@ -85,6 +106,7 @@ export default class AnnotationColumnFormatter {
             civicGenes,
             civicVariants,
             indexedVariantAnnotations,
+            sharedTherapyRecommendationData,
             resolveTumorType
         );
 
@@ -98,7 +120,18 @@ export default class AnnotationColumnFormatter {
             annotationDownloadContent.push(
                 `reVUE: ${
                     annotationData.vue
-                        ? `${annotationData.vue.comment},PubmedId:${annotationData.vue.pubmedId},PredictedEffect:${annotationData.vue.defaultEffect},ExperimentallyValidatedEffect:${annotationData.vue.revisedVariantClassification},RevisedProteinEffect:${annotationData.vue.revisedProteinEffect}`
+                        ? `${
+                              annotationData.vue.comment
+                          },PubmedId:${annotationData.vue.references
+                              .map(reference => reference.pubmedId)
+                              .join(';')},PredictedEffect:${
+                              annotationData.vue.defaultEffect
+                          },ExperimentallyValidatedEffect:${
+                              annotationData.vue
+                                  .revisedVariantClassificationStandard
+                          },RevisedProteinEffect:${
+                              annotationData.vue.revisedProteinEffect
+                          }`
                         : 'no'
                 }`
             );

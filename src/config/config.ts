@@ -19,8 +19,10 @@ import genomeNexusClient from '../shared/api/genomeNexusClientInstance';
 import internalGenomeNexusClient from '../shared/api/genomeNexusInternalClientInstance';
 import oncoKBClient from '../shared/api/oncokbClientInstance';
 import genome2StructureClient from '../shared/api/g2sClientInstance';
-import client from '../shared/api/cbioportalClientInstance';
-import internalClient from '../shared/api/cbioportalInternalClientInstance';
+import client, { getClient } from '../shared/api/cbioportalClientInstance';
+import internalClient, {
+    getInternalClient,
+} from '../shared/api/cbioportalInternalClientInstance';
 import $ from 'jquery';
 import { AppStore } from '../AppStore';
 import { CBioPortalAPI, CBioPortalAPIInternal } from 'cbioportal-ts-api-client';
@@ -193,7 +195,9 @@ export function pairMatchesPath(
 export function initializeAPIClients() {
     // we need to set the domain of our api clients
     (client as any).domain = getCbioPortalApiUrl();
+    (getClient() as any).domain = getCbioPortalApiUrl();
     (internalClient as any).domain = getCbioPortalApiUrl();
+    (getInternalClient() as any).domain = getCbioPortalApiUrl();
     (genomeNexusClient as any).domain = getGenomeNexusApiUrl();
     (internalGenomeNexusClient as any).domain = getGenomeNexusApiUrl();
     (oncoKBClient as any).domain = getOncoKbApiUrl();
@@ -327,6 +331,52 @@ export function initializeServerConfiguration(rawConfiguration: any) {
         ? JSON.parse(rawConfiguration.frontendConfigOverride)
         : {};
 
+    let miracumConfig: any = {};
+
+    if (frontendOverride.fhirspark) {
+        console.log(`Overriding fhirspark with: `, frontendOverride.fhirspark);
+        miracumConfig.fhirspark = frontendOverride.fhirspark;
+    }
+
+    if (frontendOverride.cancerdrugsUrl) {
+        console.log(
+            `Overriding cancerdrugs URL with: `,
+            frontendOverride.cancerdrugsUrl
+        );
+        miracumConfig.cancerdrugsUrl = frontendOverride.cancerdrugsUrl;
+    }
+
+    if (frontendOverride.cancerdrugsJsonUrl) {
+        console.log(
+            `Overriding cancerdrugs JSON URL with: `,
+            frontendOverride.cancerdrugsJsonUrl
+        );
+        miracumConfig.cancerdrugsJsonUrl = frontendOverride.cancerdrugsJsonUrl;
+    }
+
+    miracumConfig.fhirspark = miracumConfig.fhirspark || {};
+    // @ts-ignore: ENV_* are defined in webpack.config.js
+    miracumConfig.fhirspark.host = `${ENV_FHIRSPARK_HOST ||
+        miracumConfig.fhirspark.host}`;
+
+    // @ts-ignore: ENV_* are defined in webpack.config.js
+    miracumConfig.fhirspark.port = `${ENV_FHIRSPARK_PORT ||
+        miracumConfig.fhirspark.port}`;
+
+    // @ts-ignore: ENV_* are defined in webpack.config.js
+    miracumConfig.cancerdrugsUrl = `${ENV_CANCERDRUGS_URL ||
+        miracumConfig.cancerdrugsUrl}`;
+
+    // @ts-ignore: ENV_* are defined in webpack.config.js
+    miracumConfig.cancerdrugsJsonUrl = `${ENV_CANCERDRUGSJSON_URL ||
+        miracumConfig.cancerdrugsJsonUrl}`;
+
+    localStorage.setItem('cancerdrugsUrl', miracumConfig.cancerdrugsUrl || '');
+    localStorage.setItem(
+        'cancerdrugsJsonUrl',
+        miracumConfig.cancerdrugsJsonUrl || ''
+    );
+
     let localStorageOverride: any = {};
 
     // handle localStorage
@@ -340,7 +390,10 @@ export function initializeServerConfiguration(rawConfiguration: any) {
             );
         } catch (err) {
             // ignore
-            console.log('Error parsing localStorage.frontendConfig');
+            console.log(
+                'Error parsing localStorage.frontendConfig:' +
+                    localStorage.frontendConfig
+            );
         }
     }
 
@@ -353,6 +406,7 @@ export function initializeServerConfiguration(rawConfiguration: any) {
         ServerConfigDefaults,
         rawConfiguration,
         frontendOverride,
+        miracumConfig,
         localStorageOverride.serverConfig
     );
 
@@ -387,4 +441,11 @@ export function fetchServerConfig() {
 export function initializeAppStore(appStore: AppStore) {
     appStore.authMethod = getServerConfig().authenticationMethod;
     appStore.userName = getServerConfig().user_display_name;
+}
+
+export function isClickhouseMode() {
+    return (
+        !/legacy=1/.test(getBrowserWindow().location.search) &&
+        getServerConfig().clickhouse_mode === true
+    );
 }

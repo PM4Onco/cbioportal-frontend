@@ -161,6 +161,13 @@ export default class MutationAssessor extends React.Component<
         return url;
     }
 
+    private static getFunctionalImpact(
+        mutationAssessorData: MutationAssessorData | undefined
+    ): string | undefined {
+        const data = mutationAssessorData as any;
+        return data?.functionalImpact || data?.functionalImpactPrediction;
+    }
+
     constructor(props: IMutationAssessorProps) {
         super(props);
 
@@ -177,13 +184,12 @@ export default class MutationAssessor extends React.Component<
             </>
         );
 
-        if (
-            this.props.mutationAssessor &&
-            this.props.mutationAssessor.functionalImpact != null &&
-            this.props.mutationAssessor.functionalImpact !== ''
-        ) {
+        const functionalImpact = MutationAssessor.getFunctionalImpact(
+            this.props.mutationAssessor
+        );
+        if (this.props.mutationAssessor && functionalImpact) {
             const maData = this.props.mutationAssessor;
-            maContent = <span>{maData.functionalImpact}</span>;
+            maContent = <span>{functionalImpact}</span>;
         } else {
             maContent = <span>N/A</span>;
         }
@@ -220,13 +226,17 @@ export default class MutationAssessor extends React.Component<
 
     private mutationAssessorData() {
         if (this.props.mutationAssessor) {
-            const maData = this.props.mutationAssessor;
+            const maData = this.props.mutationAssessor as any;
+            const functionalImpact = MutationAssessor.getFunctionalImpact(
+                this.props.mutationAssessor
+            );
+            const variant = maData.variant || maData.hgvspShort || '';
             const xVarLink = MutationAssessor.maLink(
-                `http://mutationassessor.org/r3/?cm=var&p=${maData.uniprotId}&var=${maData.variant}`
+                `http://mutationassessor.org/r3/?cm=var&p=${maData.uniprotId}&var=${variant}`
             );
             const msaLink = MutationAssessor.maLink(maData.msaLink);
             const pdbLink = MutationAssessor.maLink(maData.pdbLink);
-            const impact = maData.functionalImpact ? (
+            const impact = functionalImpact ? (
                 <div>
                     <table className={tooltipStyles['ma-tooltip-table']}>
                         {(maData.functionalImpactScore ||
@@ -261,8 +271,8 @@ export default class MutationAssessor extends React.Component<
 
             const xVar =
                 xVarLink &&
-                maData.uniprotId.length !== 0 &&
-                maData.variant.length !== 0 ? (
+                (maData.uniprotId || '').length !== 0 &&
+                variant.length !== 0 ? (
                     <div className={tooltipStyles['mutation-assessor-link']}>
                         <a
                             href={xVarLink}
@@ -284,7 +294,7 @@ export default class MutationAssessor extends React.Component<
                 ) : null;
 
             const msa =
-                msaLink && maData.msaLink.length !== 0 ? (
+                msaLink && (maData.msaLink || '').length !== 0 ? (
                     <div className={tooltipStyles['mutation-assessor-link']}>
                         <a
                             href={msaLink}
@@ -302,7 +312,7 @@ export default class MutationAssessor extends React.Component<
                 ) : null;
 
             const pdb =
-                pdbLink && maData.pdbLink.length !== 0 ? (
+                pdbLink && (maData.pdbLink || '').length !== 0 ? (
                     <div className={tooltipStyles['mutation-assessor-link']}>
                         <a
                             href={pdbLink}

@@ -187,12 +187,6 @@ export type ClinicalDataBinFilter = {
         'start': number
 
 };
-export type ClinicalDataCollection = {
-    'patientClinicalData': Array < ClinicalData >
-
-        'sampleClinicalData': Array < ClinicalData >
-
-};
 export type ClinicalDataCount = {
     'count': number
 
@@ -245,10 +239,38 @@ export type ClinicalEvent = {
         'uniqueSampleKey': string
 
 };
+export type ClinicalEventAttributeRequest = {
+    'clinicalEventRequests': Array < ClinicalEventRequest >
+
+        'patientIdentifiers': Array < PatientIdentifier >
+
+};
 export type ClinicalEventData = {
     'key': string
 
         'value': string
+
+};
+export type ClinicalEventRequest = {
+    'attributes': Array < ClinicalEventData >
+
+        'eventType': string
+
+};
+export type ClinicalEventRequestIdentifier = {
+    'clinicalEventRequests': Array < ClinicalEventRequest >
+
+        'position': "FIRST" | "LAST"
+
+};
+export type ClinicalEventSample = {
+    'patientId': string
+
+        'sampleId': string
+
+        'studyId': string
+
+        'timeTaken': number
 
 };
 export type ClinicalEventTypeCount = {
@@ -689,6 +711,8 @@ export type GenomicDataCount = {
 
         'label': string
 
+        'uniqueCount': number
+
         'value': string
 
 };
@@ -832,6 +856,17 @@ export type MutationCountByPosition = {
         'proteinPosStart': number
 
 };
+export type MutationDataFilter = {
+    'categorization': "MUTATED" | "MUTATION_TYPE"
+
+        'hugoGeneSymbol': string
+
+        'profileType': string
+
+        'values': Array < Array < DataFilterValue >
+        >
+
+};
 export type MutationPositionIdentifier = {
     'entrezGeneId': number
 
@@ -872,6 +907,78 @@ export type MutationSpectrumFilter = {
         'sampleListId': string
 
 };
+export type NamespaceAttributeCount = {
+    'outerKey': string
+
+    'innerKey': string
+
+        'count': number
+
+};
+export type NamespaceAttributeCountFilter = {
+    'sampleIdentifiers': Array < SampleIdentifier >
+
+        'namespaceAttributes': Array < NamespaceAttribute >
+
+};
+export type NamespaceComparisonFilter = {
+    'sampleIdentifiers': Array < SampleIdentifier >
+
+        'namespaceAttribute': NamespaceAttribute
+
+        'values': Array < string >
+
+};
+export type NamespaceData = {
+    'outerKey': string
+
+    'innerKey': string
+
+    'sampleId': string
+
+    'patientId': string
+
+    'studyId': string
+
+    'attrValue': Array < string >
+
+};
+export type NamespaceDataCount = {
+    'count': number
+
+        'value': string
+
+        'totalCount': number
+
+};
+export type NamespaceDataCountFilter = {
+    'attributes': Array < NamespaceDataFilter >
+
+        'studyViewFilter': StudyViewFilter
+
+};
+export type NamespaceDataCountItem = {
+    'outerKey': string
+
+        'innerKey': string
+
+        'counts': Array < NamespaceDataCount >
+
+};
+export type NamespaceDataFilter = {
+    'outerKey': string
+
+        'innerKey': string
+
+        'values': Array < Array < DataFilterValue >>
+
+};
+export type NamespaceAttribute = {
+    'innerKey': string
+
+        'outerKey': string
+
+};
 export type OredPatientTreatmentFilters = {
     'filters': Array < PatientTreatmentFilter >
 
@@ -880,8 +987,36 @@ export type OredSampleTreatmentFilters = {
     'filters': Array < SampleTreatmentFilter >
 
 };
+export type PatientIdentifier = {
+    'patientId': string
+
+        'studyId': string
+
+};
+export type PatientTreatment = {
+    'count': number
+
+        'treatment': string
+
+};
 export type PatientTreatmentFilter = {
     'treatment': string
+
+};
+export type PatientTreatmentReport = {
+    'patientTreatments': Array < PatientTreatment >
+
+        'totalPatients': number
+
+        'totalSamples': number
+
+};
+export type PatientTreatmentRow = {
+    'count': number
+
+        'samples': Array < ClinicalEventSample >
+
+        'treatment': string
 
 };
 export type ReferenceGenomeGene = {
@@ -952,6 +1087,10 @@ export type Sample = {
         'uniqueSampleKey': string
 
 };
+export type SampleClinicalDataCollection = {
+    'byUniqueSampleKey': {}
+
+};
 export type SampleIdentifier = {
     'sampleId': string
 
@@ -966,6 +1105,22 @@ export type SampleMolecularIdentifier = {
 };
 export type SampleTreatmentFilter = {
     'time': "Pre" | "Post"
+
+        'treatment': string
+
+};
+export type SampleTreatmentReport = {
+    'totalSamples': number
+
+        'treatments': Array < SampleTreatmentRow >
+
+};
+export type SampleTreatmentRow = {
+    'count': number
+
+        'samples': Array < ClinicalEventSample >
+
+        'time': "Pre" | "Post"
 
         'treatment': string
 
@@ -1137,6 +1292,10 @@ export type StudyViewFilter = {
         'genomicProfiles': Array < Array < string >
         >
 
+        'mutationDataFilters': Array < MutationDataFilter >
+
+        'namespaceDataFilters': Array < NamespaceDataFilter >
+
         'patientTreatmentFilters': AndedPatientTreatmentFilters
 
         'patientTreatmentGroupFilters': AndedPatientTreatmentFilters
@@ -1161,6 +1320,18 @@ export type StudyViewStructuralVariantFilter = {
 
         'structVarQueries': Array < Array < StructuralVariantFilterQuery >
         >
+
+};
+export type SurvivalRequest = {
+    'attributeIdPrefix': string
+
+        'censoredEventRequestIdentifier': ClinicalEventRequestIdentifier
+
+        'endEventRequestIdentifier': ClinicalEventRequestIdentifier
+
+        'patientIdentifiers': Array < PatientIdentifier >
+
+        'startEventRequestIdentifier': ClinicalEventRequestIdentifier
 
 };
 export type VariantCount = {
@@ -1502,6 +1673,118 @@ export default class CBioPortalAPIInternal {
         let keys = Object.keys(queryParameters);
         return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
     };
+
+    /**
+     * Get counts for namespace attributes according to their data availability for selected samples/patients
+     * @method
+     * @name CBioPortalAPIInternal#getNamespaceAttributeCountsUsingPOST
+     * @param {} namespaceAttributeCountFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getNamespaceAttributeCountsUsingPOSTWithHttpInfo(parameters: {
+        'namespaceAttributeCountFilter' ? : NamespaceAttributeCountFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/namespace-attributes/counts/fetch';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['namespaceAttributeCountFilter'] !== undefined) {
+                body = parameters['namespaceAttributeCountFilter'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Get counts for namespace attributes according to their data availability for selected samples/patients
+     * @method
+     * @name CBioPortalAPIInternal#getNamespaceAttributeCountsUsingPOST
+     * @param {} namespaceAttributeCountFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getNamespaceAttributeCountsUsingPOST(parameters: {
+            'namespaceAttributeCountFilter' ? : NamespaceAttributeCountFilter,
+            $queryParameters ? : any,
+                $domain ? : string
+        }): Promise < Array < NamespaceAttributeCount >
+        > {
+            return this.getNamespaceAttributeCountsUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
+
+    /**
+     * Get counts for namespace attributes according to their data availability for selected samples/patients
+     * @method
+     * @name CBioPortalAPIInternal#getNamespaceAttributeCountsUsingPOST
+     * @param {} namespaceAttributeCountFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getNamespaceDataUsingPOSTWithHttpInfo(parameters: {
+        'namespaceComparisonFilter' ? : NamespaceComparisonFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/namespace-data/fetch';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['namespaceComparisonFilter'] !== undefined) {
+                body = parameters['namespaceComparisonFilter'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Get counts for namespace attributes according to their data availability for selected samples/patients
+     * @method
+     * @name CBioPortalAPIInternal#getNamespaceAttributeCountsUsingPOST
+     * @param {} namespaceAttributeCountFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getNamespaceDataUsingPOST(parameters: {
+            'namespaceComparisonFilter' ? : NamespaceComparisonFilter,
+            $queryParameters ? : any,
+                $domain ? : string
+        }): Promise < Array < NamespaceData >
+        > {
+            return this.getNamespaceDataUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
 
     /**
      * Fetch clinical data bin counts by study view filter
@@ -1966,7 +2249,7 @@ export default class CBioPortalAPIInternal {
      * @method
      * @name CBioPortalAPIInternal#fetchClinicalDataClinicalTableUsingPOST
      * @param {integer} pageSize - Page size of the result list
-     * @param {integer} pageNumber - Page number of the result list
+     * @param {integer} pageNumber - Page number of the result list. Zero represents the first page.
      * @param {string} searchTerm - Search term to filter sample rows. Samples are returned with a partial match to the search term for any sample clinical attribute.
      * @param {string} sortBy - sampleId, patientId, or the ATTR_ID to sorted by
      * @param {string} direction - Direction of the sort
@@ -2035,7 +2318,7 @@ export default class CBioPortalAPIInternal {
      * @method
      * @name CBioPortalAPIInternal#fetchClinicalDataClinicalTableUsingPOST
      * @param {integer} pageSize - Page size of the result list
-     * @param {integer} pageNumber - Page number of the result list
+     * @param {integer} pageNumber - Page number of the result list. Zero represents the first page.
      * @param {string} searchTerm - Search term to filter sample rows. Samples are returned with a partial match to the search term for any sample clinical attribute.
      * @param {string} sortBy - sampleId, patientId, or the ATTR_ID to sorted by
      * @param {string} direction - Direction of the sort
@@ -2050,7 +2333,7 @@ export default class CBioPortalAPIInternal {
         'studyViewFilter' ? : StudyViewFilter,
         $queryParameters ? : any,
             $domain ? : string
-    }): Promise < ClinicalDataCollection > {
+    }): Promise < SampleClinicalDataCollection > {
         return this.fetchClinicalDataClinicalTableUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
             return response.body;
         });
@@ -2298,6 +2581,78 @@ export default class CBioPortalAPIInternal {
                 return response.body;
             });
         };
+    fetchClinicalEventsMetaUsingPOSTURL(parameters: {
+        'clinicalEventAttributeRequest' ? : ClinicalEventAttributeRequest,
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/clinical-events-meta/fetch';
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Fetch clinical events meta
+     * @method
+     * @name CBioPortalAPIInternal#fetchClinicalEventsMetaUsingPOST
+     * @param {} clinicalEventAttributeRequest - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchClinicalEventsMetaUsingPOSTWithHttpInfo(parameters: {
+        'clinicalEventAttributeRequest' ? : ClinicalEventAttributeRequest,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/clinical-events-meta/fetch';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['clinicalEventAttributeRequest'] !== undefined) {
+                body = parameters['clinicalEventAttributeRequest'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Fetch clinical events meta
+     * @method
+     * @name CBioPortalAPIInternal#fetchClinicalEventsMetaUsingPOST
+     * @param {} clinicalEventAttributeRequest - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchClinicalEventsMetaUsingPOST(parameters: {
+            'clinicalEventAttributeRequest' ? : ClinicalEventAttributeRequest,
+            $queryParameters ? : any,
+                $domain ? : string
+        }): Promise < Array < ClinicalEvent >
+        > {
+            return this.fetchClinicalEventsMetaUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
     fetchCNAGenesUsingPOSTURL(parameters: {
         'studyViewFilter' ? : StudyViewFilter,
         $queryParameters ? : any
@@ -2370,6 +2725,172 @@ export default class CBioPortalAPIInternal {
                 return response.body;
             });
         };
+    fetchPatientTreatmentCountsUsingPOSTURL(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/column-store/treatments/patient-counts/fetch';
+        if (parameters['tier'] !== undefined) {
+            queryParameters['tier'] = parameters['tier'];
+        }
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Get all patient level treatments
+     * @method
+     * @name CBioPortalAPIInternal#fetchPatientTreatmentCountsUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyViewFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchPatientTreatmentCountsUsingPOSTWithHttpInfo(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/column-store/treatments/patient-counts/fetch';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['tier'] !== undefined) {
+                queryParameters['tier'] = parameters['tier'];
+            }
+
+            if (parameters['studyViewFilter'] !== undefined) {
+                body = parameters['studyViewFilter'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Get all patient level treatments
+     * @method
+     * @name CBioPortalAPIInternal#fetchPatientTreatmentCountsUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyViewFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchPatientTreatmentCountsUsingPOST(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < PatientTreatmentReport > {
+        return this.fetchPatientTreatmentCountsUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+            return response.body;
+        });
+    };
+    fetchSampleTreatmentCountsUsingPOSTURL(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/column-store/treatments/sample-counts/fetch';
+        if (parameters['tier'] !== undefined) {
+            queryParameters['tier'] = parameters['tier'];
+        }
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * 
+     * @method
+     * @name CBioPortalAPIInternal#fetchSampleTreatmentCountsUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyViewFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchSampleTreatmentCountsUsingPOSTWithHttpInfo(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/column-store/treatments/sample-counts/fetch';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['tier'] !== undefined) {
+                queryParameters['tier'] = parameters['tier'];
+            }
+
+            if (parameters['studyViewFilter'] !== undefined) {
+                body = parameters['studyViewFilter'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * 
+     * @method
+     * @name CBioPortalAPIInternal#fetchSampleTreatmentCountsUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyViewFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchSampleTreatmentCountsUsingPOST(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < SampleTreatmentReport > {
+        return this.fetchSampleTreatmentCountsUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+            return response.body;
+        });
+    };
     fetchCosmicCountsUsingPOSTURL(parameters: {
         'keywords': Array < string > ,
         $queryParameters ? : any
@@ -5266,6 +5787,90 @@ export default class CBioPortalAPIInternal {
                 return response.body;
             });
         };
+    fetchMutationDataCountsUsingPOSTURL(parameters: {
+        'projection' ? : "ID" | "SUMMARY" | "DETAILED" | "META",
+        'genomicDataCountFilter' ? : GenomicDataCountFilter,
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/mutation-data-counts/fetch';
+        if (parameters['projection'] !== undefined) {
+            queryParameters['projection'] = parameters['projection'];
+        }
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Fetch mutation data counts by GenomicDataCountFilter
+     * @method
+     * @name CBioPortalAPIInternal#fetchMutationDataCountsUsingPOST
+     * @param {string} projection - Level of detail of the response
+     * @param {} genomicDataCountFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchMutationDataCountsUsingPOSTWithHttpInfo(parameters: {
+        'projection' ? : "ID" | "SUMMARY" | "DETAILED" | "META",
+        'genomicDataCountFilter' ? : GenomicDataCountFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/mutation-data-counts/fetch';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['projection'] !== undefined) {
+                queryParameters['projection'] = parameters['projection'];
+            }
+
+            if (parameters['genomicDataCountFilter'] !== undefined) {
+                body = parameters['genomicDataCountFilter'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Fetch mutation data counts by GenomicDataCountFilter
+     * @method
+     * @name CBioPortalAPIInternal#fetchMutationDataCountsUsingPOST
+     * @param {string} projection - Level of detail of the response
+     * @param {} genomicDataCountFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchMutationDataCountsUsingPOST(parameters: {
+            'projection' ? : "ID" | "SUMMARY" | "DETAILED" | "META",
+            'genomicDataCountFilter' ? : GenomicDataCountFilter,
+            $queryParameters ? : any,
+                $domain ? : string
+        }): Promise < Array < GenomicDataCountItem >
+        > {
+            return this.fetchMutationDataCountsUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
     getAllReferenceGenomeGenesUsingGETURL(parameters: {
         'genomeName': string,
         $queryParameters ? : any
@@ -5284,6 +5889,62 @@ export default class CBioPortalAPIInternal {
         let keys = Object.keys(queryParameters);
         return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
     };
+
+    /**
+     * Fetch namespace data counts by study view filter
+     * @method
+     * @name CBioPortalAPIInternal#fetchNamespaceDataCountsUsingPOST
+     * @param {} namespaceDataCountFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchNamespaceDataCountsUsingPOSTWithHttpInfo(parameters: {
+        'namespaceDataCountFilter' ? : NamespaceDataCountFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/namespace-data-counts/fetch';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['namespaceDataCountFilter'] !== undefined) {
+                body = parameters['namespaceDataCountFilter'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Fetch namespace data counts by study view filter
+     * @method
+     * @name CBioPortalAPIInternal#fetchNamespaceDataCountsUsingPOST
+     * @param {} namespaceDataCountFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchNamespaceDataCountsUsingPOST(parameters: {
+            'namespaceDataCountFilter' ? : NamespaceDataCountFilter,
+            $queryParameters ? : any,
+                $domain ? : string
+        }): Promise < Array < NamespaceDataCountItem >
+        > {
+            return this.fetchNamespaceDataCountsUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
 
     /**
      * Get all reference genes
@@ -6513,6 +7174,159 @@ export default class CBioPortalAPIInternal {
                 return response.body;
             });
         };
+    getAllStudyResourceDataInStudyPatientSampleUsingGETURL(parameters: {
+        'studyId': string,
+        'resourceId' ? : string,
+        'projection' ? : "ID" | "SUMMARY" | "DETAILED" | "META",
+        'pageSize' ? : number,
+        'pageNumber' ? : number,
+        'sortBy' ? : "ResourceId" | "url",
+        'direction' ? : "ASC" | "DESC",
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/studies/{studyId}/resource-data-all';
+
+        path = path.replace('{studyId}', parameters['studyId'] + '');
+        if (parameters['resourceId'] !== undefined) {
+            queryParameters['resourceId'] = parameters['resourceId'];
+        }
+
+        if (parameters['projection'] !== undefined) {
+            queryParameters['projection'] = parameters['projection'];
+        }
+
+        if (parameters['pageSize'] !== undefined) {
+            queryParameters['pageSize'] = parameters['pageSize'];
+        }
+
+        if (parameters['pageNumber'] !== undefined) {
+            queryParameters['pageNumber'] = parameters['pageNumber'];
+        }
+
+        if (parameters['sortBy'] !== undefined) {
+            queryParameters['sortBy'] = parameters['sortBy'];
+        }
+
+        if (parameters['direction'] !== undefined) {
+            queryParameters['direction'] = parameters['direction'];
+        }
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Get all resource data for for all patients and all samples within a study
+     * @method
+     * @name CBioPortalAPIInternal#getAllStudyResourceDataInStudyPatientSampleUsingGET
+     * @param {string} studyId - Study ID e.g. acc_tcga
+     * @param {string} resourceId - Resource ID
+     * @param {string} projection - Level of detail of the response
+     * @param {integer} pageSize - Page size of the result list
+     * @param {integer} pageNumber - Page number of the result list
+     * @param {string} sortBy - Name of the property that the result list is sorted by
+     * @param {string} direction - Direction of the sort
+     */
+    getAllStudyResourceDataInStudyPatientSampleUsingGETWithHttpInfo(parameters: {
+        'studyId': string,
+        'resourceId' ? : string,
+        'projection' ? : "ID" | "SUMMARY" | "DETAILED" | "META",
+        'pageSize' ? : number,
+        'pageNumber' ? : number,
+        'sortBy' ? : "ResourceId" | "url",
+        'direction' ? : "ASC" | "DESC",
+        $queryParameters ? : any,
+        $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/studies/{studyId}/resource-data-all';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+
+            path = path.replace('{studyId}', parameters['studyId'] + '');
+
+            if (parameters['studyId'] === undefined) {
+                reject(new Error('Missing required  parameter: studyId'));
+                return;
+            }
+
+            if (parameters['resourceId'] !== undefined) {
+                queryParameters['resourceId'] = parameters['resourceId'];
+            }
+
+            if (parameters['projection'] !== undefined) {
+                queryParameters['projection'] = parameters['projection'];
+            }
+
+            if (parameters['pageSize'] !== undefined) {
+                queryParameters['pageSize'] = parameters['pageSize'];
+            }
+
+            if (parameters['pageNumber'] !== undefined) {
+                queryParameters['pageNumber'] = parameters['pageNumber'];
+            }
+
+            if (parameters['sortBy'] !== undefined) {
+                queryParameters['sortBy'] = parameters['sortBy'];
+            }
+
+            if (parameters['direction'] !== undefined) {
+                queryParameters['direction'] = parameters['direction'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('GET', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Get all resource data for for all patients and all samples within a study
+     * @method
+     * @name CBioPortalAPIInternal#getAllStudyResourceDataInStudyPatientSampleUsingGET
+     * @param {string} studyId - Study ID e.g. acc_tcga
+     * @param {string} resourceId - Resource ID
+     * @param {string} projection - Level of detail of the response
+     * @param {integer} pageSize - Page size of the result list
+     * @param {integer} pageNumber - Page number of the result list
+     * @param {string} sortBy - Name of the property that the result list is sorted by
+     * @param {string} direction - Direction of the sort
+     */
+    getAllStudyResourceDataInStudyPatientSampleUsingGET(parameters: {
+            'studyId': string,
+            'resourceId' ? : string,
+            'projection' ? : "ID" | "SUMMARY" | "DETAILED" | "META",
+            'pageSize' ? : number,
+            'pageNumber' ? : number,
+            'sortBy' ? : "ResourceId" | "url",
+            'direction' ? : "ASC" | "DESC",
+            $queryParameters ? : any,
+            $domain ? : string
+        }): Promise < Array < ResourceData >
+        > {
+            return this.getAllStudyResourceDataInStudyPatientSampleUsingGETWithHttpInfo(parameters).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
     getAllResourceDefinitionsInStudyUsingGETURL(parameters: {
         'studyId': string,
         'projection' ? : "ID" | "SUMMARY" | "DETAILED" | "META",
@@ -7189,6 +8003,78 @@ export default class CBioPortalAPIInternal {
                 return response.body;
             });
         };
+    fetchSurvivalDataUsingPOSTURL(parameters: {
+        'survivalRequest' ? : SurvivalRequest,
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/survival-data/fetch';
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Fetch survival data
+     * @method
+     * @name CBioPortalAPIInternal#fetchSurvivalDataUsingPOST
+     * @param {} survivalRequest - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchSurvivalDataUsingPOSTWithHttpInfo(parameters: {
+        'survivalRequest' ? : SurvivalRequest,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/survival-data/fetch';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['survivalRequest'] !== undefined) {
+                body = parameters['survivalRequest'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Fetch survival data
+     * @method
+     * @name CBioPortalAPIInternal#fetchSurvivalDataUsingPOST
+     * @param {} survivalRequest - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    fetchSurvivalDataUsingPOST(parameters: {
+            'survivalRequest' ? : SurvivalRequest,
+            $queryParameters ? : any,
+                $domain ? : string
+        }): Promise < Array < ClinicalData >
+        > {
+            return this.fetchSurvivalDataUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
     getAllTimestampsUsingGETURL(parameters: {
         $queryParameters ? : any
     }): string {
@@ -7250,4 +8136,348 @@ export default class CBioPortalAPIInternal {
             return response.body;
         });
     };
+    getContainsTreatmentDataUsingPOSTURL(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyIds': Array < string > ,
+            $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/treatments/display-patient';
+        if (parameters['tier'] !== undefined) {
+            queryParameters['tier'] = parameters['tier'];
+        }
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Should patient level treatments be displayed
+     * @method
+     * @name CBioPortalAPIInternal#getContainsTreatmentDataUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyIds - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getContainsTreatmentDataUsingPOSTWithHttpInfo(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyIds': Array < string > ,
+            $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/treatments/display-patient';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['tier'] !== undefined) {
+                queryParameters['tier'] = parameters['tier'];
+            }
+
+            if (parameters['studyIds'] !== undefined) {
+                body = parameters['studyIds'];
+            }
+
+            if (parameters['studyIds'] === undefined) {
+                reject(new Error('Missing required  parameter: studyIds'));
+                return;
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Should patient level treatments be displayed
+     * @method
+     * @name CBioPortalAPIInternal#getContainsTreatmentDataUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyIds - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getContainsTreatmentDataUsingPOST(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyIds': Array < string > ,
+            $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < boolean > {
+        return this.getContainsTreatmentDataUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+            return response.body;
+        });
+    };
+    getContainsSampleTreatmentDataUsingPOSTURL(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyIds': Array < string > ,
+            $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/treatments/display-sample';
+        if (parameters['tier'] !== undefined) {
+            queryParameters['tier'] = parameters['tier'];
+        }
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Should sample level treatments be displayed
+     * @method
+     * @name CBioPortalAPIInternal#getContainsSampleTreatmentDataUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyIds - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getContainsSampleTreatmentDataUsingPOSTWithHttpInfo(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyIds': Array < string > ,
+            $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/treatments/display-sample';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['tier'] !== undefined) {
+                queryParameters['tier'] = parameters['tier'];
+            }
+
+            if (parameters['studyIds'] !== undefined) {
+                body = parameters['studyIds'];
+            }
+
+            if (parameters['studyIds'] === undefined) {
+                reject(new Error('Missing required  parameter: studyIds'));
+                return;
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Should sample level treatments be displayed
+     * @method
+     * @name CBioPortalAPIInternal#getContainsSampleTreatmentDataUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyIds - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getContainsSampleTreatmentDataUsingPOST(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyIds': Array < string > ,
+            $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < boolean > {
+        return this.getContainsSampleTreatmentDataUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+            return response.body;
+        });
+    };
+    getAllPatientTreatmentsUsingPOSTURL(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/treatments/patient';
+        if (parameters['tier'] !== undefined) {
+            queryParameters['tier'] = parameters['tier'];
+        }
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Get all patient level treatments
+     * @method
+     * @name CBioPortalAPIInternal#getAllPatientTreatmentsUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyViewFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getAllPatientTreatmentsUsingPOSTWithHttpInfo(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/treatments/patient';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['tier'] !== undefined) {
+                queryParameters['tier'] = parameters['tier'];
+            }
+
+            if (parameters['studyViewFilter'] !== undefined) {
+                body = parameters['studyViewFilter'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Get all patient level treatments
+     * @method
+     * @name CBioPortalAPIInternal#getAllPatientTreatmentsUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyViewFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getAllPatientTreatmentsUsingPOST(parameters: {
+            'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+            'studyViewFilter' ? : StudyViewFilter,
+            $queryParameters ? : any,
+                $domain ? : string
+        }): Promise < Array < PatientTreatmentRow >
+        > {
+            return this.getAllPatientTreatmentsUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
+    getAllSampleTreatmentsUsingPOSTURL(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any
+    }): string {
+        let queryParameters: any = {};
+        let path = '/api/treatments/sample';
+        if (parameters['tier'] !== undefined) {
+            queryParameters['tier'] = parameters['tier'];
+        }
+
+        if (parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                var parameter = parameters.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        let keys = Object.keys(queryParameters);
+        return this.domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')) : '');
+    };
+
+    /**
+     * Get all sample level treatments
+     * @method
+     * @name CBioPortalAPIInternal#getAllSampleTreatmentsUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyViewFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getAllSampleTreatmentsUsingPOSTWithHttpInfo(parameters: {
+        'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+        'studyViewFilter' ? : StudyViewFilter,
+        $queryParameters ? : any,
+            $domain ? : string
+    }): Promise < request.Response > {
+        const domain = parameters.$domain ? parameters.$domain : this.domain;
+        const errorHandlers = this.errorHandlers;
+        const request = this.request;
+        let path = '/api/treatments/sample';
+        let body: any;
+        let queryParameters: any = {};
+        let headers: any = {};
+        let form: any = {};
+        return new Promise(function(resolve, reject) {
+            headers['Accept'] = 'application/json';
+            headers['Content-Type'] = 'application/json';
+
+            if (parameters['tier'] !== undefined) {
+                queryParameters['tier'] = parameters['tier'];
+            }
+
+            if (parameters['studyViewFilter'] !== undefined) {
+                body = parameters['studyViewFilter'];
+            }
+
+            if (parameters.$queryParameters) {
+                Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+
+            request('POST', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
+
+        });
+    };
+
+    /**
+     * Get all sample level treatments
+     * @method
+     * @name CBioPortalAPIInternal#getAllSampleTreatmentsUsingPOST
+     * @param {string} tier - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     * @param {} studyViewFilter - A web service for supplying JSON formatted data to cBioPortal clients. Please note that this API is currently in beta and subject to change.
+     */
+    getAllSampleTreatmentsUsingPOST(parameters: {
+            'tier' ? : "Agent" | "AgentClass" | "AgentTarget",
+            'studyViewFilter' ? : StudyViewFilter,
+            $queryParameters ? : any,
+                $domain ? : string
+        }): Promise < Array < SampleTreatmentRow >
+        > {
+            return this.getAllSampleTreatmentsUsingPOSTWithHttpInfo(parameters).then(function(response: request.Response) {
+                return response.body;
+            });
+        };
 }

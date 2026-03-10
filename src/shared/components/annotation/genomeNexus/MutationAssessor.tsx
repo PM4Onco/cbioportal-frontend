@@ -30,8 +30,13 @@ export default class MutationAssessor extends React.Component<
     public static download(
         mutationAssessorData: MutationAssessorData | undefined
     ): string {
+        const functionalImpact = MutationAssessor.getFunctionalImpact(
+            mutationAssessorData
+        );
         if (mutationAssessorData) {
-            return `impact: ${mutationAssessorData.functionalImpact}, score: ${mutationAssessorData.functionalImpactScore}`;
+            return `impact: ${functionalImpact || 'NA'}, score: ${
+                mutationAssessorData.functionalImpactScore
+            }`;
         } else {
             return 'NA';
         }
@@ -42,17 +47,17 @@ export default class MutationAssessor extends React.Component<
             <span className={`${annotationStyles['annotation-item-text']}`} />
         );
 
-        if (
-            this.props.mutationAssessor &&
-            this.props.mutationAssessor.functionalImpact !== null
-        ) {
+        const functionalImpact = MutationAssessor.getFunctionalImpact(
+            this.props.mutationAssessor
+        );
+        if (this.props.mutationAssessor && functionalImpact) {
             const maData = this.props.mutationAssessor;
             maContent = (
                 <span
                     className={classNames(
                         annotationStyles['annotation-item-text'],
                         (mutationAssessorColumn as any)[
-                            `ma-${maData.functionalImpact}`
+                            `ma-${functionalImpact}`
                         ]
                     )}
                 >
@@ -80,7 +85,10 @@ export default class MutationAssessor extends React.Component<
     private tooltipContent() {
         if (this.props.mutationAssessor) {
             const maData = this.props.mutationAssessor;
-            const impact = maData.functionalImpact ? (
+            const functionalImpact = MutationAssessor.getFunctionalImpact(
+                maData
+            );
+            const impact = functionalImpact ? (
                 <div>
                     <table className={tooltipStyles['ma-tooltip-table']}>
                         <tr>
@@ -97,11 +105,11 @@ export default class MutationAssessor extends React.Component<
                                 <span
                                     className={
                                         (mutationAssessorColumn as any)[
-                                            `ma-${maData.functionalImpact}`
+                                            `ma-${functionalImpact}`
                                         ]
                                     }
                                 >
-                                    {maData.functionalImpact}
+                                    {functionalImpact}
                                 </span>
                             </td>
                         </tr>
@@ -124,5 +132,12 @@ export default class MutationAssessor extends React.Component<
 
             return impact;
         }
+    }
+
+    private static getFunctionalImpact(
+        mutationAssessorData: MutationAssessorData | undefined
+    ): string | undefined {
+        const data = mutationAssessorData as any;
+        return data?.functionalImpact || data?.functionalImpactPrediction;
     }
 }

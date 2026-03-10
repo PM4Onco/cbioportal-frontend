@@ -1,14 +1,8 @@
 import * as React from 'react';
 import { observer } from 'mobx-react';
 import { makeObservable, observable } from 'mobx';
-import _ from 'lodash';
-import {
-    CancerStudy,
-    ClinicalData,
-    GenePanelData,
-    MolecularProfile,
-    Mutation,
-} from 'cbioportal-ts-api-client';
+import { ClinicalData, Mutation } from 'cbioportal-ts-api-client';
+import { MobxPromise } from 'cbioportal-frontend-commons';
 import { IColumnVisibilityControlsProps } from 'shared/components/columnVisibilityControls/ColumnVisibilityControls';
 import SampleManager from '../SampleManager';
 import PubMedCache from 'shared/cache/PubMedCache';
@@ -18,27 +12,19 @@ import {
     ICivicGeneIndex,
     ICivicVariantIndex,
     IHotspotIndex,
-    IMyCancerGenomeData,
-    IMyVariantInfoIndex,
     IOncoKbData,
     RemoteData,
 } from 'cbioportal-utils';
 import { CancerGene } from 'oncokb-ts-api-client';
-import {
-    calculateOncoKbContentWidthWithInterval,
-    DEFAULT_ONCOKB_CONTENT_WIDTH,
-} from 'shared/lib/AnnotationColumnUtils';
+import { DEFAULT_ONCOKB_CONTENT_WIDTH } from 'shared/lib/AnnotationColumnUtils';
 import { ILazyMobXTableApplicationDataStore } from 'shared/lib/ILazyMobXTableApplicationDataStore';
 import PatientViewMutationTable from './PatientViewMutationTable';
 import { getServerConfig, ServerConfigHelpers } from 'config/config';
-import VariantCountCache from 'shared/cache/VariantCountCache';
 import DiscreteCNACache from 'shared/cache/DiscreteCNACache';
 import GenomeNexusCache from 'shared/cache/GenomeNexusCache';
 import GenomeNexusMutationAssessorCache from 'shared/cache/GenomeNexusMutationAssessorCache';
-import { MutationTableDownloadDataFetcher } from 'shared/lib/MutationTableDownloadDataFetcher';
 import { IMutSigData } from 'shared/model/MutSig';
 import { ICosmicData } from 'shared/model/Cosmic';
-import MobxPromise from 'mobxpromise';
 
 import FeatureInstruction from 'shared/FeatureInstruction/FeatureInstruction';
 import { getSamplesProfiledStatus } from 'pages/patientView/PatientViewPageUtils';
@@ -48,6 +34,9 @@ import ErrorMessage from 'shared/components/ErrorMessage';
 import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/PatientViewPageStore';
 import SampleNotProfiledAlert from 'shared/components/SampleNotProfiledAlert';
 import { NamespaceColumnConfig } from 'shared/components/namespaceColumns/NamespaceColumnConfig';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
+import AnnotationColumnFormatter from 'shared/components/mutationTable/column/AnnotationColumnFormatter';
+import { MutationTableColumnType } from 'shared/components/mutationTable/MutationTable';
 
 export const TABLE_FEATURE_INSTRUCTION =
     'Click on an mutation to zoom in on the gene in the IGV browser above';
@@ -90,6 +79,7 @@ type IMutationTableWrapperProps = {
     columns: string[];
     alleleFreqHeaderRender?: ((name: string) => JSX.Element) | undefined;
     pageMode?: 'sample' | 'patient';
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 };
 
 const ANNOTATION_ELEMENT_ID = 'mutation-annotation';
@@ -150,6 +140,8 @@ export default class MutationTableWrapper extends React.Component<
             this.pageStore.mutSigData,
             this.pageStore.cosmicData,
             this.pageStore.mutationTableShowGeneFilterMenu,
+            this.pageStore.localTherapyRecommendations,
+            this.pageStore.localFollowUps,
         ],
 
         render: () => {
@@ -278,6 +270,7 @@ export default class MutationTableWrapper extends React.Component<
                                 }
                                 enableCivic={getServerConfig().show_civic}
                                 enableRevue={getServerConfig().show_revue}
+                                enableSharedTR={getServerConfig().show_sharedTR}
                                 columnVisibility={this.props.columnVisibility}
                                 showGeneFilterMenu={
                                     this.pageStore
@@ -310,6 +303,45 @@ export default class MutationTableWrapper extends React.Component<
                                 columns={this.props.columns}
                                 alleleFreqHeaderRender={
                                     this.props.alleleFreqHeaderRender
+                                }
+                                initialSortColumn={
+                                    getServerConfig()
+                                        .skin_patient_view_tables_default_sort_column
+                                }
+                                customDriverName={
+                                    getServerConfig()
+                                        .oncoprint_custom_driver_annotation_binary_menu_label!
+                                }
+                                customDriverDescription={
+                                    getServerConfig()
+                                        .oncoprint_custom_driver_annotation_binary_menu_description!
+                                }
+                                customDriverTiersName={
+                                    getServerConfig()
+                                        .oncoprint_custom_driver_annotation_tiers_menu_label!
+                                }
+                                customDriverTiersDescription={
+                                    getServerConfig()
+                                        .oncoprint_custom_driver_annotation_tiers_menu_description!
+                                }
+                                sharedTherapyRecommendationData={
+                                    {
+                                        localTherapyRecommendations: this
+                                            .pageStore
+                                            .localTherapyRecommendations.result,
+                                        sharedTherapyRecommendations: this
+                                            .pageStore
+                                            .sharedTherapyRecommendations,
+                                        localFollowUps: this.pageStore
+                                            .localFollowUps.result,
+                                        sharedFollowUps: this.pageStore
+                                            .sharedFollowUps,
+                                        diagnosis: this.pageStore.getDiagnosisFromSamples.result.map(
+                                            cd => cd.value
+                                        ),
+                                        studyId: this.pageStore.getSafeStudyId(),
+                                        caseId: this.pageStore.getSafePatientId(),
+                                    } as ISharedTherapyRecommendationData
                                 }
                             />
                         </FeatureInstruction>

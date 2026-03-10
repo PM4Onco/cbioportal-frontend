@@ -1,5 +1,5 @@
 import autobind from 'autobind-decorator';
-import { remoteData } from 'cbioportal-frontend-commons';
+import { cached, MobxPromise, remoteData } from 'cbioportal-frontend-commons';
 import {
     AggregatedHotspots,
     convertDbPtmToPtm,
@@ -49,7 +49,6 @@ import {
 } from 'genome-nexus-ts-api-client';
 import _ from 'lodash';
 import { computed, observable, makeObservable } from 'mobx';
-import MobxPromise, { cached } from 'mobxpromise';
 
 import { DataFilter, DataFilterType } from '../model/DataFilter';
 import DataStore from '../model/DataStore';
@@ -84,6 +83,7 @@ interface DefaultMutationMapperStoreConfig {
     enableCivic?: boolean;
     enableOncoKb?: boolean;
     enableRevue?: boolean;
+    enableSharedTR?: boolean;
     cachePostMethodsOnClients?: boolean;
     apiCacheLimit?: number;
     getMutationCount?: (mutation: Partial<Mutation>) => number;
@@ -1032,10 +1032,7 @@ class DefaultMutationMapperStore<T extends Mutation>
         await: () => [this.mutationData],
         invoke: async () =>
             this.config.enableCivic
-                ? fetchCivicGenes(
-                      this.mutationData.result || [],
-                      this.getDefaultEntrezGeneId
-                  )
+                ? fetchCivicGenes(this.mutationData.result || [])
                 : {},
         onError: () => {
             // fail silently

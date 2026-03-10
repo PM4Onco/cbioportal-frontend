@@ -4,8 +4,6 @@ import {
     ClinicalAttributeCount,
     ClinicalAttributeCountFilter,
     ClinicalData,
-    ClinicalDataMultiStudyFilter,
-    ClinicalDataSingleStudyFilter,
     CopyNumberSeg,
     DiscreteCopyNumberData,
     DiscreteCopyNumberFilter,
@@ -38,7 +36,9 @@ import {
 
 import client from 'shared/api/cbioportalClientInstance';
 import {
+    cached,
     CanonicalMutationType,
+    MobxPromise,
     remoteData,
     stringListToSet,
 } from 'cbioportal-frontend-commons';
@@ -57,8 +57,6 @@ import {
 } from 'oncokb-frontend-commons';
 import { VariantAnnotation } from 'genome-nexus-ts-api-client';
 import { IndicatorQueryResp } from 'oncokb-ts-api-client';
-import { cached, MobxPromise } from 'mobxpromise';
-import PubMedCache from 'shared/cache/PubMedCache';
 import GenomeNexusCache from 'shared/cache/GenomeNexusCache';
 import GenomeNexusMutationAssessorCache from 'shared/cache/GenomeNexusMutationAssessorCache';
 import CancerTypeCache from 'shared/cache/CancerTypeCache';
@@ -77,12 +75,10 @@ import {
     fetchGenes,
     fetchGermlineConsentedSamples,
     fetchStructuralVariantOncoKbData,
-    fetchStudiesForSamplesWithoutCancerTypeClinicalData,
     fetchVariantAnnotationsIndexedByGenomicLocation,
     filterAndAnnotateMolecularData,
     filterAndAnnotateMutations,
     generateDataQueryFilter,
-    generateUniqueSampleKeyToTumorTypeMap,
     getAllGenes,
     getGenomeBuildFromStudies,
     getSurvivalClinicalAttributesPrefix,
@@ -101,7 +97,6 @@ import {
 import ResultsViewMutationMapperStore from './mutation/ResultsViewMutationMapperStore';
 import { getServerConfig, ServerConfigHelpers } from 'config/config';
 import _ from 'lodash';
-import { toSampleUuid } from '../../shared/lib/UuidUtils';
 import MutationDataCache from '../../shared/cache/MutationDataCache';
 import AccessorsForOqlFilter from '../../shared/lib/oql/AccessorsForOqlFilter';
 import {
@@ -180,7 +175,6 @@ import sessionServiceClient from '../../shared/api/sessionServiceInstance';
 import comparisonClient from '../../shared/api/comparisonGroupClientInstance';
 import { AppStore } from '../../AppStore';
 import { getNumSamples } from '../groupComparison/GroupComparisonUtils';
-import autobind from 'autobind-decorator';
 import {
     ChartMeta,
     ChartMetaDataTypeEnum,
@@ -206,7 +200,6 @@ import {
     getGenericAssayMetaPropertyOrDefault,
 } from 'shared/lib/GenericAssayUtils/GenericAssayCommonUtils';
 import { createVariantAnnotationsByMutationFetcher } from 'shared/components/mutationMapper/MutationMapperUtils';
-import { getGenomeNexusHgvsgUrl } from 'shared/api/urls';
 import { isMixedReferenceGenome } from 'shared/lib/referenceGenomeUtils';
 import {
     ALTERED_COLOR,
@@ -3447,25 +3440,25 @@ export class ResultsViewPageStore extends AnalysisStore
         },
     });
 
-    readonly structuralVariantsByGene = remoteData({
+    readonly structuralVariantsByEntrezGeneId = remoteData({
         await: () => [this.structuralVariants],
         invoke: async () => {
-            const svByGene: Record<string, StructuralVariant[]> = {};
+            const svByGene: Record<number, StructuralVariant[]> = {};
             this.structuralVariants.result!.forEach(sv => {
-                if (sv.site1HugoSymbol) {
-                    svByGene[sv.site1HugoSymbol] =
-                        svByGene[sv.site1HugoSymbol] || [];
-                    svByGene[sv.site1HugoSymbol].push(sv);
+                if (sv.site1EntrezGeneId) {
+                    svByGene[sv.site1EntrezGeneId] =
+                        svByGene[sv.site1EntrezGeneId] || [];
+                    svByGene[sv.site1EntrezGeneId].push(sv);
                 }
 
-                if (sv.site2HugoSymbol) {
+                if (sv.site2EntrezGeneId) {
                     if (
-                        !sv.site1HugoSymbol ||
-                        sv.site2HugoSymbol !== sv.site1HugoSymbol
+                        !sv.site1EntrezGeneId ||
+                        sv.site2EntrezGeneId !== sv.site1EntrezGeneId
                     ) {
-                        svByGene[sv.site2HugoSymbol] =
-                            svByGene[sv.site2HugoSymbol] || [];
-                        svByGene[sv.site2HugoSymbol].push(sv);
+                        svByGene[sv.site2EntrezGeneId] =
+                            svByGene[sv.site2EntrezGeneId] || [];
+                        svByGene[sv.site2EntrezGeneId].push(sv);
                     }
                 }
             });
@@ -5028,13 +5021,17 @@ export class ResultsViewPageStore extends AnalysisStore
         {
             await: () => [
                 this.genes,
-                this.structuralVariantsByGene,
+                this.structuralVariantsByEntrezGeneId,
                 this.studyIdToStudy,
                 this.molecularProfileIdToMolecularProfile,
                 this.samples,
+                this.uniqueSampleKeyToTumorType,
             ],
             invoke: () => {
-                if (this.genes.result && this.structuralVariantsByGene.result) {
+                if (
+                    this.genes.result &&
+                    this.structuralVariantsByEntrezGeneId.result
+                ) {
                     return Promise.resolve(
                         this.genes.result.reduce(
                             (
@@ -5049,9 +5046,8 @@ export class ResultsViewPageStore extends AnalysisStore
                                     gene,
                                     this.studyIdToStudy,
                                     this.molecularProfileIdToMolecularProfile,
-                                    this.structuralVariantsByGene.result![
-                                        gene.hugoGeneSymbol
-                                    ] || [],
+                                    this.structuralVariantsByEntrezGeneId
+                                        .result![gene.entrezGeneId] || [],
                                     this.uniqueSampleKeyToTumorType.result!,
                                     this.structuralVariantOncoKbData,
                                     this.oncoKbCancerGenes,
@@ -5847,10 +5843,25 @@ export class ResultsViewPageStore extends AnalysisStore
         default: [],
     });
 
+    readonly oncoKbAnnotatedGenesForStructuralVariants = remoteData<{
+        [entrezGeneId: number]: boolean;
+    }>({
+        await: () => [
+            this.oncoKbAnnotatedGenes,
+            this.structuralVariantsByEntrezGeneId,
+        ],
+        invoke: async () => {
+            const entrezGeneIds = Object.keys(
+                this.structuralVariantsByEntrezGeneId.result!
+            ).map(Number);
+            return _.pick(this.oncoKbAnnotatedGenes.result, entrezGeneIds);
+        },
+    });
+
     readonly structuralVariantOncoKbData = remoteData<IOncoKbData>(
         {
             await: () => [
-                this.oncoKbAnnotatedGenes,
+                this.oncoKbAnnotatedGenesForStructuralVariants,
                 this.structuralVariantData,
                 this.clinicalDataForSamples,
                 this.studies,
@@ -5860,7 +5871,8 @@ export class ResultsViewPageStore extends AnalysisStore
                 if (getServerConfig().show_oncokb) {
                     return fetchStructuralVariantOncoKbData(
                         this.uniqueSampleKeyToTumorType.result!,
-                        this.oncoKbAnnotatedGenes.result || {},
+                        this.oncoKbAnnotatedGenesForStructuralVariants.result ||
+                            {},
                         this.structuralVariantData
                     );
                 } else {

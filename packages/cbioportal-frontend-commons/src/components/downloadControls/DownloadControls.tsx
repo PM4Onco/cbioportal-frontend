@@ -11,7 +11,7 @@ import { saveSvg, saveSvgAsPng } from 'save-svg-as-png';
 import svgToPdfDownload from '../../lib/svgToPdfDownload';
 import { CSSProperties } from 'react';
 import { isPromiseLike } from 'cbioportal-utils';
-import { AppContext, DownloadControlOption } from '../appContext/AppContext';
+import juice from 'juice';
 
 type ButtonSpec = {
     key: string;
@@ -30,6 +30,12 @@ export type DownloadControlsButton =
 
 export type DataType = 'summary' | 'full';
 
+export enum DownloadControlOption {
+    SHOW_ALL = 'show',
+    HIDE_DATA = 'data',
+    HIDE_ALL = 'hide',
+}
+
 interface IDownloadControlsProps {
     getSvg?: () => SVGElement | null | PromiseLike<SVGElement | null>;
     getData?: (
@@ -45,6 +51,7 @@ interface IDownloadControlsProps {
     className?: any;
     dataExtension?: string;
     showDownload?: boolean;
+    toggleRenderSvgForDownload?: () => void;
 }
 
 function makeButton(spec: ButtonSpec) {
@@ -122,11 +129,22 @@ export default class DownloadControls extends React.Component<
                         }
                     });
                 } else {
-                    saveMethod(
-                        result,
-                        `${this.props.filename}.${fileExtension}`,
-                        { excludeCss: true }
+                    // using serlizer to convert svg to string
+                    let serializer = new XMLSerializer();
+                    const inlinedSVG = juice(
+                        serializer.serializeToString(result)
                     );
+
+                    // parsing as SVGElement after css inlining
+                    let parser = new DOMParser();
+                    let svg = (parser.parseFromString(
+                        inlinedSVG,
+                        'image/svg+xml'
+                    ).documentElement as unknown) as SVGElement;
+
+                    saveMethod(svg, `${this.props.filename}.${fileExtension}`, {
+                        excludeCss: true,
+                    });
                 }
             }
         }
@@ -205,7 +223,16 @@ export default class DownloadControls extends React.Component<
                         />
                     </span>
                 ),
-                onClick: this.downloadSvg,
+                onClick: () => {
+                    this.props.toggleRenderSvgForDownload &&
+                        this.props.toggleRenderSvgForDownload();
+                    // wait for svg to render before download
+                    requestAnimationFrame(() => {
+                        this.downloadSvg();
+                        this.props.toggleRenderSvgForDownload &&
+                            this.props.toggleRenderSvgForDownload();
+                    });
+                },
                 disabled: !this.props.getSvg,
             },
             PNG: {
@@ -233,7 +260,16 @@ export default class DownloadControls extends React.Component<
                         />
                     </span>
                 ),
-                onClick: this.downloadPdf,
+                onClick: () => {
+                    this.props.toggleRenderSvgForDownload &&
+                        this.props.toggleRenderSvgForDownload();
+                    // wait for svg to render before download
+                    requestAnimationFrame(() => {
+                        this.downloadPdf();
+                        this.props.toggleRenderSvgForDownload &&
+                            this.props.toggleRenderSvgForDownload();
+                    });
+                },
                 disabled: !this.props.getSvg,
             },
             Data: {
@@ -306,9 +342,7 @@ export default class DownloadControls extends React.Component<
     }
 
     render() {
-        if (
-            this.context.showDownloadControls === DownloadControlOption.HIDE_ALL
-        ) {
+        if (this.showDownload === false) {
             return null;
         }
 
@@ -421,5 +455,3 @@ export default class DownloadControls extends React.Component<
         }
     }
 }
-
-DownloadControls.contextType = AppContext;

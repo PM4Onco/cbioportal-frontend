@@ -36,6 +36,8 @@ import {
 import ReactMarkdown from 'react-markdown';
 import { useLocalObservable, useLocalStore } from 'mobx-react-lite';
 
+import { useDateFormat } from './lib/DateFormatContext';
+
 export interface ITimelineTrackProps {
     trackData: TimelineTrackSpecification;
     limit: number;
@@ -207,6 +209,17 @@ function renderRange(
             fill={colorGetterFactory(eventColorGetter)(events[0])}
         />
     );
+}
+
+function replaceArray(replaceString: string) {
+    const search = ['Ã¤', 'Ã¼', 'Ã¶', 'Ã„', 'Ã–', 'Ãœ', 'ÃŸ'];
+    const replace = ['ä', 'ü', 'ö', 'Ä', 'Ö', 'Ü', 'ß'];
+    let regex;
+    for (let i = 0; i < search.length; i++) {
+        regex = new RegExp(search[i], 'g');
+        replaceString = replaceString.replace(regex, replace[i]);
+    }
+    return replaceString;
 }
 
 export const TimelineTrack: React.FunctionComponent<ITimelineTrackProps> = observer(
@@ -455,7 +468,9 @@ export const EventTooltipContent: React.FunctionComponent<{
 }> = function({ event, trackConfig }) {
     let attributes = event.event.attributes.filter(attr => {
         return (
-            attr.key !== COLOR_ATTRIBUTE_KEY && attr.key !== SHAPE_ATTRIBUTE_KEY
+            attr.key !== COLOR_ATTRIBUTE_KEY &&
+            attr.key !== SHAPE_ATTRIBUTE_KEY &&
+            attr.key !== 'DATE_ISO'
         );
     });
 
@@ -468,6 +483,9 @@ export const EventTooltipContent: React.FunctionComponent<{
         );
     }
 
+    // Use Context for date format and day of diagnosis
+    const { startDate } = useDateFormat();
+
     return (
         <div>
             <table className={'table table-condensed'}>
@@ -478,7 +496,8 @@ export const EventTooltipContent: React.FunctionComponent<{
                                 <td>{attr.key.replace(/_/g, ' ')}</td>
                                 <td>
                                     <ReactMarkdown
-                                        allowedElements={['p', 'a']}
+                                        allowedElements={['p', 'a', 'br']}
+                                        className="line-break"
                                         linkTarget={'_blank'}
                                         components={{
                                             a: ({ node, ...props }) => {
@@ -517,8 +536,24 @@ export const EventTooltipContent: React.FunctionComponent<{
                                 : 'DATE'
                         }`}</td>
                         <td className={'nowrap'}>
+                            {/* 1. Relative Date (Always) */}
                             {formatDate(
-                                event.event.startNumberOfDaysSinceDiagnosis
+                                event.event.startNumberOfDaysSinceDiagnosis,
+                                startDate,
+                                false
+                            )}
+                            {/* 2. Absolute Date (If start date exists) */}
+                            {startDate && (
+                                <>
+                                    {' ('}
+                                    {formatDate(
+                                        event.event
+                                            .startNumberOfDaysSinceDiagnosis,
+                                        startDate,
+                                        true
+                                    )}
+                                    {')'}
+                                </>
                             )}
                         </td>
                     </tr>
@@ -526,8 +561,24 @@ export const EventTooltipContent: React.FunctionComponent<{
                         <tr>
                             <td>END DATE</td>
                             <td className={'nowrap'}>
+                                {/* 1. Relative Date (Always) */}
                                 {formatDate(
-                                    event.event.endNumberOfDaysSinceDiagnosis
+                                    event.event.endNumberOfDaysSinceDiagnosis,
+                                    startDate,
+                                    false
+                                )}
+                                {/* 2. Absolute Date (If start date exists) */}
+                                {startDate && (
+                                    <>
+                                        {' ('}
+                                        {formatDate(
+                                            event.event
+                                                .endNumberOfDaysSinceDiagnosis,
+                                            startDate,
+                                            true
+                                        )}
+                                        {')'}
+                                    </>
                                 )}
                             </td>
                         </tr>

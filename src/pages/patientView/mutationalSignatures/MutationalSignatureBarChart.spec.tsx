@@ -19,6 +19,7 @@ const sampleMutationalSignatureDataWithoutClass = [
         mutationalSignatureClass: '',
         version: 'v2',
         value: 15,
+        percentage: 90,
     },
     {
         uniqueSampleKey: 's09e3B34',
@@ -30,6 +31,7 @@ const sampleMutationalSignatureDataWithoutClass = [
         mutationalSignatureClass: '',
         version: 'v2',
         value: 12,
+        percentage: 90,
     },
     {
         uniqueSampleKey: 's09e3B34',
@@ -41,6 +43,7 @@ const sampleMutationalSignatureDataWithoutClass = [
         mutationalSignatureClass: '',
         version: 'v2',
         value: 20,
+        percentage: 90,
     },
 ];
 
@@ -55,6 +58,7 @@ const sampleMutationalSignatureData: IMutationalCounts[] = [
         mutationalSignatureClass: 'C>T',
         version: 'v2',
         value: 15,
+        percentage: 90,
     },
     {
         uniqueSampleKey: 's09e3B34',
@@ -66,6 +70,7 @@ const sampleMutationalSignatureData: IMutationalCounts[] = [
         mutationalSignatureClass: 'C>T',
         version: 'v2',
         value: 12,
+        percentage: 90,
     },
     {
         uniqueSampleKey: 's09e3B34',
@@ -77,12 +82,13 @@ const sampleMutationalSignatureData: IMutationalCounts[] = [
         mutationalSignatureClass: 'T>A',
         version: 'v2',
         value: 20,
+        percentage: 90,
     },
 ];
 
 describe('MutationalSignatureBarChart', () => {
     it('Takes unsorted IMutationalCounts[] and transforms it to sorted IColorDataChart', () => {
-        let result = getColorsForSignatures(sampleMutationalSignatureData);
+        let result = getColorsForSignatures(sampleMutationalSignatureData, '%');
         assert.deepEqual(result, [
             {
                 uniqueSampleKey: 's09e3B34',
@@ -94,9 +100,11 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureClass: 'C>T',
                 version: 'v2',
                 value: 15,
+                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',
+                sublabel: ' ',
                 group: 'C>T',
             },
             {
@@ -109,9 +117,11 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureClass: 'C>T',
                 version: 'v2',
                 value: 12,
+                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',
+                sublabel: ' ',
                 group: 'C>T',
             },
 
@@ -125,8 +135,10 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureClass: 'T>A',
                 version: 'v2',
                 value: 20,
-                colorValue: 'grey',
+                percentage: 90,
+                colorValue: '#99A3A4',
                 subcategory: ' ',
+                sublabel: ' ',
                 label: 'A[T>A]G',
                 group: 'T>A',
             },
@@ -134,7 +146,8 @@ describe('MutationalSignatureBarChart', () => {
     });
     it('Takes unsorted IMutationalCounts[] and transforms it to unsorted IColorDataChart', () => {
         let result = getColorsForSignatures(
-            sampleMutationalSignatureDataWithoutClass
+            sampleMutationalSignatureDataWithoutClass,
+            '%'
         );
         assert.deepEqual(result, [
             {
@@ -146,9 +159,11 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureLabel: 'A[C>T]G',
                 version: 'v2',
                 value: 15,
+                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',
+                sublabel: ' ',
                 mutationalSignatureClass: '',
                 group: 'C>T',
             },
@@ -161,9 +176,11 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureLabel: 'A[C>T]G',
                 version: 'v2',
                 value: 12,
+                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',
+                sublabel: ' ',
                 mutationalSignatureClass: '',
                 group: 'C>T',
             },
@@ -177,9 +194,11 @@ describe('MutationalSignatureBarChart', () => {
                 mutationalSignatureLabel: 'A[C>T]G',
                 version: 'v2',
                 value: 20,
+                percentage: 90,
                 colorValue: 'red',
                 label: 'A[C>T]G',
                 subcategory: ' ',
+                sublabel: ' ',
                 mutationalSignatureClass: '',
                 group: 'C>T',
             },

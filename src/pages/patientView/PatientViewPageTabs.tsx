@@ -37,6 +37,7 @@ import { HelpWidget } from 'shared/components/HelpWidget/HelpWidget';
 import MutationTableWrapper from './mutation/MutationTableWrapper';
 import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
 import { Else, If } from 'react-if';
+import { getVisiblePatientTabExtensions } from 'shared/lib/customModules';
 
 export enum PatientViewPageTabs {
     Summary = 'summary',
@@ -49,6 +50,10 @@ export enum PatientViewPageTabs {
     TrialMatchTab = 'trialMatchTab',
     MutationalSignatures = 'mutationalSignatures',
     PathwayMapper = 'pathways',
+    Mtb = 'mtb',
+    FollowUp = 'followUp',
+    ClinicalTrialsGov = 'clinicaltrialsGov',
+    Proms = 'proms',
 }
 
 export const PatientViewResourceTabPrefix = 'openResource_';
@@ -84,14 +89,15 @@ export function patientViewTabs(
                 <HelpWidget path={urlWrapper.routing.location.pathname} />
             }
         >
-            {tabs(pageInstance, sampleManager)}
+            {tabs(pageInstance, sampleManager, urlWrapper)}
         </MSKTabs>
     );
 }
 
 export function tabs(
     pageComponent: PatientViewPageInner,
-    sampleManager: SampleManager | null
+    sampleManager: SampleManager | null,
+    urlWrapper: PatientViewUrlWrapper
 ) {
     const tabs: JSX.Element[] = [];
     tabs.push(
@@ -333,6 +339,7 @@ export function tabs(
                 onSelectGenePanel={pageComponent.toggleGenePanelModal}
                 mergeOncoKbIcons={pageComponent.mergeMutationTableOncoKbIcons}
                 onOncoKbIconToggle={pageComponent.handleOncoKbIconToggle}
+                enableOncoKb={getServerConfig().show_oncokb}
                 sampleIds={
                     sampleManager
                         ? sampleManager.getActiveSampleIdsInOrder()
@@ -341,6 +348,22 @@ export function tabs(
                 namespaceColumns={
                     pageComponent.patientViewPageStore.namespaceColumnConfig
                         .structVar
+                }
+                customDriverName={
+                    getServerConfig()
+                        .oncoprint_custom_driver_annotation_binary_menu_label!
+                }
+                customDriverDescription={
+                    getServerConfig()
+                        .oncoprint_custom_driver_annotation_binary_menu_description!
+                }
+                customDriverTiersName={
+                    getServerConfig()
+                        .oncoprint_custom_driver_annotation_tiers_menu_label!
+                }
+                customDriverTiersDescription={
+                    getServerConfig()
+                        .oncoprint_custom_driver_annotation_tiers_menu_description!
                 }
             />
 
@@ -407,6 +430,22 @@ export function tabs(
                                     pageComponent.patientViewPageStore
                                         .namespaceColumnConfig.cna
                                 }
+                                customDriverName={
+                                    getServerConfig()
+                                        .oncoprint_custom_driver_annotation_binary_menu_label!
+                                }
+                                customDriverDescription={
+                                    getServerConfig()
+                                        .oncoprint_custom_driver_annotation_binary_menu_description!
+                                }
+                                customDriverTiersName={
+                                    getServerConfig()
+                                        .oncoprint_custom_driver_annotation_tiers_menu_label!
+                                }
+                                customDriverTiersDescription={
+                                    getServerConfig()
+                                        .oncoprint_custom_driver_annotation_tiers_menu_description!
+                                }
                             />
                         </If>
                     </div>
@@ -434,6 +473,22 @@ export function tabs(
                         pageComponent.mergeMutationTableOncoKbIcons
                     }
                     onOncoKbIconToggle={pageComponent.handleOncoKbIconToggle}
+                    customDriverName={
+                        getServerConfig()
+                            .oncoprint_custom_driver_annotation_binary_menu_label!
+                    }
+                    customDriverDescription={
+                        getServerConfig()
+                            .oncoprint_custom_driver_annotation_binary_menu_description!
+                    }
+                    customDriverTiersName={
+                        getServerConfig()
+                            .oncoprint_custom_driver_annotation_tiers_menu_label!
+                    }
+                    customDriverTiersDescription={
+                        getServerConfig()
+                            .oncoprint_custom_driver_annotation_tiers_menu_description!
+                    }
                 />
             </MSKTab>
         );
@@ -503,24 +558,25 @@ export function tabs(
         </MSKTab>
     );
 
-    tabs.push(
-        <MSKTab
-            key={4}
-            id={PatientViewPageTabs.FilesAndLinks}
-            linkText={RESOURCES_TAB_NAME}
-            hide={!pageComponent.shouldShowResources}
-        >
-            <div>
-                <ResourcesTab
-                    store={pageComponent.patientViewPageStore}
-                    sampleManager={
-                        pageComponent.patientViewPageStore.sampleManager.result!
-                    }
-                    openResource={pageComponent.openResource}
-                />
-            </div>
-        </MSKTab>
-    );
+    if (pageComponent.shouldShowResources)
+        tabs.push(
+            <MSKTab
+                key={4}
+                id={PatientViewPageTabs.FilesAndLinks}
+                linkText={RESOURCES_TAB_NAME}
+            >
+                <div>
+                    <ResourcesTab
+                        store={pageComponent.patientViewPageStore}
+                        sampleManager={
+                            pageComponent.patientViewPageStore.sampleManager
+                                .result!
+                        }
+                        openResource={pageComponent.openResource}
+                    />
+                </div>
+            </MSKTab>
+        );
 
     tabs.push(
         <MSKTab
@@ -595,6 +651,39 @@ export function tabs(
             </MSKTab>
         );
 
+    const moduleTabContext = {
+        pageComponent,
+        sampleManager,
+        urlWrapper,
+    };
+    const moduleTabs = getVisiblePatientTabExtensions(moduleTabContext);
+    const getModuleTabOrder = (moduleTab: { order?: number }) =>
+        moduleTab.order === undefined
+            ? Number.MAX_SAFE_INTEGER
+            : moduleTab.order;
+    const appendModuleTabs = (targetTabs: typeof moduleTabs) => {
+        targetTabs.forEach(moduleTab => {
+            tabs.push(
+                <MSKTab
+                    key={
+                        moduleTab.key === undefined
+                            ? moduleTab.id
+                            : moduleTab.key
+                    }
+                    id={moduleTab.id}
+                    linkText={moduleTab.linkText}
+                    unmountOnHide={moduleTab.unmountOnHide}
+                >
+                    {moduleTab.render(moduleTabContext)}
+                </MSKTab>
+            );
+        });
+    };
+
+    appendModuleTabs(
+        moduleTabs.filter(moduleTab => getModuleTabOrder(moduleTab) < 500)
+    );
+
     pageComponent.patientViewPageStore.hasMutationalSignatureData.result &&
         pageComponent.patientViewPageStore.initialMutationalSignatureVersion
             .isComplete &&
@@ -602,7 +691,7 @@ export function tabs(
             <MSKTab
                 key={8}
                 id="mutationalSignatures"
-                linkText="Mutational Signature Data"
+                linkText="Mutational Signatures"
                 hide={
                     pageComponent.patientViewPageStore
                         .mutationalSignatureMolecularProfiles.isPending ||
@@ -640,12 +729,20 @@ export function tabs(
                     }
                     samples={
                         pageComponent.patientViewPageStore
-                            .samplesWithCountDataAvailable
+                            .samplesWithDataAvailable
+                    }
+                    samplesNotProfiled={
+                        pageComponent.patientViewPageStore
+                            .samplesNotProfiledForMutationalSignatures
                     }
                     onSampleChange={pageComponent.onSampleIdChange}
                 />
             </MSKTab>
         );
+
+    appendModuleTabs(
+        moduleTabs.filter(moduleTab => getModuleTabOrder(moduleTab) >= 500)
+    );
 
     pageComponent.resourceTabs.component &&
         /* @ts-ignore */

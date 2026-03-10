@@ -34,6 +34,9 @@ import SampleNotProfiledAlert from 'shared/components/SampleNotProfiledAlert';
 import { NamespaceColumnConfig } from 'shared/components/namespaceColumns/NamespaceColumnConfig';
 import { createNamespaceColumns } from 'shared/components/namespaceColumns/namespaceColumnsUtils';
 import { DownloadControlOption } from 'cbioportal-frontend-commons';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
+import CustomDriverColumnFormatter from './column/CustomDriverColumnFormatter';
+import CustomDriverTierColumnFormatter from './column/CustomDriverTierColumnFormatter';
 
 export const TABLE_FEATURE_INSTRUCTION =
     'Click on a CNA row to zoom in on the gene in the IGV browser above';
@@ -42,7 +45,7 @@ class CNATableComponent extends LazyMobXTable<DiscreteCopyNumberData[]> {}
 
 type CNATableColumn = Column<DiscreteCopyNumberData[]> & { order: number };
 
-type ICopyNumberTableWrapperProps = {
+export type ICopyNumberTableWrapperProps = {
     pageStore: PatientViewPageStore;
     sampleIds: string[];
     sampleManager: SampleManager | null;
@@ -61,6 +64,10 @@ type ICopyNumberTableWrapperProps = {
     disableTooltip: boolean;
     mergeOncoKbIcons?: boolean;
     namespaceColumns?: NamespaceColumnConfig;
+    customDriverName?: string;
+    customDriverDescription?: string;
+    customDriverTiersName?: string;
+    customDriverTiersDescription?: string;
 };
 
 const ANNOTATION_ELEMENT_ID = 'copy-number-annotation';
@@ -273,6 +280,21 @@ export default class CopyNumberTableWrapper extends React.Component<
                         enableRevue: false,
                         userDisplayName: getServerConfig().user_display_name,
                         studyIdToStudy: this.pageStore.studyIdToStudy.result,
+                        enableSharedTR: getServerConfig().show_sharedTR,
+                        sharedTherapyRecommendationData: {
+                            localTherapyRecommendations: this.pageStore
+                                .localTherapyRecommendations.result,
+                            sharedTherapyRecommendations: this.pageStore
+                                .sharedTherapyRecommendations,
+                            localFollowUps: this.pageStore.localFollowUps
+                                .result,
+                            sharedFollowUps: this.pageStore.sharedFollowUps,
+                            diagnosis: this.pageStore.getDiagnosisFromSamples.result.map(
+                                cd => cd.value
+                            ),
+                            studyId: this.pageStore.getSafeStudyId(),
+                            caseId: this.pageStore.getSafePatientId(),
+                        } as ISharedTherapyRecommendationData,
                     })}
                 </span>
             ),
@@ -288,6 +310,56 @@ export default class CopyNumberTableWrapper extends React.Component<
                 );
             },
             order: 50,
+        });
+
+        columns.push({
+            name: this.props.customDriverName!,
+            render: d => CustomDriverColumnFormatter.renderFunction(d),
+            download: CustomDriverColumnFormatter.getTextValue,
+            sortBy: (d: DiscreteCopyNumberData[]) =>
+                CustomDriverColumnFormatter.sortValue(d),
+            filter: (
+                d: DiscreteCopyNumberData[],
+                filterString: string,
+                filterStringUpper: string
+            ) =>
+                CustomDriverColumnFormatter.getTextValue(d)
+                    .toUpperCase()
+                    .includes(filterStringUpper),
+            visible:
+                this.pageStore.mergedDiscreteCNADataFilteredByGene.length > 0 &&
+                this.pageStore.mergedDiscreteCNADataFilteredByGene.some(
+                    d =>
+                        d[0].driverFilter !== undefined ||
+                        d[0].driverFilterAnnotation !== undefined
+                ),
+            tooltip: <span>{this.props.customDriverDescription!}</span>,
+            order: 55,
+        });
+
+        columns.push({
+            name: this.props.customDriverTiersName!,
+            render: d => CustomDriverTierColumnFormatter.renderFunction(d),
+            download: CustomDriverTierColumnFormatter.getTextValue,
+            sortBy: (d: DiscreteCopyNumberData[]) =>
+                CustomDriverTierColumnFormatter.getTextValue(d),
+            filter: (
+                d: DiscreteCopyNumberData[],
+                filterString: string,
+                filterStringUpper: string
+            ) =>
+                CustomDriverTierColumnFormatter.getTextValue(d)
+                    .toUpperCase()
+                    .includes(filterStringUpper),
+            visible:
+                this.pageStore.mergedDiscreteCNADataFilteredByGene.length > 0 &&
+                this.pageStore.mergedDiscreteCNADataFilteredByGene.every(
+                    d =>
+                        d[0].driverFilter !== undefined ||
+                        d[0].driverFilterAnnotation !== undefined
+                ),
+            tooltip: <span>{this.props.customDriverTiersDescription}</span>,
+            order: 56,
         });
 
         columns.push({
@@ -400,6 +472,8 @@ export default class CopyNumberTableWrapper extends React.Component<
             this.pageStore.mrnaRankMolecularProfileId,
             this.pageStore.cnaTableShowGeneFilterMenu,
             this.pageStore.referenceGenes,
+            this.pageStore.localTherapyRecommendations,
+            this.pageStore.localFollowUps,
         ],
         render: () => {
             const { someProfiled } = getSamplesProfiledStatus(
@@ -433,7 +507,10 @@ export default class CopyNumberTableWrapper extends React.Component<
                                         .mergedDiscreteCNADataFilteredByGene
                                 }
                                 dataStore={this.props.dataStore}
-                                initialSortColumn="Annotation"
+                                initialSortColumn={
+                                    getServerConfig()
+                                        .skin_patient_view_tables_default_sort_column
+                                }
                                 initialSortDirection="desc"
                                 initialItemsPerPage={10}
                                 itemsLabel="Copy Number Alteration"

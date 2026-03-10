@@ -1,14 +1,14 @@
 import * as ClinicalInformationMutationalSignatureTable from './ClinicalInformationMutationalSignatureTable';
 import React from 'react';
 import { assert } from 'chai';
-import { prepareMutationalSignatureDataForTable } from './ClinicalInformationMutationalSignatureTable';
+import { prepareMutationalSignatureDataForTable } from '../mutationalSignatures/MutationalSignatureBarChartUtils';
 import { IMutationalSignature } from 'shared/model/MutationalSignature';
 
 const sampleMutationalSignatureMeta = [
     {
         mutationalSignatureId: 'firstMutationalSignature',
         name: 'Mutational Signature 1',
-        description: 'Mutational Signature 1',
+        description: 'Description Signature 1',
         url: 'COSMIC/FakeMutationalSignature1',
         category: 'category 1',
         confidenceStatement:
@@ -17,7 +17,7 @@ const sampleMutationalSignatureMeta = [
     {
         mutationalSignatureId: 'secondMutationalSignature',
         name: 'Mutational Signature 2',
-        description: 'Mutational Signature 2',
+        description: 'Description Signature 2',
         url: 'COSMIC/FakeMutationalSignature2',
         category: 'category 2',
         confidenceStatement:
@@ -84,7 +84,7 @@ describe('ClinicalInformationMutationalSignatureTable', () => {
     it('takes mutational signature sample data and formats it for mutational signature table to render', () => {
         let result = prepareMutationalSignatureDataForTable(
             sampleMutationalSignatureData,
-            samples
+            ['firstSample', 'secondSample']
         );
         assert.deepEqual(result, [
             {
@@ -99,6 +99,7 @@ describe('ClinicalInformationMutationalSignatureTable', () => {
                         confidence: 0.8,
                     },
                 },
+                description: 'Description Signature 1',
                 url: 'COSMIC/FakeMutationalSignature1',
             },
             {
@@ -113,6 +114,7 @@ describe('ClinicalInformationMutationalSignatureTable', () => {
                         confidence: 0.01,
                     },
                 },
+                description: 'Description Signature 2',
                 url: 'COSMIC/FakeMutationalSignature2',
             },
         ]);

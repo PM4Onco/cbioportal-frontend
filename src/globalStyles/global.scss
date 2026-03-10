@@ -495,7 +495,7 @@ h3 {
 }
 
 .fixedWidth .contentWidth {
-    width: 1200px;
+    width: 800px;
     padding-left: 20px;
     padding-right: 20px;
     margin: 0 auto;
@@ -765,7 +765,7 @@ h2.divider {
 .newsContent {
     height: 300px;
     width: 300px;
-    padding: 10px;
+    padding: 10px 20px;
     overflow-y: scroll;
     overflow-x: hidden;
     border: 1px solid $borderColor;

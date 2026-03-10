@@ -4,7 +4,6 @@ import { Button, ButtonGroup } from 'react-bootstrap';
 import CustomDropdown from './CustomDropdown';
 import ConfirmNgchmModal from './ConfirmNgchmModal';
 import ReactSelect from 'react-select1';
-import { MobxPromise } from 'mobxpromise';
 import { action, computed, observable, reaction, makeObservable } from 'mobx';
 import _ from 'lodash';
 import { SortMode } from '../ResultsViewOncoprint';
@@ -18,12 +17,12 @@ import {
     DefaultTooltip,
     DownloadControlOption,
     EditableSpan,
+    MobxPromise,
 } from 'cbioportal-frontend-commons';
 import Slider from 'react-rangeslider';
 import 'react-rangeslider/lib/index.css';
 import './styles.scss';
 import classNames from 'classnames';
-import { SpecialAttribute } from '../../../cache/ClinicalDataCache';
 import { ResultsViewPageStore } from '../../../../pages/resultsView/ResultsViewPageStore';
 import {
     OncoprintAnalysisCaseType,
@@ -69,7 +68,14 @@ export interface IOncoprintControlsHandlers
     onClickSortAlphabetical?: () => void;
     onClickSortCaseListOrder?: () => void;
     onClickDownload?: (
-        type: 'pdf' | 'png' | 'svg' | 'order' | 'tabular' | 'oncoprinter'
+        type:
+            | 'pdf'
+            | 'png'
+            | 'svg'
+            | 'order'
+            | 'tabular'
+            | 'oncoprinter'
+            | 'jupyterNoteBook'
     ) => void;
     onChangeSelectedClinicalTracks?: (
         trackConfigs: ClinicalTrackConfig[]
@@ -136,6 +142,7 @@ export interface IOncoprintControlsProps {
     handlers: IOncoprintControlsHandlers;
     state: IOncoprintControlsState;
     oncoprinterMode?: boolean;
+    jupyterNotebookMode?: boolean;
     molecularProfileIdToMolecularProfile?: {
         [molecularProfileId: string]: MolecularProfile;
     };
@@ -183,6 +190,7 @@ const EVENT_KEY = {
     downloadOrder: '28',
     downloadTabular: '29',
     downloadOncoprinter: '29.1',
+    openJupyterNotebook: '32',
     horzZoomSlider: '30',
     viewNGCHM: '31',
 };
@@ -428,6 +436,10 @@ export default class OncoprintControls extends React.Component<
             case EVENT_KEY.downloadOncoprinter:
                 this.props.handlers.onClickDownload &&
                     this.props.handlers.onClickDownload('oncoprinter');
+                break;
+            case EVENT_KEY.openJupyterNotebook:
+                this.props.handlers.onClickDownload &&
+                    this.props.handlers.onClickDownload('jupyterNoteBook');
                 break;
             case EVENT_KEY.viewNGCHM:
                 if (
@@ -1140,6 +1152,19 @@ export default class OncoprintControls extends React.Component<
                             onClick={this.onButtonClick}
                         >
                             Open in Oncoprinter
+                        </button>
+                    )}
+
+                {!this.props.jupyterNotebookMode &&
+                    getServerConfig().skin_hide_download_controls ===
+                        DownloadControlOption.SHOW_ALL && (
+                        <button
+                            className="btn btn-sm btn-default"
+                            name={EVENT_KEY.openJupyterNotebook}
+                            onClick={this.onButtonClick}
+                        >
+                            Open in JupyterNoteBook{' '}
+                            <strong className={'beta-text'}>Beta!</strong>
                         </button>
                     )}
             </CustomDropdown>

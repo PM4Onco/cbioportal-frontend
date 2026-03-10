@@ -3,6 +3,7 @@ import { StudyView } from '../../config/IAppConfig';
 import { Layout } from 'react-grid-layout';
 import _ from 'lodash';
 import { ChartType } from './StudyViewUtils';
+import { getBrowserWindow } from 'cbioportal-frontend-commons';
 
 export type StudyViewColor = {
     theme: StudyViewColorTheme;
@@ -68,6 +69,7 @@ export enum ChartTypeEnum {
     SCATTER = 'SCATTER',
     VIOLIN_PLOT_TABLE = 'VIOLIN_PLOT_TABLE',
     MUTATED_GENES_TABLE = 'MUTATED_GENES_TABLE',
+    MUTATION_TYPE_COUNTS_TABLE = 'MUTATION_TYPE_COUNTS_TABLE',
     STRUCTURAL_VARIANT_GENES_TABLE = 'STRUCTURAL_VARIANT_GENES_TABLE',
     STRUCTURAL_VARIANTS_TABLE = 'STRUCTURAL_VARIANTS_TABLE',
     CNA_GENES_TABLE = 'CNA_GENES_TABLE',
@@ -91,6 +93,7 @@ export enum ChartTypeNameEnum {
     SCATTER = 'density plot',
     VIOLIN_PLOT_TABLE = 'table',
     MUTATED_GENES_TABLE = 'table',
+    MUTATION_TYPE_COUNTS_TABLE = 'table',
     STRUCTURAL_VARIANT_GENES_TABLE = 'table',
     STRUCTURAL_VARIANTS_TABLE = 'table',
     CNA_GENES_TABLE = 'table',
@@ -206,6 +209,11 @@ const studyViewFrontEnd = {
                 h: 2,
                 minW: 2,
             },
+            [ChartTypeEnum.MUTATION_TYPE_COUNTS_TABLE]: {
+                w: 2,
+                h: 2,
+                minW: 2,
+            },
             [ChartTypeEnum.STRUCTURAL_VARIANT_GENES_TABLE]: {
                 w: 2,
                 h: 2,
@@ -287,6 +295,18 @@ const studyViewFrontEnd = {
         },
     },
 };
+
+// these should really be passed in as instance specific configuration
+if (/\.mskcc\.org/.test(getBrowserWindow().location.hostname)) {
+    Object.assign(studyViewFrontEnd.priority, {
+        MUTATED_GENES_TABLE: 940,
+        CNA_GENES_TABLE: 930,
+        STRUCTURAL_VARIANT_GENES_TABLE: 920,
+        'X-VS-Y-FRACTION_GENOME_ALTERED-MUTATION_COUNT': 890,
+        SAMPLE_COUNT: 820,
+        GENOMIC_PROFILES_SAMPLE_COUNT: -1,
+    });
+}
 
 export const STUDY_VIEW_CONFIG: StudyViewConfig = _.assign(
     studyViewFrontEnd,
