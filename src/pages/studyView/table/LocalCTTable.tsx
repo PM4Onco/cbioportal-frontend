@@ -7,7 +7,11 @@ import {
 } from '../../../shared/components/lazyMobXTable/LazyMobXTable';
 import { getSampleViewUrl } from '../../../shared/api/urls';
 
-import { Mutation, NumericGeneMolecularData } from 'cbioportal-ts-api-client';
+import {
+    Mutation,
+    NumericGeneMolecularData,
+    StructuralVariant,
+} from 'cbioportal-ts-api-client';
 import {
     MUT_COLOR_INFRAME,
     MUT_COLOR_MISSENSE,
@@ -15,6 +19,8 @@ import {
     MUT_COLOR_SPLICE,
     MUT_COLOR_TRUNC,
 } from 'cbioportal-frontend-commons';
+import { NumericGeneMolecularDataWithStatus } from '../tabs/LocalClinicalTrialsMatch';
+import { clinicalTrial } from 'cbioportal-utils/src/model/LocalCT';
 
 const mutationColorMap: Record<string, string> = {
     Missense_Mutation: MUT_COLOR_MISSENSE,
@@ -27,10 +33,15 @@ const mutationColorMap: Record<string, string> = {
 
 interface Props {
     filteredMutations: Mutation[];
-    filteredCna: NumericGeneMolecularData[];
+    filteredCna: NumericGeneMolecularDataWithStatus[];
+    filteredSV: StructuralVariant[];
 }
 
-const CTLazyTable: React.FC<Props> = ({ filteredMutations, filteredCna }) => {
+const CTLazyTable: React.FC<Props> = ({
+    filteredMutations,
+    filteredCna,
+    filteredSV,
+}) => {
     const columns: Column<Mutation>[] = [
         {
             name: 'Patient ID',
@@ -70,11 +81,11 @@ const CTLazyTable: React.FC<Props> = ({ filteredMutations, filteredCna }) => {
             name: 'Matched Trial',
             render: (m: Mutation) => (
                 <a
-                    href={`https://www.quickqueck.de/detail/228/`}
+                    href={`https://clinicaltrials.gov/study/NCT04924075`}
                     target="_blank"
                     rel="noopener noreferrer"
                 >
-                    Soratram
+                    MK-6482-015-Phase2
                 </a>
             ),
             sortBy: (m: Mutation) => 'Soratram', // Placeholder for sorting

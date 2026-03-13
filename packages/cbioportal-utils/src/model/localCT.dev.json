@@ -1,0 +1,61 @@
+{
+	"studies": [
+		{
+			"studyName": "MK-6482-015-Phase2",
+			"studyUrl": "https://clinicaltrials.gov/study/NCT04924075",
+			"inclusionCriteria": [
+				"EPAS1:MUT",
+				"FH:MUT",
+				"SDHA:MUT",
+				"SDHB:MUT",
+				"SDHC:MUT",
+				"SDHD:MUT",
+				"SDHAF2:MUT",
+				"EGLN1:MUT",
+				"EGLN2:MUT",
+				"MDH1:MUT",
+				"MDH2:MUT",
+				"ELOC:MUT"
+			],
+			"exclusionCriteria": [],
+			"min_age": 12
+		},
+		{
+			"studyName":"Soratram",
+			"studyUrl":"https://www.quickqueck.de/detail/228/",
+			"inclusionCriteria":[
+				"BRAF:G460R",
+				"BRAF:G466A",
+				"BRAF:G466R",
+				"BRAF:G466V",
+				"BRAF:G466E",
+				"BRAF:N581S",
+				"BRAF:N581T",
+				"BRAF:N581I",
+				"BRAF:N581D",
+				"BRAF:D594E",
+				"BRAF:D594G",
+				"BRAF:D594N",
+				"BRAF:D594H",
+				"BRAF:A598T",
+				"BRAF:G596R"],
+			"exclusionCriteria":[
+				"BRAF:V600E",
+				"BRAF:V600K",
+				"BRAF:V600D",
+				"BRAF:V600R",
+				"BRAF:V600M"
+			],
+			"min_age": 18
+		},
+		{
+			"studyName":"ECI830 Single Agent or in Combination",
+			"studyUrl":"https://clinicaltrials.gov/study/NCT06726148",
+			"inclusionCriteria":[
+				"CCNE1:AMP"
+			],
+			"exclusionCriteria":[],
+			"min_age": 18
+		}
+	]
+}

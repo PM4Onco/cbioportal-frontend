@@ -16,16 +16,9 @@ import {
     getSvData,
 } from 'pages/studyView/StudyViewComparisonUtils';
 import CTLazyTable from 'pages/studyView/table/LocalCTTable';
-
-// Object representing a clinical trial
-export declare type LocalCTMatchData = {
-    matchedTrialNames: string[]; // e.g., "Soratram", ""
-    matchtedTrialURLs: string[]; // e.g. "https://clinicaltrials.gov/ct2/show/NCT03434379", "https://www.quickqueck.de/detail/228/"
-    min_age: number; // e.g., 18
-    max_age: number; // e.g., 99
-    inclusionCriteria: string[]; // e.g., "BRAF:MUT", "BRAF:V600E", "CCNE1:DEL"
-    exclusionCriteria: string[]; // e.g., "TP53:MUT", "TP53:ANY", "TP53:WT"
-};
+import { getLocalCT, clinicalTrial } from 'cbioportal-utils/src/model/LocalCT';
+import { parseOQLQuery } from 'shared/lib/oql/oqlfilter';
+import { parse } from 'shared/lib/oql/oql-parser';
 
 // Object that combines all alterations associated with a study and patient/sample information
 export declare type CTFilter = {
@@ -35,8 +28,8 @@ export declare type CTFilter = {
     matchtedTrialURLs: string[];
     hugoGeneSymbols: string[];
     alterationTypes: string[]; // e.g., 'MUTATION', 'COPY_NUMBER_ALTERATION', 'STRUCTURAL_VARIANT'
-    alterations: string[]; // e.g. "V600E", "AMP", "BCR-ABL1 Fusion"
-    alterationDescriptions: string[]; // e.g., 'Missense_Mutation', 'Amplification', 'Fusion'
+    alterations: string[]; // e.g. "V600E", "AMP", "FUSION"
+    alterationDescriptions: string[]; // e.g., 'Missense_Mutation', 'Amplification', 'BCR-ABL1 Fusion'
 };
 
 // Helper function to get CNV type
@@ -58,9 +51,91 @@ interface MutationsPerPatient {
     sampleIds: Set<string>;
 }
 
+interface AlterationDatum {
+    gene: string;
+    sampleId: string;
+
+    alterationType: 'mutation' | 'cna' | 'sv';
+
+    // mutation fields
+    proteinChange?: string;
+    mutationType?: string;
+
+    // CNA
+    cna?: number;
+
+    // fusion / SV
+    fusion?: boolean;
+    partnerGene?: string;
+
+    // raw data reference (optional)
+    raw?: any;
+}
+
 // Get client for cBioPortal API calls
 const client = new CBioPortalAPI();
+/*
+export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
+    // Parse trial inclusion/exclusion criteria into OQL-like tokens:
+    // examples produced: "KRAS:MUT", "BRAF:V600E", "CCNE1:AMP"
+    if (!trials) {
+        return {
+            hugoFilterMutation: [] as string[],
+            hugoFilterCNA: [] as string[],
+            hugoFilterSV: [] as string[],
+        };
+    }
 
+    const mutationSet = new Set<string>();
+    const cnaSet = new Set<string>();
+    const svSet = new Set<string>();
+
+    const normalize = (s: string) => s.trim().replace(/\s+/g, ' ');
+
+    const parseCriterionString = (critStr: string) => {
+        // split multiple criteria in one string (comma/semicolon separated)
+        const tokens = critStr.split(/[,;]+/).map(t => normalize(t)).filter(Boolean);
+        tokens.forEach(token => {
+            // token examples: "KRAS:MUT", "BRAF:V600E", "CCNE1:AMP", "TP53:ANY", "GENE1:GENE2:FUSION"
+            const parts = token.split(':').map(p => p.trim()).filter(Boolean);
+            if (parts.length === 0) return;
+
+            if (parts.length === 1) {
+                // single gene — treat as any mutation
+                mutationSet.add(`${parts[0]}:ANY`);
+                return;
+            }
+
+            // If last part indicates CNA
+            const last = parts[parts.length - 1].toUpperCase();
+            const gene = parts[0];
+
+            if (/(AMP|AMPLIFICATION|GAIN|CNV|COPY)/i.test(last) || last === 'AMP' || last === 'DEL') {
+                cnaSet.add(`${gene}:${parts.slice(1).join(':')}`);
+            } else if (/(FUSION|TRANSLOCATION|SV|REARRANGEMENT)/i.test(last) || parts.length >= 3) {
+                // treat multi-part tokens or explicit fusion markers as structural variants
+                svSet.add(`${parts.slice(0, 2).join(':')}:${parts.slice(2).join(':')}`);
+            } else {
+                // treat as mutation (including specific AA changes like V600E or generic MUT/ANY/WT)
+                mutationSet.add(`${gene}:${parts.slice(1).join(':')}`);
+            }
+        });
+    };
+
+    trials.forEach(t => {
+        const incl = (t.inclusionCriteria as string[]) || [];
+        const excl = (t.exclusionCriteria as string[]) || [];
+        incl.forEach(c => c && parseCriterionString(c));
+        excl.forEach(c => c && parseCriterionString(c));
+    });
+
+    return {
+        hugoFilterMutation: Array.from(mutationSet),
+        hugoFilterCNA: Array.from(cnaSet),
+        hugoFilterSV: Array.from(svSet),
+    };
+}
+*/
 export function useMutationsPerPatient(
     store: StudyViewPageStore,
     hugoFilter: string[]
@@ -96,6 +171,8 @@ export function useMutationsPerPatient(
             );
 
             // Get mutation, CNA, and SV data for the samples and selected genes with a fail-safe that sets data to empty arrays if there are no mutations/CNA/SV in the study, so that we can still render the page and just show no matches, instead of crashing the page
+
+            // SNVs and indels
             let mutations: Mutation[] = [];
 
             try {
@@ -108,20 +185,13 @@ export function useMutationsPerPatient(
                 console.error('No mutations in study:', error);
             }
 
+            // CNAs with copy number status
             let cna: NumericGeneMolecularData[] = [];
 
             try {
                 cna = await getCnaData(sampleArray, cnaProfiles, hugoFilter);
             } catch (error) {
                 console.error('No CNA in study:', error);
-            }
-
-            let sv: StructuralVariant[] = [];
-
-            try {
-                sv = await getSvData(sampleArray, svProfiles, hugoFilter);
-            } catch (error) {
-                console.error('No SV in study:', error);
             }
 
             let cnaExt: NumericGeneMolecularDataWithStatus[] = [];
@@ -145,9 +215,14 @@ export function useMutationsPerPatient(
                 });
             }
 
-            console.log('Mutations:', mutations);
-            console.log('Copy number alterations:', cnaExt);
-            console.log('Structural variants:', sv);
+            // SVs [== Fusions]
+            let sv: StructuralVariant[] = [];
+
+            try {
+                sv = await getSvData(sampleArray, svProfiles, hugoFilter);
+            } catch (error) {
+                // console.error('No SV in study:', error);
+            }
 
             const patientIds = new Set<string>();
             const sampleIds = new Set<string>();
@@ -173,36 +248,86 @@ export function useMutationsPerPatient(
 }
 
 const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
+    const [trials, setTrials] = useState<clinicalTrial[] | null>(null);
+
+    useEffect(() => {
+        const loadTrials = async () => {
+            try {
+                const data = await getLocalCT();
+                setTrials(data);
+            } catch (err) {
+                console.error('Error loading clinical trials:', err);
+            }
+        };
+        loadTrials();
+    }, []);
+
+    console.log('Trials:', trials);
+
+    /*
+    const { hugoFilterMutation, hugoFilterCNA, hugoFilterSV } = getFiltersFromTrials(trials) || {
+        hugoFilterMutation: [],
+        hugoFilterCNA: [],
+        hugoFilterSV: [],
+    };
+
+    console.log("Mutations:", hugoFilterMutation)
+    console.log("CNA:", hugoFilterCNA)
+    console.log("Fusions:", hugoFilterSV)
+*/
+    // Make hugoFilters for OQL queries
+    //
+
     const [hugoFilter] = useState<string[]>([
-        'BRAF',
-        'TP53',
-        'CHEK1',
-        'LAMP1',
-        'FGF4',
+        'EPAS1',
+        'FH',
         'SDHA',
         'SDHB',
         'SDHC',
         'SDHD',
-        'MSH3',
-        'MSH6',
-        'MLH1',
-        'PMS2',
+        'SDHAF2',
+        'EGLN1',
+        'EGLN2',
+        'MDH1',
+        'MDH2',
+        'ELOC',
     ]);
+
+    const [OQLFilter] = useState<string[]>([
+        'BRAF:G460R',
+        'BRAF:G466A',
+        'BRAF:G466R',
+        'BRAF:G466V',
+        'BRAF:G466E',
+        'BRAF:N581S',
+        'BRAF:N581T',
+        'BRAF:N581I',
+        'BRAF:N581D',
+        'BRAF:D594E',
+        'BRAF:D594G',
+        'BRAF:D594N',
+        'BRAF:D594H',
+        'BRAF:A598T',
+        'BRAF:G596R',
+        'CCNE1:AMP',
+    ]);
+
+    const [OQL] = useState<string>('BRAF:V600E');
+
+    const parsedOql = parseOQLQuery(OQL);
+    console.log('OQL:', parsedOql);
 
     const mutationsPerPatient = useMutationsPerPatient(store, hugoFilter);
 
     if (!mutationsPerPatient) {
-        return (
-            <div>
-                ERROR! No mutations for this study found. Clinical Trials cannot
-                be matched.
-            </div>
-        );
+        return <div>Loading Clinical Trial Matches</div>;
     }
 
     const filteredMutations = mutationsPerPatient.mutations.filter(m =>
         hugoFilter.includes(m.gene?.hugoGeneSymbol || '')
     );
+
+    const oqlfilteredMutations = mutationsPerPatient.mutations.filter(m => []);
 
     const filteredCna = mutationsPerPatient.cnaExt.filter(c =>
         hugoFilter.includes(c.gene?.hugoGeneSymbol || '')
@@ -217,6 +342,7 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
             <CTLazyTable
                 filteredMutations={filteredMutations}
                 filteredCna={filteredCna}
+                filteredSV={filteredSV}
             />
         </div>
     );
