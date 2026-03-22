@@ -21,6 +21,7 @@ import { CancerGene } from 'oncokb-ts-api-client';
 import AnnotationHeader from './annotation/AnnotationHeader';
 import { VariantAnnotation } from 'genome-nexus-ts-api-client';
 import _ from 'lodash';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
 
 export interface IAnnotationColumnProps extends AnnotationProps {
     pubMedCache?: OncokbPubMedCache;
@@ -40,6 +41,7 @@ export default class AnnotationColumnFormatter {
         indexedVariantAnnotations?: RemoteData<
             { [genomicLocation: string]: VariantAnnotation } | undefined
         >,
+        sharedTherapyRecommendationData?: ISharedTherapyRecommendationData,
         resolveTumorType?: (mutation: Mutation) => string
     ): number[] {
         const annotationData: IAnnotation = getAnnotationData(
@@ -51,6 +53,7 @@ export default class AnnotationColumnFormatter {
             civicGenes,
             civicVariants,
             indexedVariantAnnotations,
+            sharedTherapyRecommendationData,
             resolveTumorType
         );
         return annotationSortValue(annotationData);
@@ -67,6 +70,7 @@ export default class AnnotationColumnFormatter {
         indexedVariantAnnotations?: RemoteData<
             { [genomicLocation: string]: VariantAnnotation } | undefined
         >,
+        sharedTherapyRecommendationData?: ISharedTherapyRecommendationData,
         resolveTumorType?: (mutation: Mutation) => string,
         shouldShowRevue?: boolean
     ) {
@@ -79,6 +83,7 @@ export default class AnnotationColumnFormatter {
             civicGenes,
             civicVariants,
             indexedVariantAnnotations,
+            sharedTherapyRecommendationData,
             resolveTumorType
         );
 

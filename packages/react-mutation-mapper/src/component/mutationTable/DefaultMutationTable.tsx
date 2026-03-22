@@ -40,6 +40,7 @@ import { MutationColumn } from './MutationColumnHelper';
 
 import './defaultMutationTable.scss';
 import { getClinvarData } from '../clinvar/ClinvarHelper';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils/src/model/TherapyRecommendation';
 
 export type DefaultMutationTableProps = {
     hotspotData?: RemoteData<IHotspotIndex | undefined>;
@@ -55,11 +56,13 @@ export type DefaultMutationTableProps = {
     selectedTranscriptId?: string;
     enableCivic?: boolean;
     enableRevue?: boolean;
+    enableSharedTR?: boolean;
     civicGenes?: RemoteData<ICivicGeneIndex | undefined>;
     civicVariants?: RemoteData<ICivicVariantIndex | undefined>;
     pubMedCache?: MobxCache;
     columns: Column<Partial<Mutation>>[];
     appendColumns?: boolean;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 } & DataTableProps<Partial<Mutation>>;
 
 @observer
@@ -123,7 +126,8 @@ export default class DefaultMutationTable extends React.Component<
                       this.props.usingPublicOncoKbInstance,
                       this.props.civicGenes,
                       this.props.civicVariants,
-                      this.props.indexedVariantAnnotations
+                      this.props.indexedVariantAnnotations,
+                      this.props.sharedTherapyRecommendationData
                   );
     }
 
@@ -216,6 +220,7 @@ export default class DefaultMutationTable extends React.Component<
                         enableHotspot={true}
                         enableCivic={this.props.enableCivic || false}
                         enableRevue={true}
+                        enableSharedTR={true}
                         hotspotData={this.props.hotspotData}
                         oncoKbData={this.props.oncoKbData}
                         oncoKbCancerGenes={this.props.oncoKbCancerGenes}
@@ -227,6 +232,9 @@ export default class DefaultMutationTable extends React.Component<
                         civicVariants={this.props.civicVariants}
                         indexedVariantAnnotations={
                             this.props.indexedVariantAnnotations
+                        }
+                        sharedTherapyRecommendationData={
+                            this.props.sharedTherapyRecommendationData
                         }
                     />
                 );

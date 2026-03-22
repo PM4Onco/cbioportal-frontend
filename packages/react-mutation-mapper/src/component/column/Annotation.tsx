@@ -37,6 +37,8 @@ import { CanonicalMutationType } from 'cbioportal-frontend-commons';
 import { VariantAnnotation, Vues as VUE } from 'genome-nexus-ts-api-client';
 import { RevueCell, sortValue as revueSortValue } from '../revue/Revue';
 import annotationStyles from './annotation.module.scss';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils/src/model/TherapyRecommendation';
+import BzkfAnnotation from '../bzkfAnnotation/BzkfAnnotation';
 
 export type AnnotationProps = {
     mutation?: Mutation;
@@ -44,6 +46,7 @@ export type AnnotationProps = {
     enableHotspot: boolean;
     enableCivic: boolean;
     enableRevue: boolean;
+    enableSharedTR: boolean;
     hotspotData?: RemoteData<IHotspotIndex | undefined>;
     oncoKbData?: RemoteData<IOncoKbData | Error | undefined>;
     oncoKbCancerGenes?: RemoteData<CancerGene[] | Error | undefined>;
@@ -60,6 +63,7 @@ export type AnnotationProps = {
     >;
     userDisplayName?: string;
     hasMultipleCancerTypes?: boolean;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 };
 
 export type GenericAnnotationProps = {
@@ -68,6 +72,7 @@ export type GenericAnnotationProps = {
     enableHotspot: boolean;
     enableOncoKb: boolean;
     enableRevue: boolean;
+    enableSharedTR: boolean;
     mergeOncoKbIcons?: boolean;
     oncoKbContentPadding?: number;
     pubMedCache?: MobxCache;
@@ -90,6 +95,7 @@ export interface IAnnotation {
     hasCivicVariants: boolean;
     hugoGeneSymbol: string;
     vue?: VUE;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 }
 
 export const DEFAULT_ANNOTATION_DATA: IAnnotation = {
@@ -104,6 +110,14 @@ export const DEFAULT_ANNOTATION_DATA: IAnnotation = {
     hugoGeneSymbol: '',
     hasCivicVariants: true,
     civicStatus: 'complete',
+    sharedTherapyRecommendationData: {
+        localTherapyRecommendations: [],
+        localFollowUps: [],
+        sharedTherapyRecommendations: [],
+        sharedFollowUps: [],
+        diagnosis: [],
+        proteinChange: '',
+    },
 };
 
 function getDefaultEntrezGeneId(mutation: Mutation): number {
@@ -126,6 +140,7 @@ export function getAnnotationData(
     indexedVariantAnnotations?: RemoteData<
         { [genomicLocation: string]: VariantAnnotation } | undefined
     >,
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData,
     resolveTumorType: (mutation: Mutation) => string = getDefaultTumorType,
     resolveEntrezGeneId: (mutation: Mutation) => number = getDefaultEntrezGeneId
 ): IAnnotation {
@@ -139,7 +154,8 @@ export function getAnnotationData(
             oncoKbData?.isComplete &&
             civicGenes?.isComplete &&
             civicVariants?.isComplete &&
-            indexedVariantAnnotations?.isComplete;
+            indexedVariantAnnotations?.isComplete &&
+            !!sharedTherapyRecommendationData;
 
         if (memoize) {
             key = JSON.stringify(mutation) + !!usingPublicOncoKbInstance;
@@ -276,6 +292,24 @@ export function getAnnotationData(
                 oncoKbIndicator: undefined,
             };
         }
+
+        value = {
+            ...value,
+            sharedTherapyRecommendationData: sharedTherapyRecommendationData
+                ? {
+                      ...sharedTherapyRecommendationData,
+                      proteinChange: mutation.proteinChange,
+                  }
+                : {
+                      localTherapyRecommendations: [],
+                      sharedTherapyRecommendations: [],
+                      localFollowUps: [],
+                      sharedFollowUps: [],
+                      diagnosis: [],
+                      proteinChange: mutation.proteinChange,
+                  },
+        };
+
         if (memoize) {
             memoized.set(key, value as any);
         }
@@ -307,6 +341,7 @@ export function GenericAnnotation(props: GenericAnnotationProps): JSX.Element {
         enableHotspot,
         enableOncoKb,
         enableRevue,
+        enableSharedTR,
         pubMedCache,
         userDisplayName,
         mergeOncoKbIcons,
@@ -316,6 +351,16 @@ export function GenericAnnotation(props: GenericAnnotationProps): JSX.Element {
 
     return (
         <span style={{ display: 'flex', minWidth: 100 }}>
+            {enableSharedTR && (
+                <BzkfAnnotation
+                    status={'complete'}
+                    hugoGeneSymbol={annotation.hugoGeneSymbol}
+                    sharedTherapyRecommendationData={
+                        annotation.sharedTherapyRecommendationData ||
+                        ({} as ISharedTherapyRecommendationData)
+                    }
+                />
+            )}
             {enableOncoKb && (
                 <OncoKB
                     usingPublicOncoKbInstance={
@@ -382,6 +427,7 @@ export default class Annotation extends React.Component<AnnotationProps, {}> {
             civicGenes,
             civicVariants,
             indexedVariantAnnotations,
+            sharedTherapyRecommendationData,
         } = props;
 
         return getAnnotationData(
@@ -393,6 +439,7 @@ export default class Annotation extends React.Component<AnnotationProps, {}> {
             civicGenes,
             civicVariants,
             indexedVariantAnnotations,
+            sharedTherapyRecommendationData,
             resolveTumorType,
             resolveEntrezGeneId
         );

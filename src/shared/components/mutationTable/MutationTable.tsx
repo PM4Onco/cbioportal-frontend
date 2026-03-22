@@ -87,6 +87,7 @@ import {
 import { NamespaceColumnConfig } from 'shared/components/namespaceColumns/NamespaceColumnConfig';
 import CustomDriverColumnFormatter from './column/CustomDriverColumnFormatter';
 import CustomDriverTierColumnFormatter from './column/CustomDriverTierColumnFormatter';
+import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
 
 export interface IMutationTableProps {
     studyIdToStudy?: { [studyId: string]: CancerStudy };
@@ -108,6 +109,7 @@ export interface IMutationTableProps {
     enableHotspot?: boolean;
     enableCivic?: boolean;
     enableRevue?: boolean;
+    enableSharedTR?: boolean;
     enableCustomDriver?: boolean;
     enableFunctionalImpact?: boolean;
     hotspotData?: RemoteData<IHotspotIndex | undefined>;
@@ -167,6 +169,7 @@ export interface IMutationTableProps {
     customDriverDescription?: string;
     customDriverTiersName?: string;
     customDriverTiersDescription?: string;
+    sharedTherapyRecommendationData?: ISharedTherapyRecommendationData;
 }
 
 export enum MutationTableColumnType {
@@ -308,6 +311,7 @@ export default class MutationTable<
         enableHotspot: true,
         enableCivic: false,
         enableRevue: true,
+        enableSharedTR: true,
     };
 
     constructor(props: P) {
@@ -763,7 +767,7 @@ export default class MutationTable<
                 filterString: string,
                 filterStringUpper: string
             ) => defaultFilter(d, 'mutationStatus', filterStringUpper),
-            visible: false,
+            visible: true,
         };
 
         this._columns[MutationTableColumnType.VALIDATION_STATUS] = {
@@ -925,7 +929,7 @@ export default class MutationTable<
                     this.props.selectedTranscriptId
                 ),
             headerRender: FunctionalImpactColumnFormatter.headerRender,
-            visible: false,
+            visible: true,
             shouldExclude: () => !this.props.enableFunctionalImpact,
         };
 
@@ -959,9 +963,12 @@ export default class MutationTable<
                         enableHotspot: this.props.enableHotspot as boolean,
                         enableRevue:
                             !!this.props.enableRevue && this.shouldShowRevue,
+                        enableSharedTR: this.props.enableSharedTR as boolean,
                         userDisplayName: this.props.userDisplayName,
                         indexedVariantAnnotations: this.props
                             .indexedVariantAnnotations,
+                        sharedTherapyRecommendationData: this.props
+                            .sharedTherapyRecommendationData,
                         resolveTumorType: this.resolveTumorType,
                     })}
                 </span>
@@ -983,6 +990,7 @@ export default class MutationTable<
                             this.props.civicGenes,
                             this.props.civicVariants,
                             this.props.indexedVariantAnnotations,
+                            this.props.sharedTherapyRecommendationData,
                             this.resolveTumorType
                         );
 
@@ -1024,6 +1032,7 @@ export default class MutationTable<
                     this.props.civicGenes,
                     this.props.civicVariants,
                     this.props.indexedVariantAnnotations,
+                    this.props.sharedTherapyRecommendationData,
                     this.resolveTumorType,
                     !!this.props.enableRevue && this.shouldShowRevue
                 );
@@ -1038,6 +1047,7 @@ export default class MutationTable<
                     this.props.civicGenes,
                     this.props.civicVariants,
                     this.props.indexedVariantAnnotations,
+                    this.props.sharedTherapyRecommendationData,
                     this.resolveTumorType
                 );
             },
@@ -1273,7 +1283,7 @@ export default class MutationTable<
                 </span>
             ),
             defaultSortDirection: 'desc',
-            visible: false,
+            visible: true,
             align: 'left',
         };
 

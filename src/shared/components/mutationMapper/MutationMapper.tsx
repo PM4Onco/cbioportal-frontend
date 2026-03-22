@@ -103,6 +103,7 @@ export interface IMutationMapperProps {
     enableHotspot?: boolean;
     enableCivic?: boolean;
     enableRevue?: boolean;
+    enableSharedTR?: boolean;
     ptmSources?: string[];
     showDownload?: boolean;
     customDriverName?: string;

@@ -12,6 +12,7 @@ export interface IMutationMapperServerConfig {
     show_hotspot?: boolean;
     show_civic?: boolean;
     show_revue?: boolean;
+    show_sharedTR?: boolean;
     ptmSources?: string[];
     mygene_info_url: string | null;
     uniprot_id_url: string | null;
@@ -51,5 +52,6 @@ export function convertToMutationMapperProps(
         customDriverTiersDescription:
             config.oncoprint_custom_driver_annotation_tiers_menu_description ||
             undefined,
+        enableSharedTR: config.show_sharedTR,
     };
 }
