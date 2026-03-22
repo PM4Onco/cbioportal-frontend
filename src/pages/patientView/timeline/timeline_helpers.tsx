@@ -3,6 +3,7 @@ import {
     getAttributeValue,
     ITimelineConfig,
     POINT_COLOR,
+    useDateFormat,
     TimelineEvent,
     TimelineLegendItem,
     TimelineTrackSpecification,
@@ -461,6 +462,9 @@ export function buildBaseConfig(
                                 attr => attr.key
                             );
 
+                            // Use Context for date format and day of diagnosis
+                            const { startDate } = useDateFormat();
+
                             return (
                                 <table>
                                     <tbody>
@@ -501,7 +505,21 @@ export function buildBaseConfig(
                                         <tr>
                                             <th>START DATE</th>
                                             <td className={'nowrap'}>
-                                                {formatDate(event.start)}
+                                                {/* 1. Relative Date (Always) */}
+                                                {formatDate(
+                                                    event.start,
+                                                    startDate,
+                                                    false
+                                                )}
+                                                {/* 2. Absolute Date (If start date exists) */}
+                                                {startDate &&
+                                                    ' (' +
+                                                        formatDate(
+                                                            event.start,
+                                                            startDate,
+                                                            true
+                                                        ) +
+                                                        ')'}
                                             </td>
                                         </tr>
                                     </tbody>

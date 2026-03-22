@@ -1,4 +1,4 @@
-$width: 1200px;
+$width: 800px;
 $borderColor: #ccc;
 $tl-fontsize: 12px;
 
@@ -170,6 +170,10 @@ $tl-fontsize: 12px;
 
 .tl-custom-track-header {
     position: relative;
+}
+
+.line-break {
+    white-space: pre-wrap;
 }
 
 .tl-tracklegend {
