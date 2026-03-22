@@ -20,11 +20,13 @@ export * from './model/MobxCache';
 export * from './model/Mutation';
 export * from './model/MyVariantInfo';
 export * from './model/OncoKB';
+export * from './model/OncoTreeTumorTypes';
 export * from './model/PostTranslationalModification';
 export * from './model/RemoteData';
 export * from './model/SignalMutation';
 export * from './model/SignalMutationStatus';
 export * from './model/SignalGeneFrequencySummary';
+export * from './model/TherapyRecommendation';
 export * from './model/Uniprot';
 
 export * from './mutation/MutationAnnotator';
