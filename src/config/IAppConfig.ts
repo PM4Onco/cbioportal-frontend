@@ -78,6 +78,7 @@ export interface IServerConfig {
     show_transcript_dropdown: boolean;
     show_signal: boolean;
     show_ndex: boolean;
+    show_sharedTR: boolean;
     survival_initial_x_axis_limit: number;
     survival_show_p_q_values_in_survival_type_table: boolean;
     survival_min_group_threshold: number;
@@ -163,6 +164,8 @@ export interface IServerConfig {
     enable_request_body_gzip_compression: boolean;
     enable_treatment_groups: boolean;
     referenceGenomeVersion: string;
+    skin_show_unauthorized_studies: boolean;
+    skin_global_message_for_unauthorized_studies: string;
     skin_home_page_show_unauthorized_studies: boolean;
     skin_home_page_show_reference_genome: string;
     skin_home_page_unauthorized_studies_global_message: string;
@@ -176,6 +179,9 @@ export interface IServerConfig {
     skin_patient_view_tables_default_sort_column: string;
     skin_patient_view_custom_sample_type_colors_json: string;
     comparison_categorical_na_values: string;
+    fhirspark?: IFhirsparkConfig;
+    cancerdrugsUrl?: string;
+    cancerdrugsJsonUrl?: string;
     oncoprint_clinical_tracks_config_json: string;
     oncoprint_clustered_default: boolean; // this has a default
     enable_cross_study_expression: string;
@@ -190,4 +196,9 @@ export interface IServerConfig {
     clickhouse_mode: boolean;
     download_custom_buttons_json: string;
     feature_study_export: boolean;
+}
+
+export interface IFhirsparkConfig {
+    host: string | null;
+    port: string | null;
 }
