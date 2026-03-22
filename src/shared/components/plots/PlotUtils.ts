@@ -164,7 +164,7 @@ export function makeScatterPlotSizeFunction<D>(
                 const isLineHighlighted = isHovered || isHighlighted;
 
                 return size(d, active, isHighlighted, isLineHighlighted);
-            };   
+            };
         } else {
             return size;
         }

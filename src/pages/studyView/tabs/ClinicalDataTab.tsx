@@ -27,6 +27,7 @@ import { Else, If, Then } from 'react-if';
 import { IProgressIndicatorItem } from '../../../shared/components/progressIndicator/ProgressIndicator';
 import autobind from 'autobind-decorator';
 import { WindowWidthBox } from '../../../shared/components/WindowWidthBox/WindowWidthBox';
+import parse from 'html-react-parser';
 import { getServerConfig } from 'config/config';
 import { StudyViewPageTabKeyEnum } from '../StudyViewPageTabs';
 import { computed, makeObservable, observable } from 'mobx';
@@ -119,7 +120,11 @@ export class ClinicalDataTab extends React.Component<
                         </a>
                     );
                 }
-                return <span data-test={data[key]}>{data[key]}</span>;
+                return (
+                    <span data-test={data[key]}>
+                        {this.format(data[key] || '')}
+                    </span>
+                );
             },
             download: (data: { [id: string]: string }) => data[key] || '',
             sortBy: (data: { [id: string]: any }) => {
@@ -152,7 +157,7 @@ export class ClinicalDataTab extends React.Component<
         switch (this.clinicalDataSortCriteria?.field) {
             // these first two are special cases where we are not filtering
             // by an attribute
-            case 'Patient ID':
+            case 'Patient':
                 return 'patientId';
             case 'Sample ID':
                 return 'sampleId';
@@ -203,7 +208,7 @@ export class ClinicalDataTab extends React.Component<
         invoke: async () => {
             let defaultColumns: Column<{ [id: string]: string }>[] = [
                 {
-                    ...this.getDefaultColumnConfig('patientId', 'Patient ID'),
+                    ...this.getDefaultColumnConfig('patientId', 'Patient'),
                     render: (data: { [id: string]: string }) => {
                         return (
                             <a
@@ -213,7 +218,13 @@ export class ClinicalDataTab extends React.Component<
                                 )}
                                 target="_blank"
                             >
-                                {data.patientId}
+                                {data.PATIENT_DISPLAY_NAME &&
+                                data.PATIENT_DISPLAY_NAME !== 'Unknown'
+                                    ? this.format(data.PATIENT_DISPLAY_NAME) +
+                                      ' (' +
+                                      data.patientId +
+                                      ')'
+                                    : data.patientId}
                             </a>
                         );
                     },
@@ -284,6 +295,17 @@ export class ClinicalDataTab extends React.Component<
         },
         default: [],
     });
+
+    readonly format = function(input: string) {
+        const search = ['Ã¤', 'Ã¼', 'Ã¶', 'Ã„', 'Ã–', 'Ãœ', 'ÃŸ'];
+        const replace = ['ä', 'ü', 'ö', 'Ä', 'Ö', 'Ü', 'ß'];
+        let regex;
+        for (let i = 0; i < search.length; i++) {
+            regex = new RegExp(search[i], 'g');
+            input = input.replace(regex, replace[i]);
+        }
+        return parse(input);
+    };
 
     @autobind
     getProgressItems(elapsedSecs: number): IProgressIndicatorItem[] {
