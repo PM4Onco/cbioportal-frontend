@@ -1,0 +1,36 @@
+.tooltip {
+    max-height: 400px;
+    max-width: 600px;
+    overflow: auto;
+}
+
+.tooltipSpan {
+    padding-bottom: 6px;
+    padding-top: 8px;
+}
+
+.header6 {
+    color: #3786c2;
+    font-size: 12px;
+    padding-right: 6px;
+}
+
+.header5 {
+    color: #3786c2;
+    padding-right: 6px;
+}
+
+.icon {
+    .marginLeft {
+        margin-left: 5px;
+    }
+    .marginRight {
+        margin-right: 5px;
+    }
+}
+
+.powered {
+    padding-right: 9px;
+    text-align: right;
+    font-size: 13px;
+}
