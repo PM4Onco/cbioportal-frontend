@@ -26,6 +26,8 @@ import * as React from 'react';
 import SampleManager from 'pages/patientView/SampleManager';
 import PatientViewPage from 'pages/patientView/PatientViewPage';
 import PatientViewUrlWrapper from 'pages/patientView/PatientViewUrlWrapper';
+import { ClinicalTrialMatchTable } from './clinicalTrialMatch/ClinicalTrialMatchTable';
+import MtbTable from './therapyRecommendation/MtbTable';
 import { CompactVAFPlot } from 'pages/patientView/genomicOverview/CompactVAFPlot';
 import {
     computeMutationFrequencyBySample,
@@ -34,7 +36,11 @@ import {
 import genomicOverviewStyles from 'pages/patientView/genomicOverview/styles.module.scss';
 import FeatureInstruction from 'shared/FeatureInstruction/FeatureInstruction';
 import { HelpWidget } from 'shared/components/HelpWidget/HelpWidget';
+import FollowUpTable from './therapyRecommendation/FollowUpTable';
 import MutationTableWrapper from './mutation/MutationTableWrapper';
+import Proms from './proms/Proms';
+import { doClinicalEventsHavePromData } from './proms/utils/PromChartHelperFunctions';
+import { QUESTIONNAIRE_NAME as QUESTIONNAIRE_NAME_EQ_5D_5L } from './proms/utils/EQ-5D-5LChartMetadata';
 import { PatientViewPageInner } from 'pages/patientView/PatientViewPage';
 import { Else, If } from 'react-if';
 
@@ -49,6 +55,10 @@ export enum PatientViewPageTabs {
     TrialMatchTab = 'trialMatchTab',
     MutationalSignatures = 'mutationalSignatures',
     PathwayMapper = 'pathways',
+    Mtb = 'mtb',
+    FollowUp = 'followUp',
+    ClinicalTrialsGov = 'clinicaltrialsGov',
+    Proms = 'proms',
 }
 
 export const PatientViewResourceTabPrefix = 'openResource_';
@@ -646,6 +656,158 @@ export function tabs(
             </MSKTab>
         );
 
+    pageComponent.shouldShowMtbTab &&
+        pageComponent.patientViewPageStore.mutationData.isComplete &&
+        pageComponent.patientViewPageStore.discreteCNAData.isComplete &&
+        (pageComponent.patientViewPageStore.oncoKbData.isComplete ||
+            pageComponent.patientViewPageStore.oncoKbData.isError) &&
+        (pageComponent.patientViewPageStore.mtbs.isComplete ||
+            pageComponent.patientViewPageStore.mtbs.isError) &&
+        (pageComponent.patientViewPageStore.cnaOncoKbData.isComplete ||
+            pageComponent.patientViewPageStore.cnaOncoKbData.isError) &&
+        tabs.push(
+            <MSKTab
+                key={42}
+                id={PatientViewPageTabs.Mtb}
+                linkText="MTB"
+                unmountOnHide={false}
+            >
+                <MtbTable
+                    patientId={pageComponent.patientViewPageStore.patientId}
+                    mutations={
+                        pageComponent.patientViewPageStore.mutationData.result
+                    }
+                    indexedVariantAnnotations={
+                        pageComponent.patientViewPageStore
+                            .indexedVariantAnnotations.result
+                    }
+                    indexedMyVariantInfoAnnotations={
+                        pageComponent.patientViewPageStore
+                            .indexedMyVariantInfoAnnotations.result
+                    }
+                    cna={
+                        pageComponent.patientViewPageStore.discreteCNAData
+                            .result
+                    }
+                    clinicalData={pageComponent.patientViewPageStore.clinicalDataPatient.result.concat(
+                        pageComponent.patientViewPageStore
+                            .clinicalDataForSamples.result
+                    )}
+                    mutationSignatureData={
+                        pageComponent.patientViewPageStore
+                            .mutationalSignatureDataGroupByVersion.result
+                    }
+                    sampleManager={sampleManager}
+                    oncoKbAvailable={
+                        getServerConfig().show_oncokb &&
+                        !pageComponent.patientViewPageStore.cnaOncoKbData
+                            .isError &&
+                        !pageComponent.patientViewPageStore.oncoKbData.isError
+                    }
+                    mtbs={pageComponent.patientViewPageStore.mtbs.result}
+                    deletions={pageComponent.patientViewPageStore.deletions}
+                    containerWidth={WindowStore.size.width - 20}
+                    onDeleteData={pageComponent.patientViewPageStore.deleteMtbs}
+                    onSaveData={pageComponent.patientViewPageStore.updateMtbs}
+                    mtbUrl={pageComponent.patientViewPageStore.getMtbJsonStoreUrl(
+                        ''
+                    )}
+                    checkPermission={
+                        pageComponent.patientViewPageStore.checkPermission
+                    }
+                    oncoKbData={pageComponent.patientViewPageStore.oncoKbData}
+                    cnaOncoKbData={
+                        pageComponent.patientViewPageStore.cnaOncoKbData
+                    }
+                    pubMedCache={pageComponent.patientViewPageStore.pubMedCache}
+                    otherMtbs={
+                        pageComponent.patientViewPageStore
+                            .localTherapyRecommendations.result
+                    }
+                    clinicalTrialClipboard={
+                        pageComponent.patientViewPageStore
+                            .clinicalTrialClipboard
+                    }
+                />
+            </MSKTab>
+        );
+
+    pageComponent.shouldShowFollowUpTab &&
+        pageComponent.patientViewPageStore.mutationData.isComplete &&
+        pageComponent.patientViewPageStore.followUps.isComplete &&
+        pageComponent.patientViewPageStore.discreteCNAData.isComplete &&
+        (pageComponent.patientViewPageStore.oncoKbData.isComplete ||
+            pageComponent.patientViewPageStore.oncoKbData.isError) &&
+        (pageComponent.patientViewPageStore.mtbs.isComplete ||
+            pageComponent.patientViewPageStore.mtbs.isError) &&
+        (pageComponent.patientViewPageStore.cnaOncoKbData.isComplete ||
+            pageComponent.patientViewPageStore.cnaOncoKbData.isError) &&
+        tabs.push(
+            <MSKTab
+                key={44}
+                id={PatientViewPageTabs.FollowUp}
+                linkText="Follow-up"
+                unmountOnHide={false}
+            >
+                <FollowUpTable
+                    patientId={pageComponent.patientViewPageStore.patientId}
+                    mutations={
+                        pageComponent.patientViewPageStore.mutationData.result
+                    }
+                    indexedVariantAnnotations={
+                        pageComponent.patientViewPageStore
+                            .indexedVariantAnnotations.result
+                    }
+                    indexedMyVariantInfoAnnotations={
+                        pageComponent.patientViewPageStore
+                            .indexedMyVariantInfoAnnotations.result
+                    }
+                    mutationSignatureData={
+                        pageComponent.patientViewPageStore
+                            .mutationalSignatureDataGroupByVersion.result
+                    }
+                    cna={
+                        pageComponent.patientViewPageStore.discreteCNAData
+                            .result
+                    }
+                    clinicalData={pageComponent.patientViewPageStore.clinicalDataPatient.result.concat(
+                        pageComponent.patientViewPageStore
+                            .clinicalDataForSamples.result
+                    )}
+                    sampleManager={sampleManager}
+                    checkPermission={
+                        pageComponent.patientViewPageStore.checkPermission
+                    }
+                    mtbUrl={pageComponent.patientViewPageStore.getMtbJsonStoreUrl(
+                        ''
+                    )}
+                    oncoKbAvailable={
+                        getServerConfig().show_oncokb &&
+                        !pageComponent.patientViewPageStore.cnaOncoKbData
+                            .isError &&
+                        !pageComponent.patientViewPageStore.oncoKbData.isError
+                    }
+                    mtbs={pageComponent.patientViewPageStore.mtbs.result}
+                    deletions={pageComponent.patientViewPageStore.deletions}
+                    containerWidth={WindowStore.size.width - 20}
+                    onDeleteData={
+                        pageComponent.patientViewPageStore.deleteFollowUps
+                    }
+                    onSaveData={
+                        pageComponent.patientViewPageStore.updateFollowUps
+                    }
+                    oncoKbData={pageComponent.patientViewPageStore.oncoKbData}
+                    cnaOncoKbData={
+                        pageComponent.patientViewPageStore.cnaOncoKbData
+                    }
+                    pubMedCache={pageComponent.patientViewPageStore.pubMedCache}
+                    followUps={
+                        pageComponent.patientViewPageStore.followUps.result
+                    }
+                />
+            </MSKTab>
+        );
+
     pageComponent.patientViewPageStore.hasMutationalSignatureData.result &&
         pageComponent.patientViewPageStore.initialMutationalSignatureVersion
             .isComplete &&
@@ -702,41 +864,70 @@ export function tabs(
             </MSKTab>
         );
 
+    pageComponent.patientViewPageStore.clinicalEvents.isComplete &&
+        pageComponent.patientViewPageStore.clinicalEvents.result.length > 0 &&
+        doClinicalEventsHavePromData(
+            pageComponent.patientViewPageStore.clinicalEvents.result,
+            [QUESTIONNAIRE_NAME_EQ_5D_5L]
+        ) &&
+        tabs.push(
+            <MSKTab
+                key={45}
+                id={PatientViewPageTabs.Proms}
+                linkText="PROMs"
+                unmountOnHide={false}
+            >
+                <Proms
+                    patientViewPageStore={pageComponent.patientViewPageStore}
+                    sampleManager={sampleManager}
+                    dataStore={pageComponent.patientViewMutationDataStore}
+                    allClinicalEventsInStudy={
+                        pageComponent.patientViewPageStore.allClinicalEvents
+                            .result
+                    }
+                />
+            </MSKTab>
+        );
+
+    tabs.push(
+        <MSKTab
+            key={43}
+            id={PatientViewPageTabs.ClinicalTrialsGov}
+            linkText="ClinicalTrialsGov"
+            unmountOnHide={false}
+        >
+            <ClinicalTrialMatchTable
+                store={pageComponent.patientViewPageStore}
+                clinicalTrialMatches={
+                    pageComponent.patientViewPageStore.clinicalTrialMatches
+                        .result
+                }
+                mtbTabAvailable={pageComponent.shouldShowMtbTab}
+            />
+        </MSKTab>
+    );
+
     pageComponent.resourceTabs.component &&
         /* @ts-ignore */
         tabs.push(...pageComponent.resourceTabs.component);
 
     tabs.push(...buildCustomTabs(pageComponent.customTabs));
 
-    // {getServerConfig().custom_tabs &&
-    //     getServerConfig()
-    //         .custom_tabs.filter(
-    //             (tab: any) =>
-    //                 tab.location === 'PATIENT_PAGE'
-    //         )
-    //         .map((tab: any, i: number) => {
-    //             return (
-    //                 <MSKTab
-    //                     key={getPatientViewResourceTabId(
-    //                         'customTab' + i
-    //                     )}
-    //                     id={getPatientViewResourceTabId(
-    //                         'customTab' + i
-    //                     )}
-    //                     unmountOnHide={
-    //                         tab.unmountOnHide ===
-    //                         true
-    //                     }
-    //                     onTabDidMount={div => {
-    //                         this.customTabMountCallback(
-    //                             div,
-    //                             tab
-    //                         );
-    //                     }}
-    //                     linkText={tab.title}
-    //                 ></MSKTab>
-    //             );
-    //         })}
+    const patientCustomTabs = (getServerConfig().custom_tabs || [])
+        .filter((tab: any) => tab.location === 'PATIENT_PAGE')
+        .map((tab: any, i: number) => (
+            <MSKTab
+                key={getPatientViewResourceTabId('customTab' + i)}
+                id={getPatientViewResourceTabId('customTab' + i)}
+                unmountOnHide={tab.unmountOnHide === true}
+                onTabDidMount={div => {
+                    this.customTabMountCallback(div, tab);
+                }}
+                linkText={tab.title}
+            ></MSKTab>
+        ));
+
+    tabs.push(...patientCustomTabs);
 
     return tabs;
 }
