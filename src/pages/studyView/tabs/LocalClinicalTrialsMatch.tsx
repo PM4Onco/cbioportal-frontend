@@ -3,13 +3,22 @@ import { observer } from 'mobx-react';
 import { StudyViewPageStore } from '../StudyViewPageStore';
 import {
     Mutation,
+    Gene,
     Sample,
     MolecularProfile,
     CBioPortalAPI,
     NumericGeneMolecularData,
     StructuralVariant,
 } from 'cbioportal-ts-api-client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import {
+    NumericGeneMolecularDataWithStatus,
+    MutationsPerPatient,
+    Alteration,
+    AgeFilter,
+    OQLFilter,
+    FinalResultRow,
+} from './LocalClinicalTrialsHelperFunctions/LocalCTInterfaces';
 import {
     getMutationData,
     getCnaData,
@@ -17,128 +26,192 @@ import {
 } from 'pages/studyView/StudyViewComparisonUtils';
 import CTLazyTable from 'pages/studyView/table/LocalCTTable';
 import { getLocalCT, clinicalTrial } from 'cbioportal-utils/src/model/LocalCT';
-import { parseOQLQuery } from 'shared/lib/oql/oqlfilter';
-import { parse } from 'shared/lib/oql/oql-parser';
 
-// Object that combines all alterations associated with a study and patient/sample information
-export declare type CTFilter = {
-    patientId: string[];
-    sampleId: string[];
-    matchedTrialNames: string[]; // e.g., "Soratram", ""
-    matchtedTrialURLs: string[];
-    hugoGeneSymbols: string[];
-    alterationTypes: string[]; // e.g., 'MUTATION', 'COPY_NUMBER_ALTERATION', 'STRUCTURAL_VARIANT'
-    alterations: string[]; // e.g. "V600E", "AMP", "FUSION"
-    alterationDescriptions: string[]; // e.g., 'Missense_Mutation', 'Amplification', 'BCR-ABL1 Fusion'
-};
-
-// Helper function to get CNV type
-export declare type NumericGeneMolecularDataWithStatus = NumericGeneMolecularData & {
-    copyNumberStatus: 'AMP' | 'DEL' | 'NEUTRAL';
-};
+// Get client for cBioPortal API calls
+const client = new CBioPortalAPI();
 
 // Helper function to obrain StudyViewPageStore encoding metadata on the currently viewed study
 interface Props {
     store: StudyViewPageStore;
 }
 
-// Search interface for mutations and CNA
-interface MutationsPerPatient {
-    mutations: Mutation[];
-    cnaExt: NumericGeneMolecularDataWithStatus[];
-    sv: StructuralVariant[];
-    patientIds: Set<string>;
-    sampleIds: Set<string>;
+function alterationLabel(a: Alteration): string {
+    if (a.alterationType === 'Mutation') {
+        return a.proteinChange ?? a.mutationType ?? 'MUT';
+    }
+    if (a.alterationType === 'Copy Number Alteration') {
+        return '';
+        // return a.mutationType ?? 'CNA';
+    }
+    // sv
+    if (a.partnerGene?.hugoGeneSymbol) {
+        return `${a.gene.hugoGeneSymbol}::${a.partnerGene.hugoGeneSymbol}`;
+    }
+    return 'FUSION';
 }
 
-interface AlterationDatum {
-    gene: string;
-    sampleId: string;
-
-    alterationType: 'mutation' | 'cna' | 'sv';
-
-    // mutation fields
-    proteinChange?: string;
-    mutationType?: string;
-
-    // CNA
-    cna?: number;
-
-    // fusion / SV
-    fusion?: boolean;
-    partnerGene?: string;
-
-    // raw data reference (optional)
-    raw?: any;
-}
-
-// Get client for cBioPortal API calls
-const client = new CBioPortalAPI();
-/*
-export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
+function getFiltersFromTrials(trials: clinicalTrial[] | null) {
     // Parse trial inclusion/exclusion criteria into OQL-like tokens:
-    // examples produced: "KRAS:MUT", "BRAF:V600E", "CCNE1:AMP"
+    // examples: "KRAS:MUT", "BRAF:V600E", "CCNE1:AMP"
     if (!trials) {
         return {
-            hugoFilterMutation: [] as string[],
-            hugoFilterCNA: [] as string[],
-            hugoFilterSV: [] as string[],
+            hugoFilter: [] as string[],
+            OQLFilterMutation: [] as OQLFilter[],
+            OQLFilterCNA: [] as OQLFilter[],
+            OQLFilterSV: [] as OQLFilter[],
+            ageFilter: [] as AgeFilter[],
         };
     }
 
-    const mutationSet = new Set<string>();
-    const cnaSet = new Set<string>();
-    const svSet = new Set<string>();
+    const allHugoSymbols = new Set<string>();
+
+    const mutationMap = new Map<string, OQLFilter>();
+    const cnaMap = new Map<string, OQLFilter>();
+    const svMap = new Map<string, OQLFilter>();
 
     const normalize = (s: string) => s.trim().replace(/\s+/g, ' ');
 
-    const parseCriterionString = (critStr: string) => {
+    const makeKey = (f: OQLFilter) => {
+        // Keyed by trial + criterion + gene + alteration specifics
+        return [
+            f.trialName ?? '',
+            f.criterionType,
+            f.gene,
+            f.alterationType,
+            f.proteinChange ?? '',
+            f.mutationType ?? '',
+            f.cnaType ?? '',
+            f.fusionPartner ?? '',
+        ].join('::');
+    };
+
+    const parseCriterionString = (
+        critStr: string,
+        type: 'incl' | 'excl',
+        name: string,
+        url: string
+    ) => {
         // split multiple criteria in one string (comma/semicolon separated)
-        const tokens = critStr.split(/[,;]+/).map(t => normalize(t)).filter(Boolean);
+        const tokens = critStr
+            .split(/[,;]+/)
+            .map(t => normalize(t))
+            .filter(Boolean);
         tokens.forEach(token => {
-            // token examples: "KRAS:MUT", "BRAF:V600E", "CCNE1:AMP", "TP53:ANY", "GENE1:GENE2:FUSION"
-            const parts = token.split(':').map(p => p.trim()).filter(Boolean);
+            // token examples: "KRAS:MUT", "BRAF:V600E", "CCNE1:AMP", "TP53:ANY", "GENE1::GENE2:FUSION"
+            const parts = token
+                .split(':')
+                .map(p => p.trim())
+                .filter(Boolean);
             if (parts.length === 0) return;
 
-            if (parts.length === 1) {
+            const gene = parts[0].toUpperCase();
+
+            if (type === 'incl') {
+                allHugoSymbols.add(gene);
+            }
+
+            const lastRaw = parts[parts.length - 1];
+            const last = lastRaw.toUpperCase();
+
+            if (parts.length === 1 || last === 'MUT') {
                 // single gene — treat as any mutation
-                mutationSet.add(`${parts[0]}:ANY`);
+                const f: OQLFilter = {
+                    gene: gene,
+                    alterationType: 'Mutation',
+                    criterionType: type,
+                    trialName: name,
+                    trialURL: url,
+                };
+                mutationMap.set(makeKey(f), f);
                 return;
             }
 
-            // If last part indicates CNA
-            const last = parts[parts.length - 1].toUpperCase();
-            const gene = parts[0];
-
-            if (/(AMP|AMPLIFICATION|GAIN|CNV|COPY)/i.test(last) || last === 'AMP' || last === 'DEL') {
-                cnaSet.add(`${gene}:${parts.slice(1).join(':')}`);
-            } else if (/(FUSION|TRANSLOCATION|SV|REARRANGEMENT)/i.test(last) || parts.length >= 3) {
+            // CNA exact matches
+            if (/^(AMP|GAIN|HETLOSS|HOMDEL)$/.test(last)) {
+                const f: OQLFilter = {
+                    gene: gene,
+                    alterationType: 'Copy Number Alteration',
+                    criterionType: type,
+                    trialName: name,
+                    trialURL: url,
+                    cnaType: last,
+                };
+                cnaMap.set(makeKey(f), f);
+            } else if (
+                /(FUSION|TRANSLOCATION|SV|REARRANGEMENT)/i.test(last) ||
+                parts.length >= 3
+            ) {
                 // treat multi-part tokens or explicit fusion markers as structural variants
-                svSet.add(`${parts.slice(0, 2).join(':')}:${parts.slice(2).join(':')}`);
+
+                const f: OQLFilter =
+                    parts.length === 3
+                        ? {
+                              gene: gene,
+                              alterationType: 'Structural Variant',
+                              mutationType: last,
+                              criterionType: type,
+                              trialName: name,
+                              trialURL: url,
+                              fusionPartner: parts[1],
+                          }
+                        : {
+                              gene: gene,
+                              alterationType: 'Structural Variant',
+                              mutationType: last,
+                              criterionType: type,
+                              trialName: name,
+                              trialURL: url,
+                          };
+
+                svMap.set(makeKey(f), f);
             } else {
                 // treat as mutation (including specific AA changes like V600E or generic MUT/ANY/WT)
-                mutationSet.add(`${gene}:${parts.slice(1).join(':')}`);
+                const f: OQLFilter = {
+                    gene: gene,
+                    alterationType: 'Mutation',
+                    criterionType: type,
+                    trialName: name,
+                    trialURL: url,
+                    proteinChange: last,
+                };
+                mutationMap.set(makeKey(f), f);
             }
         });
     };
 
     trials.forEach(t => {
+        const name = (t.trialName as string) || '';
+        const url = (t.trialUrl as string) || '';
         const incl = (t.inclusionCriteria as string[]) || [];
         const excl = (t.exclusionCriteria as string[]) || [];
-        incl.forEach(c => c && parseCriterionString(c));
-        excl.forEach(c => c && parseCriterionString(c));
+        incl.forEach(c => c && parseCriterionString(c, 'incl', name, url));
+        excl.forEach(c => c && parseCriterionString(c, 'excl', name, url));
+    });
+
+    const ageFilter = trials.map(t => {
+        const name = (t.trialName as string) || '';
+        const url = (t.trialUrl as string) || '';
+        return {
+            min_age: t.min_age,
+            max_age: t.max_age,
+            trialName: name,
+            trialURL: url,
+        };
     });
 
     return {
-        hugoFilterMutation: Array.from(mutationSet),
-        hugoFilterCNA: Array.from(cnaSet),
-        hugoFilterSV: Array.from(svSet),
+        hugoFilter: Array.from(allHugoSymbols),
+        OQLFilterMutation: Array.from(mutationMap.values()),
+        OQLFilterCNA: Array.from(cnaMap.values()),
+        OQLFilterSV: Array.from(svMap.values()),
+        ageFilter: ageFilter,
     };
 }
-*/
-export function useMutationsPerPatient(
+
+function useMutationsPerPatient(
     store: StudyViewPageStore,
-    hugoFilter: string[]
+    hugoFilter: string[],
+    hugoFilterKey: string
 ): MutationsPerPatient | null {
     const [data, setData] = useState<MutationsPerPatient | null>(null);
 
@@ -157,9 +230,7 @@ export function useMutationsPerPatient(
 
             // filter profiles for mutations, CNA, and SV
             const mutationProfiles = profiles.filter(
-                p =>
-                    p.molecularAlterationType === 'MUTATION_EXTENDED' ||
-                    p.molecularAlterationType === 'MUTATION_UNCALLED'
+                p => p.molecularAlterationType === 'MUTATION_EXTENDED'
             );
 
             const cnaProfiles = profiles.filter(
@@ -169,8 +240,6 @@ export function useMutationsPerPatient(
             const svProfiles = profiles.filter(
                 p => p.molecularAlterationType === 'STRUCTURAL_VARIANT'
             );
-
-            // Get mutation, CNA, and SV data for the samples and selected genes with a fail-safe that sets data to empty arrays if there are no mutations/CNA/SV in the study, so that we can still render the page and just show no matches, instead of crashing the page
 
             // SNVs and indels
             let mutations: Mutation[] = [];
@@ -182,7 +251,7 @@ export function useMutationsPerPatient(
                     hugoFilter
                 );
             } catch (error) {
-                console.error('No mutations in study:', error);
+                console.log('Mutations not loaded yet:');
             }
 
             // CNAs with copy number status
@@ -191,19 +260,28 @@ export function useMutationsPerPatient(
             try {
                 cna = await getCnaData(sampleArray, cnaProfiles, hugoFilter);
             } catch (error) {
-                console.error('No CNA in study:', error);
+                console.log('CNA not loaded yet');
             }
 
             let cnaExt: NumericGeneMolecularDataWithStatus[] = [];
 
             if (cna.length > 0) {
                 cnaExt = cna.map(cnaEntry => {
-                    let copyNumberStatus: 'AMP' | 'DEL' | 'NEUTRAL';
+                    let copyNumberStatus:
+                        | 'AMP'
+                        | 'GAIN'
+                        | 'HETLOSS'
+                        | 'HOMDEL'
+                        | 'NEUTRAL';
 
                     if (cnaEntry.value === 2) {
                         copyNumberStatus = 'AMP';
+                    } else if (cnaEntry.value === 1) {
+                        copyNumberStatus = 'GAIN';
+                    } else if (cnaEntry.value === -1) {
+                        copyNumberStatus = 'HETLOSS';
                     } else if (cnaEntry.value === -2) {
-                        copyNumberStatus = 'DEL';
+                        copyNumberStatus = 'HOMDEL';
                     } else {
                         copyNumberStatus = 'NEUTRAL';
                     }
@@ -221,7 +299,7 @@ export function useMutationsPerPatient(
             try {
                 sv = await getSvData(sampleArray, svProfiles, hugoFilter);
             } catch (error) {
-                // console.error('No SV in study:', error);
+                console.log('SV not loaded yet');
             }
 
             const patientIds = new Set<string>();
@@ -236,15 +314,127 @@ export function useMutationsPerPatient(
                 mutations,
                 cnaExt,
                 sv,
-                patientIds,
-                sampleIds,
             });
         }
 
         load();
-    }, [store.samples.status, store.molecularProfiles.status, hugoFilter]);
+    }, [store.samples.status, store.molecularProfiles.status, hugoFilterKey]);
 
     return data;
+}
+
+function buildAlterations(
+    mutations: Mutation[],
+    cna: NumericGeneMolecularDataWithStatus[],
+    sv: StructuralVariant[]
+): Alteration[] {
+    const mutationAlt: Alteration[] = mutations.map(m => ({
+        gene: m.gene,
+        sampleId: m.sampleId,
+        patientId: m.patientId,
+        alterationType: 'Mutation',
+        proteinChange: m.proteinChange,
+        mutationType: m.mutationType,
+    }));
+
+    const cnaAlt: Alteration[] = cna.map(c => ({
+        gene: c.gene,
+        sampleId: c.sampleId,
+        patientId: c.patientId,
+        alterationType: 'Copy Number Alteration',
+        cna: c.value,
+        mutationType: c.copyNumberStatus,
+    }));
+
+    const svAlt: Alteration[] = sv.map(s => ({
+        gene: { hugoGeneSymbol: s.site1HugoSymbol } as Gene,
+        sampleId: s.sampleId,
+        patientId: s.patientId,
+        alterationType: 'Structural Variant',
+        fusion: true,
+        partnerGene: { hugoGeneSymbol: s.site2HugoSymbol } as Gene,
+        mutationType: s.variantClass,
+    }));
+
+    return [...mutationAlt, ...cnaAlt, ...svAlt];
+}
+
+function alterationMatcher(a: Alteration, f: OQLFilter): boolean {
+    if (a.alterationType !== f.alterationType) return false;
+    if (a.gene.hugoGeneSymbol !== f.gene) return false;
+
+    if (f.proteinChange && a.proteinChange !== f.proteinChange) return false;
+    if (f.mutationType && a.mutationType !== f.mutationType) return false;
+
+    if (f.cnaType) {
+        const status =
+            a.cna === 2
+                ? 'AMP'
+                : a.cna === 1
+                ? 'GAIN'
+                : a.cna === -1
+                ? 'HETLOSS'
+                : a.cna === -2
+                ? 'HOMDEL'
+                : 'NEUTRAL';
+        if (status !== f.cnaType) return false;
+    }
+
+    if (f.fusionPartner) {
+        if (a.partnerGene?.hugoGeneSymbol !== f.fusionPartner) return false;
+    }
+
+    return true;
+}
+
+function alterationsByInclusion(
+    alterations: Alteration[],
+    filters: OQLFilter[]
+): Map<string, Map<string, Alteration[]>> {
+    const result = new Map<string, Map<string, Alteration[]>>();
+    // trial → patient → alterations[]
+
+    const inclFilters = filters.filter(f => f.criterionType === 'incl');
+
+    inclFilters.forEach(f => {
+        alterations.forEach(a => {
+            if (!alterationMatcher(a, f)) return;
+
+            const trial = f.trialName!;
+            const patient = a.patientId;
+
+            if (!result.has(trial)) result.set(trial, new Map());
+            const trialMap = result.get(trial)!;
+
+            if (!trialMap.has(patient)) trialMap.set(patient, []);
+            trialMap.get(patient)!.push(a);
+        });
+    });
+
+    return result;
+}
+
+function patientsByExclusion(
+    alterations: Alteration[],
+    filters: OQLFilter[]
+): Map<string, Set<string>> {
+    const result = new Map<string, Set<string>>();
+
+    const exclFilters = filters.filter(f => f.criterionType === 'excl');
+
+    exclFilters.forEach(f => {
+        alterations.forEach(a => {
+            if (!alterationMatcher(a, f)) return;
+
+            const trial = f.trialName!;
+            const patient = a.patientId;
+
+            if (!result.has(trial)) result.set(trial, new Set());
+            result.get(trial)!.add(patient);
+        });
+    });
+
+    return result;
 }
 
 const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
@@ -262,90 +452,254 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
         loadTrials();
     }, []);
 
-    console.log('Trials:', trials);
+    const {
+        hugoFilter,
+        OQLFilterMutation,
+        OQLFilterCNA,
+        OQLFilterSV,
+        ageFilter,
+    } = useMemo(() => {
+        return (
+            getFiltersFromTrials(trials) || {
+                hugoFilter: [],
+                OQLFilterMutation: [],
+                OQLFilterCNA: [],
+                OQLFilterSV: [],
+                ageFilter: [],
+            }
+        );
+    }, [trials]);
 
-    /*
-    const { hugoFilterMutation, hugoFilterCNA, hugoFilterSV } = getFiltersFromTrials(trials) || {
-        hugoFilterMutation: [],
-        hugoFilterCNA: [],
-        hugoFilterSV: [],
-    };
+    const hugoSet = useMemo(() => new Set(hugoFilter), [hugoFilter]);
+    const hugoFilterKey = useMemo(() => hugoFilter.join(','), [hugoFilter]);
 
-    console.log("Mutations:", hugoFilterMutation)
-    console.log("CNA:", hugoFilterCNA)
-    console.log("Fusions:", hugoFilterSV)
-*/
-    // Make hugoFilters for OQL queries
-    //
-
-    const [hugoFilter] = useState<string[]>([
-        'EPAS1',
-        'FH',
-        'SDHA',
-        'SDHB',
-        'SDHC',
-        'SDHD',
-        'SDHAF2',
-        'EGLN1',
-        'EGLN2',
-        'MDH1',
-        'MDH2',
-        'ELOC',
-    ]);
-
-    const [OQLFilter] = useState<string[]>([
-        'BRAF:G460R',
-        'BRAF:G466A',
-        'BRAF:G466R',
-        'BRAF:G466V',
-        'BRAF:G466E',
-        'BRAF:N581S',
-        'BRAF:N581T',
-        'BRAF:N581I',
-        'BRAF:N581D',
-        'BRAF:D594E',
-        'BRAF:D594G',
-        'BRAF:D594N',
-        'BRAF:D594H',
-        'BRAF:A598T',
-        'BRAF:G596R',
-        'CCNE1:AMP',
-    ]);
-
-    const [OQL] = useState<string>('BRAF:V600E');
-
-    const parsedOql = parseOQLQuery(OQL);
-    console.log('OQL:', parsedOql);
-
-    const mutationsPerPatient = useMutationsPerPatient(store, hugoFilter);
+    const mutationsPerPatient = useMutationsPerPatient(
+        store,
+        hugoFilter,
+        hugoFilterKey
+    );
 
     if (!mutationsPerPatient) {
         return <div>Loading Clinical Trial Matches</div>;
     }
 
     const filteredMutations = mutationsPerPatient.mutations.filter(m =>
-        hugoFilter.includes(m.gene?.hugoGeneSymbol || '')
+        hugoSet.has(m.gene?.hugoGeneSymbol ?? '')
     );
-
-    const oqlfilteredMutations = mutationsPerPatient.mutations.filter(m => []);
 
     const filteredCna = mutationsPerPatient.cnaExt.filter(c =>
-        hugoFilter.includes(c.gene?.hugoGeneSymbol || '')
+        hugoSet.has(c.gene?.hugoGeneSymbol ?? '')
     );
 
-    const filteredSV = mutationsPerPatient.sv.filter(sv =>
-        hugoFilter.includes(sv.site1HugoSymbol || sv.site2HugoSymbol || '')
+    const filteredSV = mutationsPerPatient.sv.filter(
+        sv =>
+            hugoSet.has(sv.site1HugoSymbol ?? '') ||
+            hugoSet.has(sv.site2HugoSymbol ?? '')
     );
+
+    const allAlterations = buildAlterations(
+        filteredMutations,
+        filteredCna,
+        filteredSV
+    );
+
+    // Assuming clinical data is in store.clinicalData.result (adjust if needed)
+    console.log('Clinical Attributes:', store);
+
+    // Build a map from patientId to age
+    // const ageByPatient: { [patientId: string]: string | number | undefined } = {};
+
+    // clinicalData.forEach(row => {
+    //     // Adjust 'patientId' and 'Age' keys as needed to match your data structure
+    //     ageByPatient[row.patientId] = row['Age'];
+    // });
+
+    const allFilters: OQLFilter[] = [
+        ...OQLFilterMutation,
+        ...OQLFilterCNA,
+        ...OQLFilterSV,
+    ];
+
+    const inclMap = alterationsByInclusion(allAlterations, allFilters);
+    const exclMap = patientsByExclusion(allAlterations, allFilters);
+
+    const trialUrlByName = new Map<string, string>();
+    allFilters.forEach(f => {
+        if (f.trialName && f.trialURL && !trialUrlByName.has(f.trialName)) {
+            trialUrlByName.set(f.trialName, f.trialURL);
+        }
+    });
+
+    const finalResults: FinalResultRow[] = [];
+    const seen = new Set<string>(); // de-dupe
+
+    inclMap.forEach((patientsMap, trial) => {
+        const exclPatients = exclMap.get(trial) ?? new Set<string>();
+        const trialURL = trialUrlByName.get(trial) ?? '';
+
+        patientsMap.forEach((alts, patientId) => {
+            if (exclPatients.has(patientId)) return;
+
+            alts.forEach(a => {
+                const row: FinalResultRow = {
+                    studyId: store.studyIds?.[0],
+                    patientId: patientId,
+                    sampleId: a.sampleId,
+                    trial,
+                    trialURL,
+                    gene: a.gene.hugoGeneSymbol,
+                    alterationType: a.alterationType,
+                    mutationType: a.mutationType || '',
+                    alteration: alterationLabel(a),
+                };
+
+                const key = `${row.patientId}__${row.sampleId}__${row.trial}__${row.gene}__${row.alterationType}__${row.alteration}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    finalResults.push(row);
+                }
+            });
+        });
+    });
 
     return (
         <div style={{ padding: 12 }}>
-            <CTLazyTable
-                filteredMutations={filteredMutations}
-                filteredCna={filteredCna}
-                filteredSV={filteredSV}
-            />
+            {boilerplateText}
+            {localCTList(trials)}
+            <CTLazyTable resultsTable={finalResults} />
+            {filtersExplainer(OQLFilterMutation, OQLFilterCNA, OQLFilterSV)}
         </div>
     );
 });
+
+export const boilerplateText = (
+    <div>
+        <h2>Local Clinical Trial Matches</h2>
+        <p>
+            This table shows patients from the current study who match the
+            molecular inclusion criteria for any local clinical trials. Patients
+            are included if they have at least one alteration that matches an
+            inclusion criterion and do not have any alterations that match
+            exclusion criteria for the same trial. Click on trial names to view
+            details about the trial, and on patient/sample IDs to view their
+            respective pages in cBioPortal.
+        </p>
+        <h3>Who is this for?</h3>
+        <p>
+            This tool is designed for researchers and clinicians who want to
+            quickly identify potential matches between patients in their study
+            and a selection of local (on-site) clinical trials based on
+            molecular criteria. It can be used to facilitate patient recruitment
+            for trials, generate hypotheses about trial eligibility, and explore
+            the landscape of available trials in relation to the molecular
+            profiles of patients in the study.
+        </p>
+        <h3>How does it work?</h3>
+        <p>
+            The tool works by first extracting molecular alteration data
+            (mutations, copy number alterations, structural variants) for
+            patients in the current study. It then parses the inclusion and
+            exclusion criteria of local clinical trials to identify molecular
+            eligibility requirements. Finally, it matches patients to trials
+            based on their alterations and the trial criteria, and presents the
+            results in an interactive table. It requires a json file describing
+            the trials and their respective eligibilty criteria. An example file
+            can be found{' '}
+            <a href="about:blank" target="_blank" rel="noopener noreferrer">
+                here
+            </a>
+            .
+        </p>
+        <h3>Limitations</h3>
+        <p>
+            The matching is based solely on molecular criteria that can be
+            extracted from the study data and the trial descriptions. It does
+            not currently take into account other important factors such as
+            patient age, performance status, prior treatments, or more complex
+            genomic signatures. Additionally, the parsing of trial criteria is
+            heuristic and may not capture all nuances of eligibility
+            requirements. Therefore, this tool should be used as a starting
+            point for identifying potential matches, which should then be
+            reviewed in detail by clinicians or researchers before making any
+            decisions about trial enrollment.
+        </p>
+    </div>
+);
+
+export const localCTList = (trials: clinicalTrial[] | null) => (
+    <div>
+        <h3>Local Clinical Trials in this cBioPortal instance:</h3>
+        {trials ? (
+            <ul>
+                {trials.map((t, idx) => (
+                    <li key={idx}>
+                        <a
+                            href={t.trialUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            {t.trialName}
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        ) : (
+            <p>No local clinical trials available.</p>
+        )}
+    </div>
+);
+
+export const filtersExplainer = (
+    OQLFilterMutation: OQLFilter[],
+    OQLFilterCNA: OQLFilter[],
+    OQLFilterSV: OQLFilter[]
+) => (
+    <div>
+        <h3>Filters Applied:</h3>
+        <ul>
+            {OQLFilterMutation.map((f, idx) => (
+                <li key={`mut-${idx}`}>
+                    Mutation: {f.gene}{' '}
+                    {f.proteinChange || f.mutationType || 'ANY'} (Trial:{' '}
+                    <a
+                        href={f.trialURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {f.trialName}
+                    </a>
+                    , {f.criterionType})
+                </li>
+            ))}
+            {OQLFilterCNA.map((f, idx) => (
+                <li key={`cna-${idx}`}>
+                    CNA: {f.gene} {f.cnaType} (Trial:{' '}
+                    <a
+                        href={f.trialURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {f.trialName}
+                    </a>
+                    , {f.criterionType})
+                </li>
+            ))}
+            {OQLFilterSV.map((f, idx) => (
+                <li key={`sv-${idx}`}>
+                    SV: {f.gene} {f.fusionPartner ? `::${f.fusionPartner}` : ''}{' '}
+                    {f.mutationType} (Trial:{' '}
+                    <a
+                        href={f.trialURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {f.trialName}
+                    </a>
+                    , {f.criterionType})
+                </li>
+            ))}
+        </ul>
+    </div>
+);
 
 export default LocalClinicalTrialsMatch;

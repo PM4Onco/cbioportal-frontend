@@ -2,8 +2,8 @@ declare module '*.json';
 import localCTData from './localCT.dev.json'; // dev static JSON
 
 export type clinicalTrial = {
-    studyName: string;
-    studyUrl: string;
+    trialName: string;
+    trialUrl: string;
     inclusionCriteria: string[];
     exclusionCriteria: string[];
     min_age?: number;
