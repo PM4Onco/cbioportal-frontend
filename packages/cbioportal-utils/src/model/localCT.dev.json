@@ -70,8 +70,8 @@
 				"BRAF:FUSION"
 			],
 			"exclusionCriteria":[],
-			"min_age": 13,
-			"max_age": 69
+			"min_age": 50,
+			"max_age": 70
 		},
 		{
 			"trialName":"FGFRx and FGFx Study",

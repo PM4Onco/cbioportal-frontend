@@ -67,6 +67,8 @@ export interface OQLFilter {
 export interface FinalResultRow {
     studyId: string;
     patientId: string;
+    age: string;
+    ageNotes?: string;
     sampleId: string;
     trial: string;
     trialURL: string;

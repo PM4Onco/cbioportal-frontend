@@ -155,6 +155,13 @@ const CTLazyTable: React.FC<Props> = ({ resultsTable }) => {
             sortBy: (m: FinalResultRow) => m.alterationType || '',
             width: 50,
         },
+
+        {
+            name: 'Notes',
+            render: m => <span>{m.ageNotes}</span>,
+            sortBy: (m: FinalResultRow) => m.ageNotes || '',
+            width: 100,
+        },
     ];
 
     return <LazyMobXTable columns={columns} data={resultsTable} />;

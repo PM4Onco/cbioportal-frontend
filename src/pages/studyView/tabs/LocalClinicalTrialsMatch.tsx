@@ -9,6 +9,8 @@ import {
     CBioPortalAPI,
     NumericGeneMolecularData,
     StructuralVariant,
+    ClinicalAttribute,
+    ClinicalData,
 } from 'cbioportal-ts-api-client';
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -26,13 +28,49 @@ import {
 } from 'pages/studyView/StudyViewComparisonUtils';
 import CTLazyTable from 'pages/studyView/table/LocalCTTable';
 import { getLocalCT, clinicalTrial } from 'cbioportal-utils/src/model/LocalCT';
+import client from 'shared/api/cbioportalClientInstance';
 
 // Get client for cBioPortal API calls
-const client = new CBioPortalAPI();
 
 // Helper function to obrain StudyViewPageStore encoding metadata on the currently viewed study
 interface Props {
     store: StudyViewPageStore;
+}
+
+function ageEligibilityNotes(
+    ageFilter: AgeFilter[],
+    patientAge: string,
+    trialName: string,
+    trialURL: string
+): string {
+    if (!patientAge) return '';
+
+    const ageNum = parseInt(patientAge);
+    if (isNaN(ageNum)) return patientAge;
+    const age_too_young = ageFilter.some(
+        f =>
+            f.trialName === trialName &&
+            f.min_age !== undefined &&
+            ageNum < f.min_age
+    );
+    const age_too_old = ageFilter.some(
+        f =>
+            f.trialName === trialName &&
+            f.max_age !== undefined &&
+            ageNum > f.max_age
+    );
+
+    if (age_too_young) {
+        return `⚠️ Below minimum age (${ageNum} < ${
+            ageFilter.find(f => f.trialName === trialName)?.min_age
+        })`;
+    } else if (age_too_old) {
+        return `⚠️ Above maximum age (${ageNum} > ${
+            ageFilter.find(f => f.trialName === trialName)?.max_age
+        })`;
+    } else {
+        return ``;
+    }
 }
 
 function alterationLabel(a: Alteration): string {
@@ -439,6 +477,9 @@ function patientsByExclusion(
 
 const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     const [trials, setTrials] = useState<clinicalTrial[] | null>(null);
+    const [ageByPatient, setAgeByPatient] = useState<{
+        [patientId: string]: string;
+    }>({});
 
     useEffect(() => {
         const loadTrials = async () => {
@@ -479,6 +520,85 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
         hugoFilterKey
     );
 
+    useEffect(() => {
+        let disposed = false;
+
+        const loadAgeClinicalData = async () => {
+            if (
+                store.selectedSamples.status !== 'complete' ||
+                store.clinicalAttributes.status !== 'complete'
+            ) {
+                return;
+            }
+
+            const selectedSamples = store.selectedSamples.result;
+            if (selectedSamples.length === 0) {
+                if (!disposed) {
+                    setAgeByPatient({});
+                }
+                return;
+            }
+
+            const ageAttribute = store.clinicalAttributes.result.find(
+                (attr: ClinicalAttribute) => {
+                    if (!attr.patientAttribute) {
+                        return false;
+                    }
+
+                    const attributeId =
+                        attr.clinicalAttributeId?.toUpperCase() || '';
+                    const displayName = (attr.displayName || '').toUpperCase();
+
+                    return displayName === 'AGE';
+                }
+            );
+
+            console.log('Identified age attribute:', ageAttribute);
+
+            if (!ageAttribute) {
+                if (!disposed) {
+                    setAgeByPatient({});
+                }
+                return;
+            }
+            console.log('Fetching age clinical data for patients...');
+
+            const ageClinicalData = await client.fetchClinicalDataUsingPOST({
+                clinicalDataType: 'PATIENT',
+                clinicalDataMultiStudyFilter: {
+                    attributeIds: [ageAttribute.clinicalAttributeId],
+                    identifiers: selectedSamples.map(sample => ({
+                        studyId: sample.studyId,
+                        entityId: sample.patientId,
+                    })),
+                },
+            });
+
+            console.log('Fetched age clinical data:', ageClinicalData);
+
+            const ageMap: { [patientId: string]: string } = {};
+            ageClinicalData.forEach((datum: ClinicalData) => {
+                if (datum.patientId) {
+                    ageMap[datum.patientId] = datum.value;
+                }
+            });
+
+            if (!disposed) {
+                setAgeByPatient(ageMap);
+            }
+        };
+
+        loadAgeClinicalData();
+
+        return () => {
+            disposed = true;
+        };
+    }, [
+        store.selectedSamples.status,
+        store.clinicalAttributes.status,
+        store.filters,
+    ]);
+
     if (!mutationsPerPatient) {
         return <div>Loading Clinical Trial Matches</div>;
     }
@@ -503,17 +623,6 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
         filteredSV
     );
 
-    // Assuming clinical data is in store.clinicalData.result (adjust if needed)
-    console.log('Clinical Attributes:', store);
-
-    // Build a map from patientId to age
-    // const ageByPatient: { [patientId: string]: string | number | undefined } = {};
-
-    // clinicalData.forEach(row => {
-    //     // Adjust 'patientId' and 'Age' keys as needed to match your data structure
-    //     ageByPatient[row.patientId] = row['Age'];
-    // });
-
     const allFilters: OQLFilter[] = [
         ...OQLFilterMutation,
         ...OQLFilterCNA,
@@ -531,7 +640,7 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     });
 
     const finalResults: FinalResultRow[] = [];
-    const seen = new Set<string>(); // de-dupe
+    const seen = new Set<string>();
 
     inclMap.forEach((patientsMap, trial) => {
         const exclPatients = exclMap.get(trial) ?? new Set<string>();
@@ -544,6 +653,13 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                 const row: FinalResultRow = {
                     studyId: store.studyIds?.[0],
                     patientId: patientId,
+                    age: ageByPatient[patientId] || '',
+                    ageNotes: ageEligibilityNotes(
+                        ageFilter,
+                        ageByPatient[patientId],
+                        trial,
+                        trialURL
+                    ),
                     sampleId: a.sampleId,
                     trial,
                     trialURL,
@@ -562,8 +678,11 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
         });
     });
 
+    console.log('Final matched results:', finalResults);
+
     return (
         <div style={{ padding: 12 }}>
+            <h2>Local Clinical Trial Matches</h2>
             {boilerplateText}
             {localCTList(trials)}
             <CTLazyTable resultsTable={finalResults} />
@@ -574,7 +693,6 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
 
 export const boilerplateText = (
     <div>
-        <h2>Local Clinical Trial Matches</h2>
         <p>
             This table shows patients from the current study who match the
             molecular inclusion criteria for any local clinical trials. Patients
