@@ -60,7 +60,7 @@
 		},
 		{
 			"trialName":"FFS: Fantastical Fusion Study",
-			"trialUrl":"https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+			"trialUrl":"about:blank",
 			"inclusionCriteria":[
 				"TMPRSS2:ERG:FUSION",
 				"EML4:ALK:FUSION",
@@ -75,7 +75,7 @@
 		},
 		{
 			"trialName":"FGFRx and FGFx Study",
-			"trialUrl":"https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+			"trialUrl":"about:blank",
 			"inclusionCriteria":[
 				"FGFR1:MUT",
 				"FGFR2:MUT",
