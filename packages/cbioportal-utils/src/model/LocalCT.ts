@@ -22,6 +22,7 @@ export const getLocalCT = async (): Promise<clinicalTrial[]> => {
         if (!res.ok) {
             throw new Error(`Failed to load localCT.json: ${res.statusText}`);
         }
-        return (await res.json()) as clinicalTrial[];
+        const data = await res.json();
+        return data.studies as clinicalTrial[];
     }
 };
