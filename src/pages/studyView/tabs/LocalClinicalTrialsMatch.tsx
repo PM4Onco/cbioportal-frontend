@@ -723,23 +723,14 @@ export const boilerplateText = (
             results in an interactive table. It requires a json file describing
             the trials and their respective eligibilty criteria. An example file
             can be found{' '}
-            <a href="about:blank" target="_blank" rel="noopener noreferrer">
+            <a
+                href={`${window.location.origin}/localCT.json`}
+                target="_blank"
+                rel="noopener noreferrer"
+            >
                 here
             </a>
             .
-        </p>
-        <h3>Limitations</h3>
-        <p>
-            The matching is based solely on molecular criteria that can be
-            extracted from the study data and the trial descriptions. It does
-            not currently take into account other important factors such as
-            patient age, performance status, prior treatments, or more complex
-            genomic signatures. Additionally, the parsing of trial criteria is
-            heuristic and may not capture all nuances of eligibility
-            requirements. Therefore, this tool should be used as a starting
-            point for identifying potential matches, which should then be
-            reviewed in detail by clinicians or researchers before making any
-            decisions about trial enrollment.
         </p>
     </div>
 );

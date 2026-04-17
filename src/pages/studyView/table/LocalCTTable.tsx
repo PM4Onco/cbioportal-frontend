@@ -161,6 +161,7 @@ const CTLazyTable: React.FC<Props> = ({ resultsTable }) => {
             render: m => <span>{m.ageNotes}</span>,
             sortBy: (m: FinalResultRow) => m.ageNotes || '',
             width: 100,
+            visible: resultsTable.some(m => !!m.ageNotes),
         },
     ];
 
