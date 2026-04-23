@@ -1,3 +1,4 @@
+// This file is responsible for fetching the local clinical trial data, either from a static JSON file during development or from a server endpoint in production.
 declare module '*.json';
 import localCTData from './localCT.dev.json'; // dev static JSON
 

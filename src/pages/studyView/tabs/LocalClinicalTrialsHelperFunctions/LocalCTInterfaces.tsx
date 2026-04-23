@@ -1,3 +1,4 @@
+// This file defines TypeScript interfaces for the local clinical trials feature, including data structures for mutations, copy number alterations, structural variants, and filters for age and OQL criteria. These interfaces are used to ensure type safety when working with local clinical trial data in the application.
 import {
     Mutation,
     Gene,
@@ -17,6 +18,7 @@ export interface MutationsPerPatient {
     sv: StructuralVariant[];
 }
 
+// This interface defines the structure of an alteration, which can be a mutation, copy number alteration, or structural variant, and includes relevant information such as gene, patient ID, sample ID, alteration type, and specific details depending on the alteration type.
 export interface Alteration {
     gene: Gene;
     patientId: string;
@@ -39,6 +41,7 @@ export interface Alteration {
     partnerGene?: Gene;
 }
 
+// This interface defines the structure of the age filter that can be applied to clinical trial matching, including minimum and maximum age, as well as optional trial information for context.
 export interface AgeFilter {
     min_age?: number;
     max_age?: number;
@@ -46,6 +49,7 @@ export interface AgeFilter {
     trialURL?: string;
 }
 
+// This interface defines the structure of the OQL filter that will be used to match patient alterations against trial criteria, including gene, alteration type, criterion type (inclusion or exclusion), and optional trial information.
 export interface OQLFilter {
     gene: string;
     alterationType:
@@ -64,6 +68,7 @@ export interface OQLFilter {
     fusionPartner?: string;
 }
 
+// This interface defines the structure of the final result row that will be displayed in the local clinical trials matching table, including patient and sample information, trial details, and molecular alteration data.
 export interface FinalResultRow {
     studyId: string;
     patientId: string;
