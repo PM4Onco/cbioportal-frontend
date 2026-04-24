@@ -69,3 +69,4 @@ junit.xml
 api-e2e/validation.js
 .vs/
 env/custom.sh
+startup_cbpf.sh
