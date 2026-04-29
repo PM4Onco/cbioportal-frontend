@@ -27,7 +27,8 @@ export interface Alteration {
     alterationType:
         | 'Mutation'
         | 'Copy Number Alteration'
-        | 'Structural Variant';
+        | 'Structural Variant'
+        | 'Clinical';
 
     // mutation fields
     proteinChange?: string;
@@ -39,6 +40,28 @@ export interface Alteration {
     // fusion / SV
     fusion?: boolean;
     partnerGene?: Gene;
+
+    //clinical
+    clinicalParameterId?: string;
+    clinicalParameterName?: string;
+    clinicalParameterDataType?: 'string' | 'number';
+    clinicalParameterOperator?:
+        | '>'
+        | '>='
+        | '<'
+        | '<='
+        | '='
+        | '!='
+        | 'contains';
+    clinicalParameterValue?: string | number;
+}
+
+// This interface defines the shape of a clinical match entry, used to track which clinical filter matched and with which value.
+export interface ClinicalMatch {
+    sampleId: string;
+    patientId: string;
+    filter: ClinicalFilter;
+    value: string;
 }
 
 // This interface defines the structure of the age filter that can be applied to clinical trial matching, including minimum and maximum age, as well as optional trial information for context.
@@ -66,6 +89,32 @@ export interface OQLFilter {
     cnaType?: string;
 
     fusionPartner?: string;
+}
+
+// This interface defines the structure of a clinical filter that can be applied to match patients against trial criteria based on clinical parameters, including the parameter name, data type, operator, value, and criterion type (inclusion or exclusion), along with optional trial information for context.
+// Generic syntax:
+// Clinical:{parameterName}:{dataType}:{operator}:{value}
+// Specific examples for json representation of a clinical criterion:
+// Clinical:HLA-Type:string:contains:HLA-A*02\:01 -> Here the backslash is used to escape the colons in the HLA type, which is necessary for parsing the criterion correctly. The criterion specifies that the patient's HLA type should contain "HLA-A*02:01" for inclusion in the trial.
+// Clinical:TMB:number:>:10
+export interface ClinicalFilter {
+    clinicalParameterId: string;
+    clinicalParameterName: string;
+    clinicalParameterDataType: 'string' | 'number';
+    clinicalParameterOperator:
+        | '>'
+        | '>='
+        | '<'
+        | '<='
+        | '='
+        | '!='
+        | 'contains';
+    clinicalParameterValue: string | number;
+
+    criterionType: 'incl' | 'excl';
+
+    trialName?: string;
+    trialURL?: string;
 }
 
 // This interface defines the structure of the final result row that will be displayed in the local clinical trials matching table, including patient and sample information, trial details, and molecular alteration data.

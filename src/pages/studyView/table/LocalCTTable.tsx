@@ -168,4 +168,131 @@ const CTLazyTable: React.FC<Props> = ({ resultsTable }) => {
     return <LazyMobXTable columns={columns} data={resultsTable} />;
 };
 
+/*
+const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<Props> = ({ resultsTable }) => {
+    const columns: Column<FinalResultRow>[] = [
+        {
+            name: 'Patient ID',
+            render: (m: FinalResultRow) => (
+                <a
+                    href={getSampleViewUrl(m.studyId, m.sampleId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    {m.patientId}
+                </a>
+            ),
+            sortBy: (m: FinalResultRow) => m.patientId,
+            filter: (m, filterString) =>
+                m.patientId.toLowerCase().includes(filterString.toLowerCase()),
+            width: 50,
+        },
+
+        {
+            name: 'Sample ID',
+            render: (m: FinalResultRow) => (
+                <a
+                    href={getSampleViewUrl(m.studyId, m.sampleId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    {m.sampleId}
+                </a>
+            ),
+            sortBy: (m: FinalResultRow) => m.sampleId,
+            filter: (m, filterString) =>
+                m.sampleId.toLowerCase().includes(filterString.toLowerCase()),
+            width: 50,
+        },
+
+        {
+            name: 'Matched Trial',
+            render: (m: FinalResultRow) => (
+                <a href={m.trialURL} target="_blank" rel="noopener noreferrer">
+                    {m.trial}
+                </a>
+            ),
+            sortBy: (m: FinalResultRow) => m.trial, // Placeholder for sorting
+            filter: (m, filterString) =>
+                m.trial.toLowerCase().includes(filterString.toLowerCase()),
+            width: 50,
+        },
+
+        {
+            name: 'Clinical Parameter / Biomarker',
+            render: m => <span>{m.gene}</span>,
+            sortBy: (m: FinalResultRow) => m.gene || '',
+            filter: (m, filterString) =>
+                m.gene.toLowerCase().includes(filterString.toLowerCase()),
+            width: 50,
+        },
+
+        {
+            name: 'Alteration',
+            render: m => {
+                const color = mutationColorMap[m.alteration] || 'black';
+
+                return (
+                    <span style={{ color, fontWeight: 'bold' }}>
+                        {m.alteration}
+                    </span>
+                );
+            },
+            sortBy: (m: FinalResultRow) => m.alteration || '',
+            filter: (m, filterString) =>
+                m.alteration
+                    ?.toLowerCase()
+                    .includes(filterString.toLowerCase()) || false,
+            width: 50,
+        },
+
+        {
+            name: 'Alteration Description',
+            render: (m: FinalResultRow) => {
+                const color = mutationColorMap[m.mutationType] || 'black';
+                const label = m.mutationType?.replace(/_Mutation/g, ' ');
+
+                return (
+                    <span style={{ color, fontWeight: 'bold' }}>{label}</span>
+                );
+            },
+            filter: (m, filterString) =>
+                m.mutationType
+                    ?.toLowerCase()
+                    .includes(filterString.toLowerCase()) || false,
+            sortBy: (m: FinalResultRow) => m.mutationType || '',
+            width: 50,
+        },
+
+        {
+            name: 'Alteration Type',
+            render: (m: FinalResultRow) => {
+                const color = AltTypeColorMap[m.alterationType] || 'black';
+                const label = m.alterationType.replace(/_Mutation/g, ' ');
+
+                return (
+                    <span style={{ color, fontWeight: 'bold' }}>{label}</span>
+                );
+            },
+            filter: (m, filterString) =>
+                m.alterationType
+                    .toLowerCase()
+                    .includes(filterString.toLowerCase()),
+            sortBy: (m: FinalResultRow) => m.alterationType || '',
+            width: 50,
+        },
+
+        {
+            name: 'Notes',
+            render: m => <span>{m.ageNotes}</span>,
+            sortBy: (m: FinalResultRow) => m.ageNotes || '',
+            width: 100,
+            visible: resultsTable.some(m => !!m.ageNotes),
+        },
+
+    ];
+
+    return <LazyMobXTable columns={columns} data={resultsTable} />;
+};
+*/
 export default CTLazyTable;

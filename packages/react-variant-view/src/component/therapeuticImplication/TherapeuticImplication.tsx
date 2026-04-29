@@ -101,7 +101,7 @@ class TherapeuticImplication extends React.Component<
                             target="_blank"
                             rel="noopener noreferrer"
                         >
-                            OncoKB™
+                            MerzleckteierOncoKB™
                         </a>
                         &nbsp;is a precision oncology knowledge base that
                         contains

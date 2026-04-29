@@ -6,6 +6,7 @@ import { getLocalCT, clinicalTrial } from 'cbioportal-utils/src/model/LocalCT';
 import { StudyViewPageStore } from '../StudyViewPageStore';
 import {
     OQLFilter,
+    ClinicalFilter,
     FinalResultRow,
 } from './LocalClinicalTrialsHelperFunctions/LocalCTInterfaces';
 import {
@@ -16,6 +17,8 @@ import {
     buildAlterations,
     alterationsByInclusion,
     patientsByExclusion,
+    clinicalInclusionsByTrial,
+    clinicalExclusionPatients,
 } from './LocalClinicalTrialsHelperFunctions/LocalCTTools';
 import CTLazyTable from 'pages/studyView/table/LocalCTTable';
 import client from 'shared/api/cbioportalClientInstance';
@@ -31,6 +34,9 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     const [ageByPatient, setAgeByPatient] = useState<{
         [patientId: string]: string;
     }>({});
+    const [clinicalDataForFiltering, setClinicalDataForFiltering] = useState<
+        ClinicalData[]
+    >([]);
 
     useEffect(() => {
         const loadTrials = async () => {
@@ -49,6 +55,7 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
         OQLFilterMutation,
         OQLFilterCNA,
         OQLFilterSV,
+        clinicalFilter,
         ageFilter,
     } = useMemo(() => {
         return (
@@ -57,6 +64,7 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                 OQLFilterMutation: [],
                 OQLFilterCNA: [],
                 OQLFilterSV: [],
+                clinicalFilter: [],
                 ageFilter: [],
             }
         );
@@ -104,16 +112,12 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                 }
             );
 
-            console.log('Identified age attribute:', ageAttribute);
-
             if (!ageAttribute) {
                 if (!disposed) {
                     setAgeByPatient({});
                 }
                 return;
             }
-            console.log('Fetching age clinical data for patients...');
-
             const ageClinicalData = await client.fetchClinicalDataUsingPOST({
                 clinicalDataType: 'PATIENT',
                 clinicalDataMultiStudyFilter: {
@@ -124,8 +128,6 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                     })),
                 },
             });
-
-            console.log('Fetched age clinical data:', ageClinicalData);
 
             const ageMap: { [patientId: string]: string } = {};
             ageClinicalData.forEach((datum: ClinicalData) => {
@@ -148,6 +150,144 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
         store.selectedSamples.status,
         store.clinicalAttributes.status,
         store.filters,
+    ]);
+
+    // Fetch clinical data for clinical filter attributes
+    useEffect(() => {
+        let disposed = false;
+
+        const loadClinicalDataForFiltering = async () => {
+            if (
+                store.selectedSamples.status !== 'complete' ||
+                store.clinicalAttributes.status !== 'complete' ||
+                clinicalFilter.length === 0
+            ) {
+                if (!disposed) setClinicalDataForFiltering([]);
+                return;
+            }
+            console.log(
+                'Loading clinical data for filtering based on clinical filters:',
+                clinicalFilter
+            );
+
+            const selectedSamples = store.selectedSamples.result;
+            if (selectedSamples.length === 0) {
+                if (!disposed) setClinicalDataForFiltering([]);
+                return;
+            }
+
+            // Collect unique clinical attribute names from filters
+            const filterAttrNames = new Set(
+                clinicalFilter.map(f => f.clinicalParameterId.toUpperCase())
+            );
+            console.log(
+                'Clinical attribute names needed for filtering:',
+                Array.from(filterAttrNames)
+            );
+
+            // Find matching clinical attributes (both sample and patient level)
+            const matchingAttrs = store.clinicalAttributes.result.filter(
+                (attr: ClinicalAttribute) => {
+                    const attrId =
+                        attr.clinicalAttributeId?.toUpperCase() || '';
+                    return filterAttrNames.has(attrId);
+                }
+            );
+
+            const attrIdToDisplayName = new Map<string, string>();
+            matchingAttrs.forEach(attr => {
+                if (attr.clinicalAttributeId) {
+                    attrIdToDisplayName.set(
+                        attr.clinicalAttributeId.toUpperCase(),
+                        attr.displayName || attr.clinicalAttributeId
+                    );
+                }
+            });
+
+            // Add displayName to each clinicalFilter entry
+            clinicalFilter.forEach(f => {
+                const displayName = attrIdToDisplayName.get(
+                    f.clinicalParameterId.toUpperCase()
+                );
+                if (displayName) {
+                    // Add a new property for display name
+                    (f as any).clinicalParameterName = displayName;
+                }
+            });
+
+            if (matchingAttrs.length === 0) {
+                if (!disposed) setClinicalDataForFiltering([]);
+                return;
+            }
+
+            const sampleAttrs = matchingAttrs.filter(a => !a.patientAttribute);
+            const patientAttrs = matchingAttrs.filter(a => a.patientAttribute);
+
+            const allData: ClinicalData[] = [];
+
+            // Fetch sample-level clinical data
+            if (sampleAttrs.length > 0) {
+                try {
+                    const sampleData = await client.fetchClinicalDataUsingPOST({
+                        clinicalDataType: 'SAMPLE',
+                        clinicalDataMultiStudyFilter: {
+                            attributeIds: sampleAttrs.map(
+                                a => a.clinicalAttributeId
+                            ),
+                            identifiers: selectedSamples.map(s => ({
+                                studyId: s.studyId,
+                                entityId: s.sampleId,
+                            })),
+                        },
+                    });
+                    allData.push(...sampleData);
+                } catch (err) {
+                    console.error(
+                        'Error fetching sample clinical data for filtering:',
+                        err
+                    );
+                }
+            }
+
+            // Fetch patient-level clinical data
+            if (patientAttrs.length > 0) {
+                try {
+                    const patientData = await client.fetchClinicalDataUsingPOST(
+                        {
+                            clinicalDataType: 'PATIENT',
+                            clinicalDataMultiStudyFilter: {
+                                attributeIds: patientAttrs.map(
+                                    a => a.clinicalAttributeId
+                                ),
+                                identifiers: selectedSamples.map(s => ({
+                                    studyId: s.studyId,
+                                    entityId: s.patientId,
+                                })),
+                            },
+                        }
+                    );
+                    allData.push(...patientData);
+                } catch (err) {
+                    console.error(
+                        'Error fetching patient clinical data for filtering:',
+                        err
+                    );
+                }
+            }
+
+            if (!disposed) setClinicalDataForFiltering(allData);
+        };
+
+        loadClinicalDataForFiltering();
+
+        return () => {
+            disposed = true;
+        };
+    }, [
+        store.selectedSamples.status,
+        store.clinicalAttributes.status,
+        store.filters,
+        clinicalFilter,
     ]);
 
     if (!mutationsPerPatient) {
@@ -183,14 +323,38 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     const inclMap = alterationsByInclusion(allAlterations, allFilters);
     const exclMap = patientsByExclusion(allAlterations, allFilters);
 
+    // Apply clinical filters
+    const clinInclMap = clinicalInclusionsByTrial(
+        clinicalDataForFiltering,
+        clinicalFilter
+    );
+
+    const clinExclMap = clinicalExclusionPatients(
+        clinicalDataForFiltering,
+        clinicalFilter
+    );
+
+    // Merge clinical exclusions into molecular exclusions
+    clinExclMap.forEach((patients, trial) => {
+        if (!exclMap.has(trial)) exclMap.set(trial, new Set());
+        patients.forEach(p => exclMap.get(trial)!.add(p));
+    });
+
     const trialUrlByName = new Map<string, string>();
     allFilters.forEach(f => {
         if (f.trialName && f.trialURL && !trialUrlByName.has(f.trialName)) {
             trialUrlByName.set(f.trialName, f.trialURL);
         }
     });
+    // Also populate trialUrlByName from clinical filters
+    clinicalFilter.forEach(f => {
+        if (f.trialName && f.trialURL && !trialUrlByName.has(f.trialName)) {
+            trialUrlByName.set(f.trialName, f.trialURL);
+        }
+    });
 
     const finalResults: FinalResultRow[] = [];
+    const finalResultsClin: FinalResultRow[] = [];
     const seen = new Set<string>();
 
     inclMap.forEach((patientsMap, trial) => {
@@ -228,6 +392,42 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
         });
     });
 
+    // Build clinical inclusion result rows
+    clinInclMap.forEach((patientsMap, trial) => {
+        const exclPatients = exclMap.get(trial) ?? new Set<string>();
+        const trialURL = trialUrlByName.get(trial) ?? '';
+
+        patientsMap.forEach((matches, patientId) => {
+            if (exclPatients.has(patientId)) return;
+
+            matches.forEach(m => {
+                const row: FinalResultRow = {
+                    studyId: store.studyIds?.[0],
+                    patientId: patientId,
+                    age: ageByPatient[patientId] || '',
+                    ageNotes: ageEligibilityNotes(
+                        ageFilter,
+                        ageByPatient[patientId],
+                        trial
+                    ),
+                    sampleId: m.sampleId,
+                    trial,
+                    trialURL,
+                    gene: '',
+                    alterationType: 'Clinical',
+                    mutationType: '',
+                    alteration: `${m.filter.clinicalParameterName}: ${m.value}`,
+                };
+
+                const key = `${row.patientId}__${row.sampleId}__${row.trial}__${row.alterationType}__${row.alteration}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    finalResultsClin.push(row);
+                }
+            });
+        });
+    });
+
     console.log('Final matched results:', finalResults);
 
     return (
@@ -236,7 +436,12 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
             {boilerplateText}
             {localCTList(trials)}
             <CTLazyTable resultsTable={finalResults} />
-            {filtersExplainer(OQLFilterMutation, OQLFilterCNA, OQLFilterSV)}
+            {filtersExplainer(
+                OQLFilterMutation,
+                OQLFilterCNA,
+                OQLFilterSV,
+                clinicalFilter
+            )}
         </div>
     );
 });
@@ -316,7 +521,8 @@ export const localCTList = (trials: clinicalTrial[] | null) => (
 export const filtersExplainer = (
     OQLFilterMutation: OQLFilter[],
     OQLFilterCNA: OQLFilter[],
-    OQLFilterSV: OQLFilter[]
+    OQLFilterSV: OQLFilter[],
+    clinicalFilterList: ClinicalFilter[] = []
 ) => (
     <div>
         <h3>Filters Applied:</h3>
@@ -352,6 +558,21 @@ export const filtersExplainer = (
                 <li key={`sv-${idx}`}>
                     SV: {f.gene} {f.fusionPartner ? `::${f.fusionPartner}` : ''}{' '}
                     {f.mutationType} (Trial:{' '}
+                    <a
+                        href={f.trialURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {f.trialName}
+                    </a>
+                    , {f.criterionType})
+                </li>
+            ))}
+            {clinicalFilterList.map((f, idx) => (
+                <li key={`clin-${idx}`}>
+                    Clinical: {f.clinicalParameterId}{' '}
+                    {f.clinicalParameterOperator}{' '}
+                    {String(f.clinicalParameterValue)} (Trial:{' '}
                     <a
                         href={f.trialURL}
                         target="_blank"

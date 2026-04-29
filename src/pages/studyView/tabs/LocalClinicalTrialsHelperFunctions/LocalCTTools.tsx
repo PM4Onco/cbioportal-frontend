@@ -5,9 +5,12 @@ import {
     OQLFilter,
     MutationsPerPatient,
     NumericGeneMolecularDataWithStatus,
+    ClinicalFilter,
+    ClinicalMatch,
 } from './LocalCTInterfaces';
 import { useEffect, useState } from 'react';
 import {
+    ClinicalData,
     Gene,
     Mutation,
     MolecularProfile,
@@ -83,6 +86,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
             OQLFilterMutation: [] as OQLFilter[],
             OQLFilterCNA: [] as OQLFilter[],
             OQLFilterSV: [] as OQLFilter[],
+            clinicalFilter: [] as ClinicalFilter[],
             ageFilter: [] as AgeFilter[],
         };
     }
@@ -92,6 +96,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
     const mutationMap = new Map<string, OQLFilter>();
     const cnaMap = new Map<string, OQLFilter>();
     const svMap = new Map<string, OQLFilter>();
+    const clinicalMap = new Map<string, ClinicalFilter>();
 
     const normalize = (s: string) => s.trim().replace(/\s+/g, ' ');
 
@@ -109,6 +114,96 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
         ].join('::');
     };
 
+    const makeClinicalKey = (f: ClinicalFilter) => {
+        return [
+            f.trialName ?? '',
+            f.criterionType,
+            f.clinicalParameterId,
+            f.clinicalParameterDataType,
+            f.clinicalParameterOperator,
+            String(f.clinicalParameterValue),
+        ].join('::');
+    };
+
+    const splitOnUnescapedColon = (input: string): string[] => {
+        const parts: string[] = [];
+        let current = '';
+        let escaped = false;
+
+        for (const ch of input) {
+            if (escaped) {
+                current += ch;
+                escaped = false;
+            } else if (ch === '\\') {
+                escaped = true;
+            } else if (ch === ':') {
+                parts.push(current);
+                current = '';
+            } else {
+                current += ch;
+            }
+        }
+
+        if (escaped) {
+            current += '\\';
+        }
+
+        parts.push(current);
+        return parts;
+    };
+
+    const parseClinicalCriterion = (
+        token: string,
+        type: 'incl' | 'excl',
+        name: string,
+        url: string
+    ) => {
+        const parts = splitOnUnescapedColon(token).map(p => p.trim());
+
+        if (parts.length < 5 || parts[0].toLowerCase() !== 'clinical') {
+            return;
+        }
+
+        const clinicalParameterId = parts[1];
+        const dataType = parts[2].toLowerCase();
+        const operator = parts[3] as ClinicalFilter['clinicalParameterOperator'];
+        const valueRaw = parts.slice(4).join(':');
+
+        if (
+            !clinicalParameterId ||
+            (dataType !== 'string' && dataType !== 'number')
+        ) {
+            return;
+        }
+
+        if (!['>', '>=', '<', '<=', '=', '!=', 'contains'].includes(operator)) {
+            return;
+        }
+
+        const clinicalParameterValue =
+            dataType === 'number' ? Number(valueRaw) : valueRaw;
+
+        if (
+            dataType === 'number' &&
+            (valueRaw.trim() === '' || Number.isNaN(clinicalParameterValue))
+        ) {
+            return;
+        }
+
+        const f: ClinicalFilter = {
+            clinicalParameterId,
+            clinicalParameterName: '', // Placeholder, as we may not have the actual name available
+            clinicalParameterDataType: dataType,
+            clinicalParameterOperator: operator,
+            clinicalParameterValue,
+            criterionType: type,
+            trialName: name,
+            trialURL: url,
+        };
+
+        clinicalMap.set(makeClinicalKey(f), f);
+    };
+
     const parseCriterionString = (
         critStr: string,
         type: 'incl' | 'excl',
@@ -121,6 +216,11 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
             .map(t => normalize(t))
             .filter(Boolean);
         tokens.forEach(token => {
+            if (/^clinical:/i.test(token)) {
+                parseClinicalCriterion(token, type, name, url);
+                return;
+            }
+
             // token examples: "KRAS:MUT", "BRAF:V600E", "CCNE1:AMP", "TP53:ANY", "GENE1::GENE2:FUSION"
             const parts = token
                 .split(':')
@@ -228,6 +328,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
         OQLFilterMutation: Array.from(mutationMap.values()),
         OQLFilterCNA: Array.from(cnaMap.values()),
         OQLFilterSV: Array.from(svMap.values()),
+        clinicalFilter: Array.from(clinicalMap.values()),
         ageFilter: ageFilter,
     };
 }
@@ -436,6 +537,115 @@ export function alterationsByInclusion(
 
             if (!trialMap.has(patient)) trialMap.set(patient, []);
             trialMap.get(patient)!.push(a);
+        });
+    });
+
+    return result;
+}
+
+// This function checks whether a clinical data value satisfies the operator/value in a ClinicalFilter.
+// For 'number' dataType: parses both sides as floats and applies >, >=, <, <=, =, !=.
+// For 'string' dataType: applies =, !=, contains (case-insensitive).
+export function clinicalValueMeetsFilter(
+    rawValue: string,
+    filter: ClinicalFilter
+): boolean {
+    if (filter.clinicalParameterDataType === 'number') {
+        const actual = parseFloat(rawValue);
+        const target =
+            typeof filter.clinicalParameterValue === 'number'
+                ? filter.clinicalParameterValue
+                : parseFloat(filter.clinicalParameterValue);
+        if (isNaN(actual) || isNaN(target)) return false;
+
+        switch (filter.clinicalParameterOperator) {
+            case '>':
+                return actual > target;
+            case '>=':
+                return actual >= target;
+            case '<':
+                return actual < target;
+            case '<=':
+                return actual <= target;
+            case '=':
+                return actual === target;
+            case '!=':
+                return actual !== target;
+            default:
+                return false;
+        }
+    } else {
+        // string comparison
+        const actual = rawValue.toLowerCase();
+        const target = String(filter.clinicalParameterValue).toLowerCase();
+
+        switch (filter.clinicalParameterOperator) {
+            case '=':
+                return actual === target;
+            case '!=':
+                return actual !== target;
+            case 'contains':
+                return actual.includes(target);
+            default:
+                return false;
+        }
+    }
+}
+
+// This function searches clinical data for inclusion matches and groups them by trial and patient.
+// Returns Map<trialName, Map<patientId, ClinicalMatch[]>>.
+export function clinicalInclusionsByTrial(
+    clinicalData: ClinicalData[],
+    filters: ClinicalFilter[]
+): Map<string, Map<string, ClinicalMatch[]>> {
+    const result = new Map<string, Map<string, ClinicalMatch[]>>();
+    const inclFilters = filters.filter(f => f.criterionType === 'incl');
+
+    clinicalData.forEach(datum => {
+        const attrId = datum.clinicalAttributeId.toUpperCase();
+
+        inclFilters.forEach(f => {
+            if (f.clinicalParameterId.toUpperCase() !== attrId) return;
+            if (!clinicalValueMeetsFilter(datum.value, f)) return;
+
+            const trial = f.trialName!;
+            const patient = datum.patientId;
+
+            if (!result.has(trial)) result.set(trial, new Map());
+            const trialMap = result.get(trial)!;
+
+            if (!trialMap.has(patient)) trialMap.set(patient, []);
+            trialMap.get(patient)!.push({
+                sampleId: datum.sampleId || '',
+                patientId: patient,
+                filter: f,
+                value: datum.value,
+            });
+        });
+    });
+
+    return result;
+}
+
+// This function collects patients that have at least one sample meeting an exclusion criterion.
+// Returns Map<trialName, Set<patientId>>.
+export function clinicalExclusionPatients(
+    clinicalData: ClinicalData[],
+    filters: ClinicalFilter[]
+): Map<string, Set<string>> {
+    const result = new Map<string, Set<string>>();
+    const exclFilters = filters.filter(f => f.criterionType === 'excl');
+
+    clinicalData.forEach(datum => {
+        const attrId = datum.clinicalAttributeId.toUpperCase();
+
+        exclFilters.forEach(f => {
+            if (f.clinicalParameterId.toUpperCase() !== attrId) return;
+            if (!clinicalValueMeetsFilter(datum.value, f)) return;
+
+            const trial = f.trialName!;
+            if (!result.has(trial)) result.set(trial, new Set());
+            result.get(trial)!.add(datum.patientId);
         });
     });
 
