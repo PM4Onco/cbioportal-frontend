@@ -115,7 +115,7 @@
 			"trialName": "HLA-A*02:01 Positive",
 			"trialUrl": "about:blank",
 			"inclusionCriteria": [
-				"Clinical:HLA:string:contains:A*02:01"
+				"Clinical:HLA:string:contains:A*02\\:01"
 			],
 			"exclusionCriteria": [],
 			"min_age": 18,

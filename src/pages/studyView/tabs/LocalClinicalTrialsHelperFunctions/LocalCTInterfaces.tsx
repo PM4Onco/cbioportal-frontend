@@ -131,3 +131,15 @@ export interface FinalResultRow {
     mutationType: string;
     alteration: string;
 }
+
+export interface FinalResultRowClinicalTraitsAndBiomarkers {
+    studyId: string;
+    patientId: string;
+    age: string;
+    ageNotes?: string;
+    sampleId: string;
+    trial: string;
+    trialURL: string;
+    clinicalParameterName: string;
+    clinicalParameterValue: string;
+}

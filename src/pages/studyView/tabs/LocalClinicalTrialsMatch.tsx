@@ -8,6 +8,7 @@ import {
     OQLFilter,
     ClinicalFilter,
     FinalResultRow,
+    FinalResultRowClinicalTraitsAndBiomarkers,
 } from './LocalClinicalTrialsHelperFunctions/LocalCTInterfaces';
 import {
     ageEligibilityNotes,
@@ -20,7 +21,10 @@ import {
     clinicalInclusionsByTrial,
     clinicalExclusionPatients,
 } from './LocalClinicalTrialsHelperFunctions/LocalCTTools';
-import CTLazyTable from 'pages/studyView/table/LocalCTTable';
+import {
+    CTLazyTable,
+    CTLazyTableClinicalTraitsAndBiomarkers,
+} from 'pages/studyView/table/LocalCTTable';
 import client from 'shared/api/cbioportalClientInstance';
 
 // Helper function to obrain StudyViewPageStore encoding metadata on the currently viewed study
@@ -34,6 +38,9 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     const [ageByPatient, setAgeByPatient] = useState<{
         [patientId: string]: string;
     }>({});
+    const [showMolecular, setShowMolecular] = useState(true);
+    const [showClinical, setShowClinical] = useState(true);
+    const [showFilters, setShowFilters] = useState(false);
     const [clinicalDataForFiltering, setClinicalDataForFiltering] = useState<
         ClinicalData[]
     >([]);
@@ -165,10 +172,6 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                 if (!disposed) setClinicalDataForFiltering([]);
                 return;
             }
-            console.log(
-                'Loading clinical data for filtering based on clinical filters:',
-                clinicalFilter
-            );
 
             const selectedSamples = store.selectedSamples.result;
             if (selectedSamples.length === 0) {
@@ -179,10 +182,6 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
             // Collect unique clinical attribute names from filters
             const filterAttrNames = new Set(
                 clinicalFilter.map(f => f.clinicalParameterId.toUpperCase())
-            );
-            console.log(
-                'Clinical attribute names needed for filtering:',
-                Array.from(filterAttrNames)
             );
 
             // Find matching clinical attributes (both sample and patient level)
@@ -354,7 +353,7 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     });
 
     const finalResults: FinalResultRow[] = [];
-    const finalResultsClin: FinalResultRow[] = [];
+    const finalResultsClin: FinalResultRowClinicalTraitsAndBiomarkers[] = [];
     const seen = new Set<string>();
 
     inclMap.forEach((patientsMap, trial) => {
@@ -401,7 +400,7 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
             if (exclPatients.has(patientId)) return;
 
             matches.forEach(m => {
-                const row: FinalResultRow = {
+                const row: FinalResultRowClinicalTraitsAndBiomarkers = {
                     studyId: store.studyIds?.[0],
                     patientId: patientId,
                     age: ageByPatient[patientId] || '',
@@ -413,13 +412,11 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                     sampleId: m.sampleId,
                     trial,
                     trialURL,
-                    gene: '',
-                    alterationType: 'Clinical',
-                    mutationType: '',
-                    alteration: `${m.filter.clinicalParameterName}: ${m.value}`,
+                    clinicalParameterName: m.filter.clinicalParameterName,
+                    clinicalParameterValue: m.value,
                 };
 
-                const key = `${row.patientId}__${row.sampleId}__${row.trial}__${row.alterationType}__${row.alteration}`;
+                const key = `${row.patientId}__${row.sampleId}__${row.trial}__${row.clinicalParameterName}__${row.clinicalParameterValue}`;
                 if (!seen.has(key)) {
                     seen.add(key);
                     finalResultsClin.push(row);
@@ -428,20 +425,45 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
         });
     });
 
-    console.log('Final matched results:', finalResults);
-
     return (
         <div style={{ padding: 12 }}>
             <h2>Local Clinical Trial Matches</h2>
             {boilerplateText}
             {localCTList(trials)}
-            <CTLazyTable resultsTable={finalResults} />
-            {filtersExplainer(
-                OQLFilterMutation,
-                OQLFilterCNA,
-                OQLFilterSV,
-                clinicalFilter
+            <h3
+                onClick={() => setShowMolecular(v => !v)}
+                style={{ cursor: 'pointer' }}
+            >
+                Matches based on Molecular Alterations:{' '}
+                {showMolecular ? '▼' : '►'}
+            </h3>
+            {showMolecular && <CTLazyTable resultsTable={finalResults} />}
+
+            <h3
+                onClick={() => setShowClinical(v => !v)}
+                style={{ cursor: 'pointer' }}
+            >
+                Matches based on Clinical Traits and Biomarkers:{' '}
+                {showClinical ? '▼' : '►'}
+            </h3>
+            {showClinical && (
+                <CTLazyTableClinicalTraitsAndBiomarkers
+                    resultsTableClinicalTraitsAndBiomarkers={finalResultsClin}
+                />
             )}
+            <h3
+                onClick={() => setShowFilters(v => !v)}
+                style={{ cursor: 'pointer' }}
+            >
+                Filters Applied: {showFilters ? '▼' : '►'}
+            </h3>
+            {showFilters &&
+                filtersExplainer(
+                    OQLFilterMutation,
+                    OQLFilterCNA,
+                    OQLFilterSV,
+                    clinicalFilter
+                )}
         </div>
     );
 });
@@ -525,7 +547,6 @@ export const filtersExplainer = (
     clinicalFilterList: ClinicalFilter[] = []
 ) => (
     <div>
-        <h3>Filters Applied:</h3>
         <ul>
             {OQLFilterMutation.map((f, idx) => (
                 <li key={`mut-${idx}`}>

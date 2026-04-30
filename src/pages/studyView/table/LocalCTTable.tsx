@@ -17,7 +17,10 @@ import {
     MUT_COLOR_TRUNC,
     STRUCTURAL_VARIANT_COLOR,
 } from 'cbioportal-frontend-commons';
-import { FinalResultRow } from '../tabs/LocalClinicalTrialsHelperFunctions/LocalCTInterfaces';
+import {
+    FinalResultRow,
+    FinalResultRowClinicalTraitsAndBiomarkers,
+} from '../tabs/LocalClinicalTrialsHelperFunctions/LocalCTInterfaces';
 
 const mutationColorMap: Record<string, string> = {
     Missense_Mutation: MUT_COLOR_MISSENSE,
@@ -43,7 +46,11 @@ interface Props {
     resultsTable: FinalResultRow[];
 }
 
-const CTLazyTable: React.FC<Props> = ({ resultsTable }) => {
+interface PropsClinicalTraitsAndBiomarkers {
+    resultsTableClinicalTraitsAndBiomarkers: FinalResultRowClinicalTraitsAndBiomarkers[];
+}
+
+export const CTLazyTable: React.FC<Props> = ({ resultsTable }) => {
     const columns: Column<FinalResultRow>[] = [
         {
             name: 'Patient ID',
@@ -168,12 +175,13 @@ const CTLazyTable: React.FC<Props> = ({ resultsTable }) => {
     return <LazyMobXTable columns={columns} data={resultsTable} />;
 };
 
-/*
-const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<Props> = ({ resultsTable }) => {
-    const columns: Column<FinalResultRow>[] = [
+export const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<PropsClinicalTraitsAndBiomarkers> = ({
+    resultsTableClinicalTraitsAndBiomarkers,
+}) => {
+    const columns: Column<FinalResultRowClinicalTraitsAndBiomarkers>[] = [
         {
             name: 'Patient ID',
-            render: (m: FinalResultRow) => (
+            render: (m: FinalResultRowClinicalTraitsAndBiomarkers) => (
                 <a
                     href={getSampleViewUrl(m.studyId, m.sampleId)}
                     target="_blank"
@@ -182,7 +190,8 @@ const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<Props> = ({ resultsTable 
                     {m.patientId}
                 </a>
             ),
-            sortBy: (m: FinalResultRow) => m.patientId,
+            sortBy: (m: FinalResultRowClinicalTraitsAndBiomarkers) =>
+                m.patientId,
             filter: (m, filterString) =>
                 m.patientId.toLowerCase().includes(filterString.toLowerCase()),
             width: 50,
@@ -190,7 +199,7 @@ const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<Props> = ({ resultsTable 
 
         {
             name: 'Sample ID',
-            render: (m: FinalResultRow) => (
+            render: (m: FinalResultRowClinicalTraitsAndBiomarkers) => (
                 <a
                     href={getSampleViewUrl(m.studyId, m.sampleId)}
                     target="_blank"
@@ -199,7 +208,8 @@ const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<Props> = ({ resultsTable 
                     {m.sampleId}
                 </a>
             ),
-            sortBy: (m: FinalResultRow) => m.sampleId,
+            sortBy: (m: FinalResultRowClinicalTraitsAndBiomarkers) =>
+                m.sampleId,
             filter: (m, filterString) =>
                 m.sampleId.toLowerCase().includes(filterString.toLowerCase()),
             width: 50,
@@ -207,12 +217,12 @@ const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<Props> = ({ resultsTable 
 
         {
             name: 'Matched Trial',
-            render: (m: FinalResultRow) => (
+            render: (m: FinalResultRowClinicalTraitsAndBiomarkers) => (
                 <a href={m.trialURL} target="_blank" rel="noopener noreferrer">
                     {m.trial}
                 </a>
             ),
-            sortBy: (m: FinalResultRow) => m.trial, // Placeholder for sorting
+            sortBy: (m: FinalResultRowClinicalTraitsAndBiomarkers) => m.trial, // Placeholder for sorting
             filter: (m, filterString) =>
                 m.trial.toLowerCase().includes(filterString.toLowerCase()),
             width: 50,
@@ -220,79 +230,55 @@ const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<Props> = ({ resultsTable 
 
         {
             name: 'Clinical Parameter / Biomarker',
-            render: m => <span>{m.gene}</span>,
-            sortBy: (m: FinalResultRow) => m.gene || '',
+            render: m => <span>{m.clinicalParameterName}</span>,
+            sortBy: (m: FinalResultRowClinicalTraitsAndBiomarkers) =>
+                m.clinicalParameterName || '',
             filter: (m, filterString) =>
-                m.gene.toLowerCase().includes(filterString.toLowerCase()),
+                m.clinicalParameterName
+                    .toLowerCase()
+                    .includes(filterString.toLowerCase()),
             width: 50,
         },
 
         {
-            name: 'Alteration',
+            name: 'Value',
             render: m => {
-                const color = mutationColorMap[m.alteration] || 'black';
+                const color =
+                    mutationColorMap[m.clinicalParameterValue] || 'black';
 
                 return (
                     <span style={{ color, fontWeight: 'bold' }}>
-                        {m.alteration}
+                        {m.clinicalParameterValue}
                     </span>
                 );
             },
-            sortBy: (m: FinalResultRow) => m.alteration || '',
+            sortBy: (m: FinalResultRowClinicalTraitsAndBiomarkers) =>
+                m.clinicalParameterValue || '',
             filter: (m, filterString) =>
-                m.alteration
+                m.clinicalParameterValue
+                    ?.toString()
                     ?.toLowerCase()
                     .includes(filterString.toLowerCase()) || false,
             width: 50,
         },
-
-        {
-            name: 'Alteration Description',
-            render: (m: FinalResultRow) => {
-                const color = mutationColorMap[m.mutationType] || 'black';
-                const label = m.mutationType?.replace(/_Mutation/g, ' ');
-
-                return (
-                    <span style={{ color, fontWeight: 'bold' }}>{label}</span>
-                );
-            },
-            filter: (m, filterString) =>
-                m.mutationType
-                    ?.toLowerCase()
-                    .includes(filterString.toLowerCase()) || false,
-            sortBy: (m: FinalResultRow) => m.mutationType || '',
-            width: 50,
-        },
-
-        {
-            name: 'Alteration Type',
-            render: (m: FinalResultRow) => {
-                const color = AltTypeColorMap[m.alterationType] || 'black';
-                const label = m.alterationType.replace(/_Mutation/g, ' ');
-
-                return (
-                    <span style={{ color, fontWeight: 'bold' }}>{label}</span>
-                );
-            },
-            filter: (m, filterString) =>
-                m.alterationType
-                    .toLowerCase()
-                    .includes(filterString.toLowerCase()),
-            sortBy: (m: FinalResultRow) => m.alterationType || '',
-            width: 50,
-        },
-
         {
             name: 'Notes',
             render: m => <span>{m.ageNotes}</span>,
-            sortBy: (m: FinalResultRow) => m.ageNotes || '',
+            sortBy: (m: FinalResultRowClinicalTraitsAndBiomarkers) =>
+                m.ageNotes || '',
             width: 100,
-            visible: resultsTable.some(m => !!m.ageNotes),
+            visible: resultsTableClinicalTraitsAndBiomarkers.some(
+                m => !!m.ageNotes
+            ),
         },
-
     ];
 
-    return <LazyMobXTable columns={columns} data={resultsTable} />;
+    return (
+        <LazyMobXTable
+            columns={columns}
+            data={resultsTableClinicalTraitsAndBiomarkers}
+        />
+    );
 };
-*/
+
 export default CTLazyTable;
