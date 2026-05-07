@@ -766,6 +766,10 @@ export default class StudyViewPage extends React.Component<
                                             id={
                                                 StudyViewPageTabKeyEnum.LOCAL_CT_MATCH
                                             }
+                                            hide={
+                                                !getServerConfig()
+                                                    .local_ct_enabled
+                                            }
                                             linkText={
                                                 <span>
                                                     {
