@@ -38,8 +38,10 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     const [ageByPatient, setAgeByPatient] = useState<{
         [patientId: string]: string;
     }>({});
+    const [showBoilerplate, setShowBoilerplate] = useState(false);
     const [showMolecular, setShowMolecular] = useState(true);
     const [showClinical, setShowClinical] = useState(true);
+    const [showTrials, setShowTrials] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [clinicalDataForFiltering, setClinicalDataForFiltering] = useState<
         ClinicalData[]
@@ -428,14 +430,20 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     return (
         <div style={{ padding: 12 }}>
             <h2>Local Clinical Trial Matches</h2>
-            {boilerplateText}
-            {localCTList(trials)}
+            <h3
+                onClick={() => setShowBoilerplate(v => !v)}
+                style={{ cursor: 'pointer' }}
+            >
+                {showBoilerplate ? '▼' : '►'} Click here to learn more about
+                this tab
+            </h3>
+            {showBoilerplate && boilerplateText}
             <h3
                 onClick={() => setShowMolecular(v => !v)}
                 style={{ cursor: 'pointer' }}
             >
-                Matches based on Molecular Alterations:{' '}
-                {showMolecular ? '▼' : '►'}
+                {showMolecular ? '▼' : '►'} Matches based on Molecular
+                Alterations:{' '}
             </h3>
             {showMolecular && <CTLazyTable resultsTable={finalResults} />}
 
@@ -443,8 +451,8 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                 onClick={() => setShowClinical(v => !v)}
                 style={{ cursor: 'pointer' }}
             >
-                Matches based on Clinical Traits and Biomarkers:{' '}
-                {showClinical ? '▼' : '►'}
+                {showClinical ? '▼' : '►'} Matches based on Clinical Traits and
+                Biomarkers:{' '}
             </h3>
             {showClinical && (
                 <CTLazyTableClinicalTraitsAndBiomarkers
@@ -452,10 +460,18 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                 />
             )}
             <h3
+                onClick={() => setShowTrials(v => !v)}
+                style={{ cursor: 'pointer' }}
+            >
+                {showTrials ? '▼' : '►'} Local Clinical Trials in this
+                cBioPortal instance
+            </h3>
+            {showTrials && localCTList(trials)}
+            <h3
                 onClick={() => setShowFilters(v => !v)}
                 style={{ cursor: 'pointer' }}
             >
-                Filters Applied: {showFilters ? '▼' : '►'}
+                {showFilters ? '▼' : '►'} Filters Applied:
             </h3>
             {showFilters &&
                 filtersExplainer(
@@ -518,7 +534,6 @@ export const boilerplateText = (
 // A list with all local clinical trials available in the cBioPortal instance, with links to their respective pages. This is generated from the localCT.json file and provides users with an overview of the trials that are being matched against.
 export const localCTList = (trials: clinicalTrial[] | null) => (
     <div>
-        <h3>Local Clinical Trials in this cBioPortal instance:</h3>
         {trials ? (
             <ul>
                 {trials.map((t, idx) => (
