@@ -25,6 +25,7 @@ import {
     getMutationData,
     getSvData,
 } from 'pages/studyView/StudyViewComparisonUtils';
+import client from 'shared/api/cbioportalClientInstance';
 
 // This function generates a warning if the patient's age does not meet the trial's age criteria.
 export function ageEligibilityNotes(
@@ -305,7 +306,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
 
     trials.forEach(t => {
         const name = (t.trialName as string) || '';
-        const url = (t.trialUrl as string) || '';
+        const url = (t.trialUrl as string) || 'about:blank';
         const incl = (t.inclusionCriteria as string[]) || [];
         const excl = (t.exclusionCriteria as string[]) || [];
         incl.forEach(c => c && parseCriterionString(c, 'incl', name, url));
@@ -419,7 +420,6 @@ export function useMutationsPerPatient(
                 });
             }
 
-            // SVs [== Fusions]
             let sv: StructuralVariant[] = [];
 
             try {
@@ -674,4 +674,22 @@ export function patientsByExclusion(
     });
 
     return result;
+}
+
+export async function getPatientName(
+    patientId: string
+): Promise<string | undefined> {
+    const patientData = await client.fetchClinicalDataUsingPOST({
+        clinicalDataType: 'PATIENT',
+        clinicalDataMultiStudyFilter: {
+            attributeIds: ['PATIENT_DISPLAY_NAME'],
+            identifiers: [{ studyId: '', entityId: patientId }],
+        },
+    });
+
+    if (patientData && patientData.length > 0) {
+        return patientData[0].value || '';
+    }
+
+    return undefined;
 }

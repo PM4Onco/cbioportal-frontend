@@ -38,6 +38,12 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     const [ageByPatient, setAgeByPatient] = useState<{
         [patientId: string]: string;
     }>({});
+    const [
+        patientDisplayNameByPatient,
+        setPatientDisplayNameByPatient,
+    ] = useState<{
+        [patientId: string]: string;
+    }>({});
     const [showBoilerplate, setShowBoilerplate] = useState(false);
     const [showMolecular, setShowMolecular] = useState(true);
     const [showClinical, setShowClinical] = useState(true);
@@ -145,8 +151,32 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                 }
             });
 
+            // Fetch display names for all patients
+            const uniquePatientIds = Array.from(
+                new Set(selectedSamples.map(s => s.patientId))
+            );
+            const displayNameData = await client.fetchClinicalDataUsingPOST({
+                clinicalDataType: 'PATIENT',
+                clinicalDataMultiStudyFilter: {
+                    attributeIds: ['PATIENT_DISPLAY_NAME'],
+                    identifiers: uniquePatientIds.map(patientId => ({
+                        studyId:
+                            selectedSamples.find(s => s.patientId === patientId)
+                                ?.studyId || '',
+                        entityId: patientId,
+                    })),
+                },
+            });
+            const displayNameMap: { [patientId: string]: string } = {};
+            displayNameData.forEach((datum: ClinicalData) => {
+                if (datum.patientId && datum.value) {
+                    displayNameMap[datum.patientId] = datum.value;
+                }
+            });
+
             if (!disposed) {
                 setAgeByPatient(ageMap);
+                setPatientDisplayNameByPatient(displayNameMap);
             }
         };
 
@@ -369,6 +399,8 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                 const row: FinalResultRow = {
                     studyId: store.studyIds?.[0],
                     patientId: patientId,
+                    patientDisplayName:
+                        patientDisplayNameByPatient[patientId] || undefined,
                     age: ageByPatient[patientId] || '',
                     ageNotes: ageEligibilityNotes(
                         ageFilter,
@@ -405,6 +437,8 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
                 const row: FinalResultRowClinicalTraitsAndBiomarkers = {
                     studyId: store.studyIds?.[0],
                     patientId: patientId,
+                    patientDisplayName:
+                        patientDisplayNameByPatient[patientId] || undefined,
                     age: ageByPatient[patientId] || '',
                     ageNotes: ageEligibilityNotes(
                         ageFilter,

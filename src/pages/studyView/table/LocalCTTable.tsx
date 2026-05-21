@@ -60,7 +60,9 @@ export const CTLazyTable: React.FC<Props> = ({ resultsTable }) => {
                     target="_blank"
                     rel="noopener noreferrer"
                 >
-                    {m.patientId}
+                    {m.patientDisplayName
+                        ? `${m.patientId} (${m.patientDisplayName})`
+                        : m.patientId}
                 </a>
             ),
             sortBy: (m: FinalResultRow) => m.patientId,
@@ -187,7 +189,9 @@ export const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<PropsClinicalTrait
                     target="_blank"
                     rel="noopener noreferrer"
                 >
-                    {m.patientId}
+                    {m.patientDisplayName
+                        ? `${m.patientId} (${m.patientDisplayName})`
+                        : m.patientId}
                 </a>
             ),
             sortBy: (m: FinalResultRowClinicalTraitsAndBiomarkers) =>

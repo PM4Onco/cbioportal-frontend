@@ -4,9 +4,9 @@ import localCTData from './localCT.dev.json'; // dev static JSON
 
 export type clinicalTrial = {
     trialName: string;
-    trialUrl: string;
+    trialUrl?: string;
     inclusionCriteria: string[];
-    exclusionCriteria: string[];
+    exclusionCriteria?: string[];
     min_age?: number;
     max_age?: number;
 };

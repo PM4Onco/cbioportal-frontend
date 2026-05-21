@@ -17,7 +17,6 @@
 				"MDH2:MUT",
 				"ELOC:MUT"
 			],
-			"exclusionCriteria": [],
 			"min_age": 12
 		},
 		{
@@ -50,17 +49,14 @@
 		},
 		{
 			"trialName":"ECI830 Single Agent or in Combination",
-			"trialUrl":"https://clinicaltrials.gov/study/NCT06726148",
 			"inclusionCriteria":[
 				"CCNE1:AMP",
 				"CCNE1:GAIN"
 			],
-			"exclusionCriteria":[],
 			"min_age": 18
 		},
 		{
 			"trialName":"FFS: Fantastical Fusion Study",
-			"trialUrl":"about:blank",
 			"inclusionCriteria":[
 				"TMPRSS2:ERG:FUSION",
 				"EML4:ALK:FUSION",
@@ -69,13 +65,11 @@
 				"SS18:SSX1:FUSION",
 				"BRAF:FUSION"
 			],
-			"exclusionCriteria":[],
 			"min_age": 50,
 			"max_age": 70
 		},
 		{
 			"trialName":"FGFRx and FGFx Study",
-			"trialUrl":"about:blank",
 			"inclusionCriteria":[
 				"FGFR1:MUT",
 				"FGFR2:MUT",
@@ -113,21 +107,17 @@
 		},
 		{
 			"trialName": "HLA-A*02:01 Positive",
-			"trialUrl": "about:blank",
 			"inclusionCriteria": [
 				"Clinical:HLA:string:contains:A*02\\:01"
 			],
-			"exclusionCriteria": [],
 			"min_age": 18,
 			"max_age": 65
 		},
 		{
 			"trialName": "TMB High",
-			"trialUrl": "about:blank",
 			"inclusionCriteria": [
 				"Clinical:CVR_TMB_SCORE:number:>:10"
 			],
-			"exclusionCriteria": [],
 			"max_age": 70
 		}
 	]

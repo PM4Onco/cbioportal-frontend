@@ -121,6 +121,7 @@ export interface ClinicalFilter {
 export interface FinalResultRow {
     studyId: string;
     patientId: string;
+    patientDisplayName?: string | undefined;
     age: string;
     ageNotes?: string;
     sampleId: string;
@@ -135,6 +136,7 @@ export interface FinalResultRow {
 export interface FinalResultRowClinicalTraitsAndBiomarkers {
     studyId: string;
     patientId: string;
+    patientDisplayName?: string | undefined;
     age: string;
     ageNotes?: string;
     sampleId: string;
