@@ -4,8 +4,10 @@ import {
     Gene,
     NumericGeneMolecularData,
     StructuralVariant,
+    ClinicalData,
 } from 'cbioportal-ts-api-client';
 import { clinicalTrial } from './LocalCT';
+import { LocalCTValidationIssue } from './LocalCTValidation';
 
 // Helper function to get CNV type
 export declare type NumericGeneMolecularDataWithStatus = NumericGeneMolecularData & {
@@ -83,6 +85,7 @@ export interface OQLFilter {
     criterionType: 'incl' | 'excl';
     trialName?: string;
     trialURL?: string;
+    trialSites?: string[];
 
     proteinChange?: string;
     mutationType?: string;
@@ -164,4 +167,14 @@ export interface LocalCTBundle {
     trials: clinicalTrial[];
     filtersByTrial: TrialFilters[];
     aggregateFilters: FilterSet;
+}
+
+export interface LocalTrialWarningContext {
+    patientId: string;
+    patientAge?: string;
+    ageFilter: AgeFilter[];
+    molecularFilters: OQLFilter[];
+    clinicalFilters: ClinicalFilter[];
+    clinicalData: ClinicalData[];
+    alterations: Alteration[];
 }

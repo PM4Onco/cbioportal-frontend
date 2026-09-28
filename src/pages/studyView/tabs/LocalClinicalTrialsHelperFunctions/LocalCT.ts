@@ -3,10 +3,16 @@ declare module '*.json';
 import localCTData from './localCT.dev.json'; // dev static JSON
 import { LocalCTBundle } from './LocalCTInterfaces';
 import { buildLocalCTBundle } from './LocalCTTools';
+import {
+    validateLocalCTStatic,
+    LocalCTValidationResult,
+} from './LocalCTValidation';
 
 export type clinicalTrial = {
     trialName: string;
+    trialID: string;
     trialUrl?: string;
+    trialSites?: string[];
     inclusionCriteria: string[];
     exclusionCriteria?: string[];
     min_age?: number;
@@ -15,6 +21,36 @@ export type clinicalTrial = {
 
 let trialsPromise: Promise<clinicalTrial[]> | undefined;
 let bundlePromise: Promise<LocalCTBundle> | undefined;
+let validationResultPromise: Promise<LocalCTValidationResult> | undefined;
+
+/**
+ * Performs static validation on loaded trials and returns the result.
+ * Runs synchronously once per session (memoized).
+ */
+export function getLocalCTValidationResult(): Promise<LocalCTValidationResult> {
+    if (!validationResultPromise) {
+        validationResultPromise = (async () => {
+            try {
+                const trials = await getLocalCT();
+                return validateLocalCTStatic(trials);
+            } catch (error) {
+                // If loading failed, that's already reported separately
+                return {
+                    valid: false,
+                    trialsCount: 0,
+                    issues: [
+                        {
+                            level: 'error' as const,
+                            message:
+                                'Could not validate: failed to load localCT.json.',
+                        },
+                    ],
+                };
+            }
+        })();
+    }
+    return validationResultPromise;
+}
 
 export const loadLocalCT = async (): Promise<clinicalTrial[]> => {
     const isDev =

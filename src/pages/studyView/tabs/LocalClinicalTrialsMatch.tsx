@@ -5,6 +5,7 @@ import { ClinicalAttribute, ClinicalData } from 'cbioportal-ts-api-client';
 import {
     clinicalTrial,
     getLocalCTBundle,
+    getLocalCTValidationResult,
 } from './LocalClinicalTrialsHelperFunctions/LocalCT';
 import { StudyViewPageStore } from '../StudyViewPageStore';
 import {
@@ -30,6 +31,13 @@ import {
     CTLazyTableClinicalTraitsAndBiomarkers,
 } from 'pages/studyView/table/LocalCTTable';
 import client from 'shared/api/cbioportalClientInstance';
+import {
+    LocalCTValidationResult,
+    validateGenesExist,
+    validateClinicalAttributesExist,
+    LocalCTValidationIssue,
+} from './LocalClinicalTrialsHelperFunctions/LocalCTValidation';
+import { LocalCTValidationPanel } from './LocalClinicalTrialsHelperFunctions/LocalCTValidationPanel';
 
 // Helper function to obrain StudyViewPageStore encoding metadata on the currently viewed study
 interface Props {
@@ -58,12 +66,49 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
     >([]);
     const [bundle, setBundle] = useState<LocalCTBundle | null>(null);
     const [loadError, setLoadError] = useState<Error | null>(null);
+    const [
+        validationResult,
+        setValidationResult,
+    ] = useState<LocalCTValidationResult | null>(null);
+    const [geneIssues, setGeneIssues] = useState<LocalCTValidationIssue[]>([]);
+    const [clinicalAttrIssues, setClinicalAttrIssues] = useState<
+        LocalCTValidationIssue[]
+    >([]);
 
     useEffect(() => {
         getLocalCTBundle()
             .then(setBundle)
             .catch(setLoadError);
+
+        // Load validation result
+        getLocalCTValidationResult().then(setValidationResult);
     }, []);
+
+    // Validate genes and clinical attributes once bundle and store data are ready
+    useEffect(() => {
+        if (!bundle?.trials) return;
+
+        // Validate genes
+        if (store.allGenes.status === 'complete' && store.allGenes.result) {
+            const geneValidationIssues = validateGenesExist(
+                bundle.trials,
+                store.allGenes.result
+            );
+            setGeneIssues(geneValidationIssues);
+        }
+
+        // Validate clinical attributes
+        if (
+            store.clinicalAttributes.status === 'complete' &&
+            store.clinicalAttributes.result
+        ) {
+            const clinicalValidationIssues = validateClinicalAttributesExist(
+                bundle.trials,
+                store.clinicalAttributes.result
+            );
+            setClinicalAttrIssues(clinicalValidationIssues);
+        }
+    }, [bundle, store.allGenes.status, store.clinicalAttributes.status]);
 
     const trials = bundle?.trials ?? null;
 
@@ -458,6 +503,23 @@ const LocalClinicalTrialsMatch: React.FC<Props> = observer(({ store }) => {
             });
         });
     });
+    /*
+
+Unten unter div style einfügen:
+            <LocalCTValidationPanel
+                validationResult={validationResult}
+                loadError={loadError}
+                parseIssues={
+                    bundle?.filtersByTrial
+                        ? bundle.filtersByTrial
+                              .map(ft => ft.parseIssues)
+                              .reduce((acc, issues) => [...acc, ...issues], [])
+                        : []
+                }
+                geneIssues={geneIssues}
+                clinicalAttrIssues={clinicalAttrIssues}
+            />
+*/
 
     return (
         <div style={{ padding: 12 }}>
@@ -599,26 +661,34 @@ export const filtersExplainer = (
                 <li key={`mut-${idx}`}>
                     Mutation: {f.gene}{' '}
                     {f.proteinChange || f.mutationType || 'ANY'} (Trial:{' '}
-                    <a
-                        href={f.trialURL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        {f.trialName}
-                    </a>
+                    {f.trialURL ? (
+                        <a
+                            href={f.trialURL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            {f.trialName}
+                        </a>
+                    ) : (
+                        f.trialName
+                    )}
                     , {f.criterionType})
                 </li>
             ))}
             {OQLFilterCNA.map((f, idx) => (
                 <li key={`cna-${idx}`}>
                     CNA: {f.gene} {f.cnaType} (Trial:{' '}
-                    <a
-                        href={f.trialURL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        {f.trialName}
-                    </a>
+                    {f.trialURL ? (
+                        <a
+                            href={f.trialURL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            {f.trialName}
+                        </a>
+                    ) : (
+                        f.trialName
+                    )}
                     , {f.criterionType})
                 </li>
             ))}
@@ -626,13 +696,17 @@ export const filtersExplainer = (
                 <li key={`sv-${idx}`}>
                     SV: {f.gene} {f.fusionPartner ? `::${f.fusionPartner}` : ''}{' '}
                     {f.mutationType} (Trial:{' '}
-                    <a
-                        href={f.trialURL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        {f.trialName}
-                    </a>
+                    {f.trialURL ? (
+                        <a
+                            href={f.trialURL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            {f.trialName}
+                        </a>
+                    ) : (
+                        f.trialName
+                    )}
                     , {f.criterionType})
                 </li>
             ))}
@@ -641,13 +715,17 @@ export const filtersExplainer = (
                     Clinical: {f.clinicalParameterId}{' '}
                     {f.clinicalParameterOperator}{' '}
                     {String(f.clinicalParameterValue)} (Trial:{' '}
-                    <a
-                        href={f.trialURL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        {f.trialName}
-                    </a>
+                    {f.trialURL ? (
+                        <a
+                            href={f.trialURL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            {f.trialName}
+                        </a>
+                    ) : (
+                        f.trialName
+                    )}
                     , {f.criterionType})
                 </li>
             ))}

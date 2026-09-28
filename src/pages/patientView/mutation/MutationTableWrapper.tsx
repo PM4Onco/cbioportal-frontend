@@ -34,6 +34,7 @@ import { PatientViewPageStore } from 'pages/patientView/clinicalInformation/Pati
 import SampleNotProfiledAlert from 'shared/components/SampleNotProfiledAlert';
 import { NamespaceColumnConfig } from 'shared/components/namespaceColumns/NamespaceColumnConfig';
 import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
+import { buildWarningAlterations } from 'pages/studyView/tabs/LocalClinicalTrialsHelperFunctions/LocalCTTools';
 
 export const TABLE_FEATURE_INSTRUCTION =
     'Click on an mutation to zoom in on the gene in the IGV browser above';
@@ -296,6 +297,58 @@ export default class MutationTableWrapper extends React.Component<
                                               .OQLFilterMutation
                                         : []
                                 }
+                                localTrialWarningAgeFilters={
+                                    this.pageStore.localCTBundle.isComplete
+                                        ? this.pageStore.localCTBundle.result
+                                              .aggregateFilters.ageFilter
+                                        : []
+                                }
+                                localTrialWarningMolecularFilters={
+                                    this.pageStore.localCTBundle.isComplete
+                                        ? [
+                                              ...this.pageStore.localCTBundle
+                                                  .result.aggregateFilters
+                                                  .OQLFilterMutation,
+                                              ...this.pageStore.localCTBundle
+                                                  .result.aggregateFilters
+                                                  .OQLFilterCNA,
+                                              ...this.pageStore.localCTBundle
+                                                  .result.aggregateFilters
+                                                  .OQLFilterSV,
+                                          ]
+                                        : []
+                                }
+                                localTrialWarningClinicalFilters={
+                                    this.pageStore.localCTBundle.isComplete
+                                        ? this.pageStore.localCTBundle.result
+                                              .aggregateFilters.clinicalFilter
+                                        : []
+                                }
+                                localTrialWarningClinicalData={[
+                                    ...(this.pageStore.clinicalDataPatient
+                                        .isComplete
+                                        ? this.pageStore.clinicalDataPatient
+                                              .result
+                                        : []),
+                                    ...(this.pageStore.clinicalDataForSamples
+                                        .isComplete
+                                        ? this.pageStore.clinicalDataForSamples
+                                              .result
+                                        : []),
+                                ]}
+                                localTrialWarningAlterations={buildWarningAlterations(
+                                    this.pageStore.mutationData.isComplete
+                                        ? this.pageStore.mutationData.result
+                                        : [],
+                                    this.pageStore.discreteCNAData.isComplete
+                                        ? this.pageStore.discreteCNAData.result
+                                        : [],
+                                    this.pageStore.structuralVariantData
+                                        .isComplete
+                                        ? this.pageStore.structuralVariantData
+                                              .result
+                                        : []
+                                )}
                                 alleleFreqHeaderRender={
                                     this.props.alleleFreqHeaderRender
                                 }

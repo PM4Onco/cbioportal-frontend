@@ -7,7 +7,7 @@ import {
     MutationTableColumnType,
 } from 'shared/components/mutationTable/MutationTable';
 import SampleManager from '../SampleManager';
-import { Mutation } from 'cbioportal-ts-api-client';
+import { ClinicalData, Mutation } from 'cbioportal-ts-api-client';
 import AlleleCountColumnFormatter from 'shared/components/mutationTable/column/AlleleCountColumnFormatter';
 import AlleleFreqColumnFormatter from './column/AlleleFreqColumnFormatter';
 import TumorColumnFormatter from './column/TumorColumnFormatter';
@@ -26,8 +26,17 @@ import _ from 'lodash';
 import { createMutationNamespaceColumns } from 'shared/components/mutationTable/MutationTableUtils';
 import { getServerConfig } from 'config/config';
 import { adjustVisibility } from 'shared/components/alterationsTableUtils';
-import { OQLFilter } from 'pages/studyView/tabs/LocalClinicalTrialsHelperFunctions/LocalCTInterfaces';
-import { getMatchingInclusionMutationFilters } from 'pages/studyView/tabs/LocalClinicalTrialsHelperFunctions/LocalCTTools';
+import {
+    AgeFilter,
+    Alteration,
+    ClinicalFilter,
+    OQLFilter,
+} from 'pages/studyView/tabs/LocalClinicalTrialsHelperFunctions/LocalCTInterfaces';
+import {
+    getMatchingInclusionMutationFilters,
+    getPatientAgeFromClinicalData,
+    getTrialWarningsByTrialName,
+} from 'pages/studyView/tabs/LocalClinicalTrialsHelperFunctions/LocalCTTools';
 import { LocalTrialsCell } from 'pages/patientView/LocalCT/LocalCTMouseover';
 
 export interface IPatientViewMutationTableProps extends IMutationTableProps {
@@ -43,6 +52,11 @@ export interface IPatientViewMutationTableProps extends IMutationTableProps {
     existsSomeMutationWithAscnProperty: { [property: string]: boolean };
     alleleFreqHeaderRender?: (name: string) => JSX.Element;
     localTrialMutationFilters?: OQLFilter[];
+    localTrialWarningAgeFilters?: AgeFilter[];
+    localTrialWarningMolecularFilters?: OQLFilter[];
+    localTrialWarningClinicalFilters?: ClinicalFilter[];
+    localTrialWarningClinicalData?: ClinicalData[];
+    localTrialWarningAlterations?: Alteration[];
 }
 
 export const defaultAlleleFrequencyHeaderTooltip = (
@@ -130,7 +144,32 @@ export default class PatientViewMutationTable extends MutationTable<
                     return <div />;
                 }
 
-                return (LocalTrialsCell as any)({ filters: matches });
+                const patientId = mutations[0]?.patientId;
+                const clinicalData =
+                    this.props.localTrialWarningClinicalData ?? [];
+                return (LocalTrialsCell as any)({
+                    filters: matches,
+                    warningsByTrialName: patientId
+                        ? getTrialWarningsByTrialName({
+                              patientId,
+                              patientAge: getPatientAgeFromClinicalData(
+                                  clinicalData,
+                                  patientId
+                              ),
+                              ageFilter:
+                                  this.props.localTrialWarningAgeFilters ?? [],
+                              molecularFilters:
+                                  this.props
+                                      .localTrialWarningMolecularFilters ?? [],
+                              clinicalFilters:
+                                  this.props.localTrialWarningClinicalFilters ??
+                                  [],
+                              clinicalData,
+                              alterations:
+                                  this.props.localTrialWarningAlterations ?? [],
+                          })
+                        : {},
+                });
             },
 
             download: (mutations: Mutation[]) => {

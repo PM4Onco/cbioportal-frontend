@@ -10,6 +10,7 @@ import {
     LocalCTBundle,
     TrialFilters,
     FilterSet,
+    LocalTrialWarningContext,
 } from './LocalCTInterfaces';
 import { useEffect, useState } from 'react';
 import {
@@ -30,6 +31,7 @@ import {
     getSvData,
 } from 'pages/studyView/StudyViewComparisonUtils';
 import client from 'shared/api/cbioportalClientInstance';
+import { LocalCTValidationIssue } from './LocalCTValidation';
 
 // This function generates a warning if the patient's age does not meet the trial's age criteria.
 export function ageEligibilityNotes(
@@ -67,6 +69,123 @@ export function ageEligibilityNotes(
     }
 }
 
+function addTrialWarning(
+    warningsByTrialName: { [trialName: string]: string[] },
+    trialName: string | undefined,
+    warning: string
+) {
+    if (!trialName) return;
+    if (!warningsByTrialName[trialName]) {
+        warningsByTrialName[trialName] = [];
+    }
+    if (!warningsByTrialName[trialName].includes(warning)) {
+        warningsByTrialName[trialName].push(warning);
+    }
+}
+
+function oqlFilterLabel(filter: OQLFilter): string {
+    if (filter.alterationType === 'Copy Number Alteration') {
+        return `${filter.gene}:${filter.cnaType ?? 'CNA'}`;
+    }
+
+    if (filter.alterationType === 'Structural Variant') {
+        if (filter.fusionPartner) {
+            return `${filter.gene}:${
+                filter.fusionPartner
+            }:${filter.mutationType ?? 'FUSION'}`;
+        }
+        return `${filter.gene}:${filter.mutationType ?? 'FUSION'}`;
+    }
+
+    return `${filter.gene}:${filter.proteinChange ??
+        filter.mutationType ??
+        'MUT'}`;
+}
+
+function clinicalFilterLabel(filter: ClinicalFilter): string {
+    return `Clinical:${filter.clinicalParameterId}:${
+        filter.clinicalParameterOperator
+    }:${String(filter.clinicalParameterValue)}`;
+}
+
+export function getTrialWarningsByTrialName({
+    patientId,
+    patientAge,
+    ageFilter,
+    molecularFilters,
+    clinicalFilters,
+    clinicalData,
+    alterations,
+}: LocalTrialWarningContext): { [trialName: string]: string[] } {
+    const warningsByTrialName: { [trialName: string]: string[] } = {};
+    const ageNum = patientAge ? parseInt(patientAge) : NaN;
+
+    if (!Number.isNaN(ageNum)) {
+        ageFilter.forEach(filter => {
+            if (filter.min_age !== undefined && ageNum < filter.min_age) {
+                addTrialWarning(
+                    warningsByTrialName,
+                    filter.trialName,
+                    `Below minimum age (patient age ${ageNum} < min ${filter.min_age})`
+                );
+            }
+
+            if (filter.max_age !== undefined && ageNum > filter.max_age) {
+                addTrialWarning(
+                    warningsByTrialName,
+                    filter.trialName,
+                    `Above maximum age (patient age ${ageNum} > max ${filter.max_age})`
+                );
+            }
+        });
+    }
+
+    const patientAlterations = alterations.filter(
+        alteration => alteration.patientId === patientId
+    );
+    molecularFilters
+        .filter(filter => filter.criterionType === 'excl')
+        .forEach(filter => {
+            if (
+                patientAlterations.some(alteration =>
+                    alterationMatcher(alteration, filter)
+                )
+            ) {
+                addTrialWarning(
+                    warningsByTrialName,
+                    filter.trialName,
+                    `Exclusion criterion matched: ${oqlFilterLabel(filter)}`
+                );
+            }
+        });
+
+    const patientClinicalData = clinicalData.filter(
+        datum => datum.patientId === patientId
+    );
+    clinicalFilters
+        .filter(filter => filter.criterionType === 'excl')
+        .forEach(filter => {
+            if (
+                patientClinicalData.some(
+                    datum =>
+                        datum.clinicalAttributeId.toUpperCase() ===
+                            filter.clinicalParameterId.toUpperCase() &&
+                        clinicalValueMeetsFilter(datum.value, filter)
+                )
+            ) {
+                addTrialWarning(
+                    warningsByTrialName,
+                    filter.trialName,
+                    `Exclusion criterion matched: ${clinicalFilterLabel(
+                        filter
+                    )}`
+                );
+            }
+        });
+
+    return warningsByTrialName;
+}
+
 // This function checks if a given alteration matches the criteria specified in an OQL filter, which can include mutation type, CNA status, and fusion partner.
 export function alterationLabel(a: Alteration): string {
     if (a.alterationType === 'Mutation') {
@@ -81,10 +200,56 @@ export function alterationLabel(a: Alteration): string {
     return 'FUSION';
 }
 
+export function getPatientAgeFromClinicalData(
+    clinicalData: ClinicalData[],
+    patientId: string
+): string | undefined {
+    return clinicalData.find(
+        datum =>
+            datum.patientId === patientId &&
+            datum.clinicalAttributeId.toUpperCase() === 'AGE'
+    )?.value;
+}
+
+export function buildWarningAlterations(
+    mutations: Mutation[],
+    cnaEntries: DiscreteCopyNumberData[],
+    structuralVariants: StructuralVariant[]
+): Alteration[] {
+    return [
+        ...mutations.map(
+            (mutation): Alteration => ({
+                gene: mutation.gene,
+                patientId: mutation.patientId,
+                sampleId: mutation.sampleId,
+                alterationType: 'Mutation',
+                proteinChange: mutation.proteinChange,
+                mutationType: mutation.mutationType,
+            })
+        ),
+        ...cnaEntries.map(
+            (cna): Alteration => ({
+                gene: cna.gene,
+                patientId: cna.patientId,
+                sampleId: cna.sampleId,
+                alterationType: 'Copy Number Alteration',
+                cna: cna.alteration,
+            })
+        ),
+        ...buildAlterations([], [], structuralVariants),
+    ];
+}
+
 // This function checks if a given alteration matches the criteria specified in an OQL filter, which can include mutation type, CNA status, and fusion partner.
 // It parses trial inclusion/exclusion criteria into OQL-like tokens:
 // examples: "KRAS:MUT", "BRAF:V600E", "CCNE1:AMP"
-export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
+export interface FilterSetWithIssues extends FilterSet {
+    parseIssues: LocalCTValidationIssue[];
+}
+
+export function getFiltersFromTrials(
+    trials: clinicalTrial[] | null
+): FilterSetWithIssues {
     if (!trials) {
         return {
             hugoFilter: [] as string[],
@@ -93,8 +258,11 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
             OQLFilterSV: [] as OQLFilter[],
             clinicalFilter: [] as ClinicalFilter[],
             ageFilter: [] as AgeFilter[],
+            parseIssues: [],
         };
     }
+
+    const parseIssues: LocalCTValidationIssue[] = [];
 
     const allHugoSymbols = new Set<string>();
 
@@ -135,7 +303,9 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
         let current = '';
         let escaped = false;
 
-        for (const ch of input) {
+        const chars = input.split('');
+        for (let i = 0; i < chars.length; i++) {
+            const ch = chars[i];
             if (escaped) {
                 current += ch;
                 escaped = false;
@@ -166,6 +336,16 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
         const parts = splitOnUnescapedColon(token).map(p => p.trim());
 
         if (parts.length < 5 || parts[0].toLowerCase() !== 'clinical') {
+            parseIssues.push({
+                level: 'error',
+                trialName: name,
+                message: `Malformed clinical criterion "${token.substring(
+                    0,
+                    40
+                )}${
+                    token.length > 40 ? '...' : ''
+                }": expected Clinical:ParamID:dataType:operator:value.`,
+            });
             return;
         }
 
@@ -178,10 +358,25 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
             !clinicalParameterId ||
             (dataType !== 'string' && dataType !== 'number')
         ) {
+            parseIssues.push({
+                level: 'error',
+                trialName: name,
+                message: `Invalid clinical criterion "${token.substring(
+                    0,
+                    40
+                )}${
+                    token.length > 40 ? '...' : ''
+                }": invalid parameterId or dataType.`,
+            });
             return;
         }
 
         if (!['>', '>=', '<', '<=', '=', '!=', 'contains'].includes(operator)) {
+            parseIssues.push({
+                level: 'error',
+                trialName: name,
+                message: `Invalid operator "${operator}" in criterion: must be one of >, >=, <, <=, =, !=, contains.`,
+            });
             return;
         }
 
@@ -192,6 +387,11 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
             dataType === 'number' &&
             (valueRaw.trim() === '' || Number.isNaN(clinicalParameterValue))
         ) {
+            parseIssues.push({
+                level: 'error',
+                trialName: name,
+                message: `Invalid number value "${valueRaw}" for clinical criterion with number dataType.`,
+            });
             return;
         }
 
@@ -213,7 +413,8 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
         critStr: string,
         type: 'incl' | 'excl',
         name: string,
-        url: string
+        url: string,
+        sites: string[] = []
     ) => {
         // split multiple criteria in one string (comma/semicolon separated)
         const tokens = critStr
@@ -250,6 +451,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
                     criterionType: type,
                     trialName: name,
                     trialURL: url,
+                    trialSites: sites,
                 };
                 mutationMap.set(makeKey(f), f);
                 return;
@@ -263,6 +465,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
                     criterionType: type,
                     trialName: name,
                     trialURL: url,
+                    trialSites: sites,
                     cnaType: last,
                 };
                 cnaMap.set(makeKey(f), f);
@@ -278,6 +481,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
                               criterionType: type,
                               trialName: name,
                               trialURL: url,
+                              trialSites: sites,
                               fusionPartner: parts[1],
                           }
                         : {
@@ -287,6 +491,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
                               criterionType: type,
                               trialName: name,
                               trialURL: url,
+                              trialSites: sites,
                           };
 
                 svMap.set(makeKey(f), f);
@@ -298,6 +503,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
                     criterionType: type,
                     trialName: name,
                     trialURL: url,
+                    trialSites: sites,
                     proteinChange: last,
                 };
                 mutationMap.set(makeKey(f), f);
@@ -310,8 +516,13 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
         const url = (t.trialUrl as string) || 'about:blank';
         const incl = (t.inclusionCriteria as string[]) || [];
         const excl = (t.exclusionCriteria as string[]) || [];
-        incl.forEach(c => c && parseCriterionString(c, 'incl', name, url));
-        excl.forEach(c => c && parseCriterionString(c, 'excl', name, url));
+        const sites = (t.trialSites as string[]) || [];
+        incl.forEach(
+            c => c && parseCriterionString(c, 'incl', name, url, sites)
+        );
+        excl.forEach(
+            c => c && parseCriterionString(c, 'excl', name, url, sites)
+        );
     });
 
     const ageFilter = trials.map(t => {
@@ -332,6 +543,7 @@ export function getFiltersFromTrials(trials: clinicalTrial[] | null) {
         OQLFilterSV: Array.from(svMap.values()),
         clinicalFilter: Array.from(clinicalMap.values()),
         ageFilter: ageFilter,
+        parseIssues,
     };
 }
 

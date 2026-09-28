@@ -90,11 +90,18 @@ export const CTLazyTable: React.FC<Props> = ({ resultsTable }) => {
 
         {
             name: 'Matched Trial',
-            render: (m: FinalResultRow) => (
-                <a href={m.trialURL} target="_blank" rel="noopener noreferrer">
-                    {m.trial}
-                </a>
-            ),
+            render: (m: FinalResultRow) =>
+                m.trialURL ? (
+                    <a
+                        href={m.trialURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {m.trial}
+                    </a>
+                ) : (
+                    <span>{m.trial}</span>
+                ),
             sortBy: (m: FinalResultRow) => m.trial, // Placeholder for sorting
             filter: (m, filterString) =>
                 m.trial.toLowerCase().includes(filterString.toLowerCase()),
@@ -221,11 +228,18 @@ export const CTLazyTableClinicalTraitsAndBiomarkers: React.FC<PropsClinicalTrait
 
         {
             name: 'Matched Trial',
-            render: (m: FinalResultRowClinicalTraitsAndBiomarkers) => (
-                <a href={m.trialURL} target="_blank" rel="noopener noreferrer">
-                    {m.trial}
-                </a>
-            ),
+            render: (m: FinalResultRowClinicalTraitsAndBiomarkers) =>
+                m.trialURL ? (
+                    <a
+                        href={m.trialURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {m.trial}
+                    </a>
+                ) : (
+                    <span>{m.trial}</span>
+                ),
             sortBy: (m: FinalResultRowClinicalTraitsAndBiomarkers) => m.trial, // Placeholder for sorting
             filter: (m, filterString) =>
                 m.trial.toLowerCase().includes(filterString.toLowerCase()),

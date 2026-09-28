@@ -33,7 +33,12 @@ import { ISharedTherapyRecommendationData } from 'cbioportal-utils';
 import CustomDriverTierColumnFormatter from './column/CustomDriverTierColumnFormatter';
 import CustomDriverColumnFormatter from './column/CustomDriverColumnFormatter';
 import { LocalTrialsCell } from 'pages/patientView/LocalCT/LocalCTMouseover';
-import { getMatchingInclusionSvFilters } from 'pages/studyView/tabs/LocalClinicalTrialsHelperFunctions/LocalCTTools';
+import {
+    buildWarningAlterations,
+    getMatchingInclusionSvFilters,
+    getPatientAgeFromClinicalData,
+    getTrialWarningsByTrialName,
+} from 'pages/studyView/tabs/LocalClinicalTrialsHelperFunctions/LocalCTTools';
 
 export interface IStructuralVariantTableWrapperProps {
     store: PatientViewPageStore;
@@ -348,17 +353,74 @@ export default class StructuralVariantTableWrapper extends React.Component<
 
             columns.push({
                 name: 'Local Trials',
-                render: (d: StructuralVariant[]) => (
-                    <LocalTrialsCell
-                        filters={getMatchingInclusionSvFilters(
-                            d,
-                            this.props.store.localCTBundle.isComplete
-                                ? this.props.store.localCTBundle.result!
-                                      .aggregateFilters.OQLFilterSV
-                                : []
-                        )}
-                    />
-                ),
+                render: (d: StructuralVariant[]) => {
+                    const bundle = this.props.store.localCTBundle.isComplete
+                        ? this.props.store.localCTBundle.result!
+                        : undefined;
+                    const filters = getMatchingInclusionSvFilters(
+                        d,
+                        bundle?.aggregateFilters.OQLFilterSV ?? []
+                    );
+                    const patientId = d[0]?.patientId;
+                    const clinicalData = [
+                        ...(this.props.store.clinicalDataPatient.isComplete
+                            ? this.props.store.clinicalDataPatient.result
+                            : []),
+                        ...(this.props.store.clinicalDataForSamples.isComplete
+                            ? this.props.store.clinicalDataForSamples.result
+                            : []),
+                    ];
+
+                    return (
+                        <LocalTrialsCell
+                            filters={filters}
+                            warningsByTrialName={
+                                bundle && patientId
+                                    ? getTrialWarningsByTrialName({
+                                          patientId,
+                                          patientAge: getPatientAgeFromClinicalData(
+                                              clinicalData,
+                                              patientId
+                                          ),
+                                          ageFilter:
+                                              bundle.aggregateFilters.ageFilter,
+                                          molecularFilters: [
+                                              ...bundle.aggregateFilters
+                                                  .OQLFilterMutation,
+                                              ...bundle.aggregateFilters
+                                                  .OQLFilterCNA,
+                                              ...bundle.aggregateFilters
+                                                  .OQLFilterSV,
+                                          ],
+                                          clinicalFilters:
+                                              bundle.aggregateFilters
+                                                  .clinicalFilter,
+                                          clinicalData,
+                                          alterations: buildWarningAlterations(
+                                              this.props.store.mutationData
+                                                  .isComplete
+                                                  ? this.props.store
+                                                        .mutationData.result
+                                                  : [],
+                                              this.props.store.discreteCNAData
+                                                  .isComplete
+                                                  ? this.props.store
+                                                        .discreteCNAData.result
+                                                  : [],
+                                              this.props.store
+                                                  .structuralVariantData
+                                                  .isComplete
+                                                  ? this.props.store
+                                                        .structuralVariantData
+                                                        .result
+                                                  : []
+                                          ),
+                                      })
+                                    : {}
+                            }
+                        />
+                    );
+                },
                 download: () => '',
                 sortBy: (d: StructuralVariant[]) =>
                     getMatchingInclusionSvFilters(
