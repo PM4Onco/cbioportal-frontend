@@ -1,0 +1,211 @@
+{
+	"studies": [
+		{
+			"trialName": "BEL-015 (MK-6482-015): Belzutifan (HIF-2α Inhibitor) Mono",
+			"trialUrl": "https://www.quickqueck.de/detail/1941/",
+            "trialID": "NCT04924075",
+            "trialSites": [
+                "CCCF, UKF Freiburg"
+            ],
+			"inclusionCriteria": [
+				"EPAS1:MUT",
+				"FH:MUT",
+				"SDHA:MUT",
+				"SDHB:MUT",
+				"SDHC:MUT",
+				"SDHD:MUT",
+				"SDHAF2:MUT",
+				"EGLN1:MUT",
+				"EGLN2:MUT",
+				"MDH1:MUT",
+				"MDH2:MUT",
+				"ELOC:MUT"
+			],
+			"exclusionCriteria": [],
+			"min_age": 12
+		},
+		{
+			"trialName":"ECI830-Monotherapie (CDK2-Inh.) für fortgeschrittene solide Tumore",
+			"trialUrl":"https://www.quickqueck.de/detail/3812/",
+            "trialID": "NCT06726148",
+            "trialSites": [
+                "CCCF, UKF Freiburg"
+            ],
+			"inclusionCriteria":[
+				"CCNE1:AMP"
+			],
+			"exclusionCriteria":[],
+			"min_age": 18
+		},
+		{
+			"trialName": "IMA402-101: Bispezifisches PRAME-gerichtetes T-Zell Rezeptor aktivierendes Molekül in (HLA-A*02:01)",
+			"trialUrl": "https://www.quickqueck.de/detail/4752/",
+            "trialID": "NCT05958121",
+            "trialSites": [
+                "MCC, Mannheim"
+            ],
+			"inclusionCriteria": [
+				"Clinical:HLA:string:contains:A*02\\:01"
+			],
+			"exclusionCriteria": []
+		},
+        {
+            "trialName": "KRASCENDO 3: Divarasib (KRAS-G12C-i) vs. Pembrolizumab od. Nivolumab od. Beobachtung",
+			"trialUrl": "https://quickqueck.de/detail/4684",
+            "trialID": "NCT07541170",
+            "trialSites": [
+                "UK OWL, Bielefeld-Bethel"
+            ],
+			"inclusionCriteria": [
+				"KRAS:G12D"
+			],
+			"exclusionCriteria": [],
+			"min_age": 18
+        },
+        {
+            "trialName": "COGNITION-GUIDE Arm 1: Atezolizumab (Immune Evasion)",
+			"trialUrl": "https://quickqueck.de/detail/1811",
+            "trialID": "NCT05332561",
+            "trialSites": [
+                "CCCTS, Tübingen",
+                "CCCU, Ulm",
+                "NCT Heidelberg, UKHD"
+            ],
+			"inclusionCriteria": [
+				"Clinical:CVR_TMB_SCORE:number:>:10",
+                "Clinical:MSI_TYPE:string:=:Instable",
+                "CD274:AMP"
+			],
+			"exclusionCriteria": [],
+			"min_age": 18
+        },
+        {
+            "trialName": "COGNITION-GUIDE Arm 2: Inavolisib (PI3K-Inhibitor)",
+			"trialUrl": "https://quickqueck.de/detail/1812",
+            "trialID": "NCT05332561",
+            "trialSites": [
+                "CCCTS, Tübingen",
+                "CCCU, Ulm",
+                "NCT Heidelberg, UKHD"
+            ],
+			"inclusionCriteria": [
+				"PIK3CA:MUT"
+			],
+			"exclusionCriteria": [],
+			"min_age": 18
+        },
+        {
+            "trialName": "COGNITION-GUIDE Arm 3: Inavolisib (PI3K-Inhibitor)",
+			"trialUrl": "https://quickqueck.de/detail/1813",
+            "trialID": "NCT05332561",
+            "trialSites": [
+                "CCCTS, Tübingen",
+                "CCCU, Ulm",
+                "NCT Heidelberg, UKHD"
+            ],
+			"inclusionCriteria": [
+				"PTEN:MUT",
+                "INPP4B:MUT",
+                "PIK3R1:MUT",
+                "PIK3R2:MUT",
+                "PIK3R3:MUT",
+                "PPP2R1A:MUT"
+			],
+			"exclusionCriteria": [],
+			"min_age": 18
+        },
+        {
+            "trialName": "COGNITION-GUIDE Arm 4: Olaparib (PARP-Inhibitor, DNA-Repair)",
+			"trialUrl": "https://quickqueck.de/detail/1814",
+            "trialID": "NCT05332561",
+            "trialSites": [
+                "CCCTS, Tübingen",
+                "CCCU, Ulm",
+                "NCT Heidelberg, UKHD"
+            ],
+			"inclusionCriteria": [
+				"BRCA1:MUT",
+                "BRCA2:MUT",
+                "PALB2:MUT"
+			],
+			"exclusionCriteria": [],
+			"min_age": 18
+        },
+        {
+            "trialName": "COGNITION-GUIDE Arm 6: Trastuzumab/Pertuzumab (ERBBB antibody)",
+			"trialUrl": "https://quickqueck.de/detail/1816",
+            "trialID": "NCT05332561",
+            "trialSites": [
+                "CCCTS, Tübingen",
+                "CCCU, Ulm",
+                "NCT Heidelberg, UKHD"
+            ],
+			"inclusionCriteria": [
+				"ERBB2:MUT"
+			],
+			"exclusionCriteria": [],
+			"min_age": 18
+        },
+        {
+            "trialName": "BO44426: GDC-6036 (KRAS G12C Inhibitor) + Pembrolizumab",
+			"trialUrl": "https://quickqueck.de/detail/2044",
+            "trialID": "NCT05789082",
+            "trialSites": [
+                "Universitätsspital Basel"
+            ],
+			"inclusionCriteria": [
+				"KRAS:G12C"
+			],
+			"exclusionCriteria": [],
+			"min_age": 18
+        },
+        {
+            "trialName": "Basket of Baskets (BoB) Module 2 Futibatinib",
+			"trialUrl": "https://quickqueck.de/detail/737",
+            "trialID": "NCT03767075",
+            "trialSites": [
+                "Universitätsspital Basel"
+            ],
+			"inclusionCriteria": [
+                "FGFR1:MUT",
+                "FGFR2:MUT",
+                "FGFR3:MUT",
+                "FGFR4:MUT",
+				"FGFR1:AMP",
+                "FGFR2:AMP",
+                "FGFR3:AMP"
+			],
+			"exclusionCriteria": [],
+			"min_age": 18
+        },
+        {
+            "trialName": "CodeBreaK 202: Sotorasib Platinum-Doublette vs. Pembrolizumab Platinum-Doublette",
+			"trialUrl": "https://quickqueck.de/detail/4028",
+            "trialID": "NCT05920356",
+            "trialSites": [
+                "CCC-N, G-CCC Göttingen",
+                "CCCZ, Zürich"
+            ],
+			"inclusionCriteria": [
+                "KRAS:G12C"
+			],
+			"exclusionCriteria": [],
+			"min_age": 18
+        },
+        {
+            "trialName": "FIREFLY-1: DAY101 (pan-RAF Inh.) in soliden Tumoren mit aktivierender RAF Alteration",
+			"trialUrl": "https://quickqueck.de/detail/3086",
+            "trialID": "NCT04775485",
+            "trialSites": [
+                "CCCZ, Zürich"
+            ],
+			"inclusionCriteria": [
+                "ARAF:FUSION",
+                "BRAF:FUSION",
+                "RAF1:FUSION"
+			],
+			"exclusionCriteria": [],
+			"max_age": 25
+        }
+	]
+}
