@@ -82,11 +82,16 @@ export class CollapsibleTreeSelect extends React.Component<
         const isCollapsed = this.collapsedGroups.has(entry.id);
         const isSelected = selectedIds.has(entry.id);
         const count = countMap ? this.countForEntry(entry) : null;
+        const isDisabled = count === 0;
 
         const countBadge =
             count !== null ? (
                 <span
-                    style={{ marginLeft: 6, color: '#888', fontSize: '0.8em' }}
+                    style={{
+                        marginLeft: 6,
+                        color: isDisabled ? '#bbb' : '#888',
+                        fontSize: '0.8em',
+                    }}
                 >
                     ({count})
                 </span>
@@ -100,20 +105,29 @@ export class CollapsibleTreeSelect extends React.Component<
                         alignItems: 'center',
                         padding: '4px 8px',
                         paddingLeft: 8 + depth * 16,
-                        cursor: 'pointer',
+                        cursor: isDisabled ? 'default' : 'pointer',
                         userSelect: 'none',
                         background: isSelected ? '#e8f0fe' : undefined,
+                        opacity: isDisabled ? 0.5 : 1,
+                        position: 'relative',
                     }}
-                    onMouseEnter={e =>
-                        (e.currentTarget.style.background = isSelected
-                            ? '#d2e3fc'
-                            : '#f5f5f5')
+                    title={
+                        isDisabled
+                            ? 'No matching studies with current filters'
+                            : undefined
                     }
-                    onMouseLeave={e =>
-                        (e.currentTarget.style.background = isSelected
+                    onMouseEnter={e => {
+                        if (!isDisabled) {
+                            e.currentTarget.style.background = isSelected
+                                ? '#d2e3fc'
+                                : '#f5f5f5';
+                        }
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.style.background = isSelected
                             ? '#e8f0fe'
-                            : '')
-                    }
+                            : '';
+                    }}
                 >
                     {hasChildren && (
                         <span
@@ -146,17 +160,20 @@ export class CollapsibleTreeSelect extends React.Component<
                             style={{
                                 margin: 0,
                                 fontWeight: hasChildren ? 600 : 400,
-                                cursor: 'pointer',
+                                cursor: isDisabled ? 'default' : 'pointer',
                                 fontSize: '0.9em',
                                 display: 'flex',
                                 alignItems: 'center',
                             }}
-                            onClick={() => onToggle(entry.id)}
+                            onClick={() => !isDisabled && onToggle(entry.id)}
                         >
                             <input
                                 type="checkbox"
                                 checked={isSelected}
-                                onChange={() => onToggle(entry.id)}
+                                onChange={() =>
+                                    !isDisabled && onToggle(entry.id)
+                                }
+                                disabled={isDisabled}
                                 style={{ marginRight: 6 }}
                                 onClick={e => e.stopPropagation()}
                             />
@@ -169,7 +186,7 @@ export class CollapsibleTreeSelect extends React.Component<
                             style={{
                                 fontWeight: 600,
                                 fontSize: '0.9em',
-                                color: '#333',
+                                color: isDisabled ? '#bbb' : '#333',
                                 display: 'flex',
                                 alignItems: 'center',
                             }}

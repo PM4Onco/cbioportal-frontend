@@ -28,6 +28,9 @@ type QuickqueckTabProps = {
     structuralVariants?: StructuralVariant[];
 };
 
+/** Filter facets that a study-level predicate can be asked to ignore. */
+type QuickqueckFacet = 'center' | 'entity' | 'phase' | 'therapyLine';
+
 @observer
 export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
     @observable private data: QuickqueckData | null = null;
@@ -39,7 +42,7 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
     @observable private selectedPhases = new Set<string>();
     @observable private selectedTherapyLines = new Set<number>();
     @observable private patientAge: number | null = null;
-    @observable private mutationQuery = '';
+    @observable private selectedMutations = new Set<string>();
     @observable private mutationDropdownOpen = false;
 
     @observable filterByPatientMutations = true;
@@ -71,75 +74,89 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
         }
     }
 
-    @computed get filteredStudies(): QuickqueckStudy[] {
-        if (!this.data) return [];
+    /**
+     * Study-level predicate for all active filters. `ignoreFacet` skips one
+     * facet, which is what makes the other facets' counts update live.
+     */
+    private studyMatchesFilters(
+        s: QuickqueckStudy,
+        ignoreFacet: QuickqueckFacet | null
+    ): boolean {
+        if (!this.data) return false;
         const { ageRangeMap } = this.data;
 
         const expandedEntityIds = this.expandedSelectedEntityIds;
-        const geneList = this.genomicSuggestions.map(suggestion =>
+        const patientGeneList = this.genomicSuggestions.map(suggestion =>
             suggestion.trim()
         );
 
-        return this.data.studies.filter(s => {
-            if (
-                this.selectedCenters.size > 0 &&
-                !this.selectedCenters.has(s.group)
-            ) {
-                return false;
-            }
+        if (
+            ignoreFacet !== 'center' &&
+            this.selectedCenters.size > 0 &&
+            !this.selectedCenters.has(s.group)
+        ) {
+            return false;
+        }
 
-            if (
-                this.selectedEntities.size > 0 &&
-                !expandedEntityIds.has(s.entity)
-            ) {
-                return false;
-            }
+        if (
+            ignoreFacet !== 'entity' &&
+            this.selectedEntities.size > 0 &&
+            !expandedEntityIds.has(s.entity)
+        ) {
+            return false;
+        }
 
-            if (this.selectedPhases.size > 0) {
-                const phaseMatches =
-                    s.phase !== null &&
-                    Array.from(this.selectedPhases).some(label =>
-                        PHASE_FILTER_MAP[label]?.has(s.phase!)
-                    );
-                if (!phaseMatches) return false;
-            }
+        if (ignoreFacet !== 'phase' && this.selectedPhases.size > 0) {
+            const phaseMatches =
+                s.phase !== null &&
+                Array.from(this.selectedPhases).some(label =>
+                    PHASE_FILTER_MAP[label]?.has(s.phase!)
+                );
+            if (!phaseMatches) return false;
+        }
 
-            if (
-                this.selectedTherapyLines.size > 0 &&
-                !this.selectedTherapyLines.has(s.therapy_line)
-            ) {
-                return false;
-            }
+        if (
+            ignoreFacet !== 'therapyLine' &&
+            this.selectedTherapyLines.size > 0 &&
+            !this.selectedTherapyLines.has(s.therapy_line)
+        ) {
+            return false;
+        }
 
-            if (this.patientAge !== null) {
-                const range = ageRangeMap[s.age_group];
-                if (range) {
-                    if (range.min !== null && this.patientAge < range.min) {
-                        return false;
-                    }
-                    if (range.max !== null && this.patientAge > range.max) {
-                        return false;
-                    }
+        if (this.patientAge !== null) {
+            const range = ageRangeMap[s.age_group];
+            if (range) {
+                if (range.min !== null && this.patientAge < range.min) {
+                    return false;
+                }
+                if (range.max !== null && this.patientAge > range.max) {
+                    return false;
                 }
             }
+        }
 
-            const criteria = s.criteria ?? '';
-            if (
-                this.filterByPatientMutations &&
-                geneList.length > 0 &&
-                !geneList.some(suggestion => criteria.includes(suggestion))
-            ) {
-                return false;
-            }
+        const criteria = s.criteria ?? '';
+        if (
+            this.filterByPatientMutations &&
+            patientGeneList.length > 0 &&
+            !patientGeneList.some(gene => criteria.includes(gene))
+        ) {
+            return false;
+        }
 
-            if (this.mutationQuery.trim()) {
-                return s.criteria
-                    .toLowerCase()
-                    .includes(this.mutationQuery.toLowerCase());
-            }
+        // Filter by selected mutations from the dropdown (OR logic: at least one must match)
+        if (this.selectedMutations.size > 0) {
+            return Array.from(this.selectedMutations).some(mutation =>
+                criteria.includes(mutation)
+            );
+        }
 
-            return true;
-        });
+        return true;
+    }
+
+    @computed get filteredStudies(): QuickqueckStudy[] {
+        if (!this.data) return [];
+        return this.data.studies.filter(s => this.studyMatchesFilters(s, null));
     }
 
     /** Selecting a parent entity also matches every descendant entity. */
@@ -164,20 +181,29 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
         return expandedEntityIds;
     }
 
-    @computed get centerCountMap(): Record<number, number> {
+    /**
+     * Faceted counts: for each option of one facet, the number of studies
+     * matching all active filters except that facet's own selections.
+     * The other facet variants below follow the same pattern.
+     */
+    @computed get centerFacetCountMap(): Record<number, number> {
         if (!this.data) return {};
         const map: Record<number, number> = {};
         for (const s of this.data.studies) {
-            map[s.group] = (map[s.group] ?? 0) + 1;
+            if (this.studyMatchesFilters(s, 'center')) {
+                map[s.group] = (map[s.group] ?? 0) + 1;
+            }
         }
         return map;
     }
 
-    @computed get entityCountMap(): Record<number, number> {
+    @computed get entityFacetCountMap(): Record<number, number> {
         if (!this.data) return {};
         const map: Record<number, number> = {};
         for (const s of this.data.studies) {
-            map[s.entity] = (map[s.entity] ?? 0) + 1;
+            if (this.studyMatchesFilters(s, 'entity')) {
+                map[s.entity] = (map[s.entity] ?? 0) + 1;
+            }
         }
         return map;
     }
@@ -200,14 +226,18 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
             .map(({ label, idx }) => ({ id: idx, name: label }));
     }
 
-    @computed get phaseCountMap(): Record<number, number> {
+    @computed get phaseFacetCountMap(): Record<number, number> {
         if (!this.data) return {};
         const map: Record<number, number> = {};
-        PHASE_FILTER_OPTIONS.forEach((label, idx) => {
-            map[idx] = this.data!.studies.filter(
-                s => s.phase !== null && PHASE_FILTER_MAP[label]?.has(s.phase!)
-            ).length;
-        });
+        PHASE_FILTER_OPTIONS.forEach((_, idx) => (map[idx] = 0));
+        for (const s of this.data.studies) {
+            if (!this.studyMatchesFilters(s, 'phase') || s.phase === null) {
+                continue;
+            }
+            PHASE_FILTER_OPTIONS.forEach((label, idx) => {
+                if (PHASE_FILTER_MAP[label]?.has(s.phase!)) map[idx]++;
+            });
+        }
         return map;
     }
 
@@ -229,11 +259,13 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
             .sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    @computed get therapyLineCountMap(): Record<number, number> {
+    @computed get therapyLineFacetCountMap(): Record<number, number> {
         if (!this.data) return {};
         const map: Record<number, number> = {};
         for (const s of this.data.studies) {
-            map[s.therapy_line] = (map[s.therapy_line] ?? 0) + 1;
+            if (this.studyMatchesFilters(s, 'therapyLine')) {
+                map[s.therapy_line] = (map[s.therapy_line] ?? 0) + 1;
+            }
         }
         return map;
     }
@@ -292,6 +324,25 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
         return Array.from(suggestions).sort();
     }
 
+    /** Mutations and genes that are found in at least one trial's criteria text. */
+    @computed get availableMutationsInTrials(): string[] {
+        if (!this.data) return [];
+
+        const allMutationsInTrials = new Set<string>();
+
+        for (const study of this.data.studies) {
+            const criteria = study.criteria ?? '';
+            // For each patient mutation, check if it appears in the trial
+            for (const mutation of this.genomicSuggestions) {
+                if (criteria.includes(mutation)) {
+                    allMutationsInTrials.add(mutation);
+                }
+            }
+        }
+
+        return Array.from(allMutationsInTrials).sort();
+    }
+
     @action.bound
     private onCenterToggle(id: number) {
         this.selectedCenters = this.toggleSelectedId(this.selectedCenters, id);
@@ -338,7 +389,7 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
         this.selectedTherapyLines = new Set();
         this.patientAge = null;
         this.filterByPatientMutations = false;
-        this.mutationQuery = '';
+        this.selectedMutations = new Set();
     }
 
     private toggleSelectedId(
@@ -358,7 +409,7 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
             this.selectedPhases.size > 0 ||
             this.selectedTherapyLines.size > 0 ||
             this.patientAge !== null ||
-            this.mutationQuery.trim() !== '';
+            this.selectedMutations.size > 0;
 
         const total = this.data?.studies.length ?? 0;
         const shown = this.filteredStudies.length;
@@ -397,7 +448,7 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
                             }
                             selectedIds={this.selectedCenters}
                             onToggle={this.onCenterToggle}
-                            countMap={this.centerCountMap}
+                            countMap={this.centerFacetCountMap}
                         />
                     )}
                 </div>
@@ -425,7 +476,7 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
                             }
                             selectedIds={this.selectedEntities}
                             onToggle={this.onEntityToggle}
-                            countMap={this.entityCountMap}
+                            countMap={this.entityFacetCountMap}
                         />
                     )}
                 </div>
@@ -452,7 +503,7 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
                         }
                         selectedIds={this.selectedTherapyLines}
                         onToggle={this.onTherapyLineToggle}
-                        countMap={this.therapyLineCountMap}
+                        countMap={this.therapyLineFacetCountMap}
                     />
                 </div>
                 <div
@@ -476,7 +527,7 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
                         presentIds={new Set(this.phaseEntries.map(e => e.id))}
                         selectedIds={this.selectedPhaseIndices}
                         onToggle={this.onPhaseToggle}
-                        countMap={this.phaseCountMap}
+                        countMap={this.phaseFacetCountMap}
                     />
                 </div>
                 <div
@@ -557,6 +608,9 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
     }
 
     private renderMutationFilter() {
+        const hasAvailableMutations =
+            this.availableMutationsInTrials.length > 0;
+
         return (
             <div
                 style={{
@@ -573,61 +627,109 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
                         fontSize: '0.85em',
                     }}
                 >
-                    Mutation
+                    Mutation Filter
                 </label>
-                <div
-                    style={{
-                        display: 'flex',
-                        border: '1px solid #ccc',
-                        borderRadius: 4,
-                        background: '#fff',
-                        minWidth: 180,
-                    }}
-                >
-                    <input
-                        type="text"
-                        placeholder="e.g. KRAS G12C"
-                        value={this.mutationQuery}
-                        onChange={action(
-                            (e: React.ChangeEvent<HTMLInputElement>) => {
-                                this.mutationQuery = e.target.value;
-                                this.mutationDropdownOpen = true;
-                            }
-                        )}
-                        onFocus={action(() => {
-                            this.mutationDropdownOpen = true;
-                        })}
+                {!hasAvailableMutations ? (
+                    <div
                         style={{
-                            flex: 1,
-                            border: 'none',
-                            outline: 'none',
                             padding: '6px 8px',
-                            fontSize: '0.95em',
+                            fontSize: '0.9em',
+                            color: '#999',
+                            border: '1px solid #ddd',
                             borderRadius: 4,
+                            background: '#f9f9f9',
                         }}
-                    />
-                    {this.genomicSuggestions.length > 0 && (
-                        <button
-                            onClick={action(() => {
-                                this.mutationDropdownOpen = !this
-                                    .mutationDropdownOpen;
-                            })}
-                            style={{
-                                border: 'none',
-                                background: 'transparent',
-                                cursor: 'pointer',
-                                padding: '0 8px',
-                                color: '#999',
-                                fontSize: '0.8em',
-                            }}
-                        >
-                            ▼
-                        </button>
-                    )}
-                </div>
-                {this.mutationDropdownOpen &&
-                    this.genomicSuggestions.length > 0 &&
-                    this.renderGenomicSuggestions()}
+                    >
+                        No Patient Mutations found in any QuickQueck Trial
+                    </div>
+                ) : (
+                    <>
+                        {/* Selected mutations displayed as cards */}
+                        {this.selectedMutations.size > 0 && (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: '6px',
+                                    marginBottom: '6px',
+                                }}
+                            >
+                                {Array.from(this.selectedMutations).map(
+                                    mutation => (
+                                        <div
+                                            key={mutation}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                padding: '4px 8px',
+                                                background: '#e3f2fd',
+                                                border: '1px solid #90caf9',
+                                                borderRadius: 4,
+                                                fontSize: '0.9em',
+                                            }}
+                                        >
+                                            <span>{mutation}</span>
+                                            <button
+                                                type="button"
+                                                onClick={action(() => {
+                                                    const next = new Set(
+                                                        this.selectedMutations
+                                                    );
+                                                    next.delete(mutation);
+                                                    this.selectedMutations = next;
+                                                })}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    padding: 0,
+                                                    color: '#1976d2',
+                                                    fontSize: '1.2em',
+                                                    lineHeight: 1,
+                                                }}
+                                                title="Remove filter"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        )}
+
+                        {/* Dropdown button */}
+                        <div style={{ position: 'relative' }}>
+                            <button
+                                type="button"
+                                onClick={action(() => {
+                                    this.mutationDropdownOpen = !this
+                                        .mutationDropdownOpen;
+                                })}
+                                style={{
+                                    padding: '6px 12px',
+                                    border: '1px solid #ccc',
+                                    borderRadius: 4,
+                                    background: '#fff',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9em',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    minWidth: 150,
+                                }}
+                            >
+                                Add mutation{' '}
+                                {this.selectedMutations.size > 0 &&
+                                    `(${this.selectedMutations.size})`}
+                                <span style={{ marginLeft: 'auto' }}>▼</span>
+                            </button>
+
+                            {this.mutationDropdownOpen &&
+                                this.renderGenomicSuggestions()}
+                        </div>
+                    </>
+                )}
             </div>
         );
     }
@@ -657,41 +759,57 @@ export default class QuickqueckTab extends React.Component<QuickqueckTabProps> {
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         maxHeight: 240,
                         overflowY: 'auto',
-                        minWidth: 180,
+                        minWidth: 200,
                         marginTop: 2,
                     }}
                 >
-                    {this.genomicSuggestions
-                        .filter(
-                            s =>
-                                !this.mutationQuery ||
-                                s
-                                    .toLowerCase()
-                                    .includes(this.mutationQuery.toLowerCase())
-                        )
-                        .map(suggestion => (
-                            <div
-                                key={suggestion}
-                                onClick={action(() => {
-                                    this.mutationQuery = suggestion;
-                                    this.mutationDropdownOpen = false;
-                                })}
-                                style={{
-                                    padding: '6px 12px',
-                                    cursor: 'pointer',
-                                    fontSize: '0.9em',
-                                }}
-                                onMouseEnter={e =>
-                                    (e.currentTarget.style.background =
-                                        '#f5f5f5')
+                    {this.availableMutationsInTrials.map(mutation => (
+                        <div
+                            key={mutation}
+                            onClick={action(() => {
+                                const next = new Set(this.selectedMutations);
+                                if (next.has(mutation)) {
+                                    next.delete(mutation);
+                                } else {
+                                    next.add(mutation);
                                 }
-                                onMouseLeave={e =>
-                                    (e.currentTarget.style.background = '')
-                                }
-                            >
-                                {suggestion}
-                            </div>
-                        ))}
+                                this.selectedMutations = next;
+                            })}
+                            style={{
+                                padding: '6px 12px',
+                                cursor: 'pointer',
+                                fontSize: '0.9em',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: this.selectedMutations.has(mutation)
+                                    ? '#e3f2fd'
+                                    : '#fff',
+                            }}
+                            onMouseEnter={e =>
+                                (e.currentTarget.style.background = this.selectedMutations.has(
+                                    mutation
+                                )
+                                    ? '#bbdefb'
+                                    : '#f5f5f5')
+                            }
+                            onMouseLeave={e =>
+                                (e.currentTarget.style.background = this.selectedMutations.has(
+                                    mutation
+                                )
+                                    ? '#e3f2fd'
+                                    : '#fff')
+                            }
+                        >
+                            <input
+                                type="checkbox"
+                                checked={this.selectedMutations.has(mutation)}
+                                onChange={() => {}}
+                                style={{ cursor: 'pointer', margin: 0 }}
+                            />
+                            {mutation}
+                        </div>
+                    ))}
                 </div>
             </>
         );
